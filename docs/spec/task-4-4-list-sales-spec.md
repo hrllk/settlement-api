@@ -13,7 +13,7 @@ public class ListCreatorSalesUseCase {
         accessPolicy.requireSelfOrAdmin(actor, creatorId);
 
         SettlementPeriod period = SettlementPeriod.ofDateRange(from, to);
-        List<SaleRecord> sales = salePort.findSalesByCreator(          // SettlementQueryPort가 아니다
+        List<SaleRecord> sales = salePort.findSalesForListing(          // SalesQueryPort가 아니다
                 period.fromInclusive(), period.toExclusive(), creatorId);
 
         List<CancelData> cancels = dataPort.findCancelsBySaleIds(
@@ -30,7 +30,7 @@ public class ListCreatorSalesUseCase {
 }
 ```
 
-## `SettlementQueryPort`가 아니라 `SaleQueryPort`로 조회한다
+## `SalesQueryPort`가 아니라 `SalesQueryPort`로 조회한다
 
 응답의 `SaleItem`에는 `courseId`가 들어간다. 그런데 Task 3의 `SaleData`에는 `courseId`가 없다.
 
@@ -38,9 +38,9 @@ public class ListCreatorSalesUseCase {
 public record SaleData(String saleId, String creatorId, long amount, Instant paidAt) { }
 ```
 
-Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 **4.2의 `SaleQueryPort.findSalesByCreator`를 쓴다.** 그쪽 `SaleRecord`가 `courseId`를 갖는다. 목록은 애그리게이트를 쓰지 않는다 — N개를 로딩하면 각각 자기 취소를 딸고 와 N+1이 된다.
+Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 **4.2의 `SalesQueryPort.findSalesForListing`를 쓴다.** 그쪽 `SaleRecord`가 `courseId`를 갖는다. 목록은 애그리게이트를 쓰지 않는다 — N개를 로딩하면 각각 자기 취소를 딸고 와 N+1이 된다.
 
-취소는 여전히 `SettlementQueryPort.findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
+취소는 여전히 `SalesQueryPort.findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
 
 ## 환불 상태에 기간 필터를 적용하지 않는다
 
@@ -74,7 +74,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 
 1. `sale-5`를 1월 구간으로 조회해도 환불 상태가 `FULL`이다.
 2. `findCancelsBySaleIds`를 쓴다. `findCancels`로 환불 상태를 만들지 않는다.
-2-b. 판매 조회는 `SaleQueryPort.findSalesByCreator`를 쓴다. `courseId`가 응답에 담긴다. 애그리게이트를 로딩하지 않는다.
+2-b. 판매 조회는 `SalesQueryPort.findSalesForListing`를 쓴다. `courseId`가 응답에 담긴다. 애그리게이트를 로딩하지 않는다.
 3. `2025-13` 같은 잘못된 값이 `InvalidSettlementPeriod`를 던진다.
 4. CREATOR가 타인 목록을 조회하면 `ActorAccessDenied`가 난다.
 5. 판매 0건이어도 예외 없이 빈 목록을 돌려준다.

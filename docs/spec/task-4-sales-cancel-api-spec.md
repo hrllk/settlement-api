@@ -8,7 +8,7 @@
 
 - 계획: `docs/plan/task-4-sales-cancel-api-plan.md`
 - Task 1: `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`, `WebMvcConfig`
-- Task 2: 엔티티, 리포지토리 4종, `SettlementQueryJpaAdapter`
+- Task 2: 엔티티, 리포지토리 4종, `SalesQueryJpaAdapter`
 - Task 3: `SettlementPeriod`, `RefundStatus`, `InvalidSettlementPeriod`, `FeePolicy`, `SettlementCalculator`, `SaleData` / `CancelData`
 
 ## 서브태스크
@@ -121,11 +121,11 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | `config/DomainConfig.java` | 4.1 |
 | `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java` | 4.2~4.4 |
 | `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java` | 4.2 |
-| `application/port/out/SaleQueryPort.java`, `SaleRecord.java` | 4.2 |
+| `application/port/out/SalesQueryPort.java`, `SaleRecord.java` | 4.2 |
 | `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동) | 4.1 |
 | `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규) | 4.1 |
 | `adapter/in/actor/ActorContextArgumentResolver.java`, `config/WebMvcConfig.java` (import만) | 4.1 |
-| `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SaleQueryJpaAdapter.java` | 4.2 |
+| `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SalesQueryJpaAdapter.java` | 4.2 |
 | `adapter/in/web/dto/*.java` | 4.5 |
 | `adapter/in/web/SaleController.java` | 4.6 |
 
@@ -168,7 +168,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 **Outside Voice 6 + 3 (전부 실물로 검증)**
 1. `FixedRateFeePolicy.PLATFORM_DEFAULT_BP`가 없다. 검수 도중 Task 3 세션이 지웠다. 설정 프로퍼티 주입으로 바꿨다.
 2. `saveCancel`이 `void`인데 `CancelResponse`가 `cancelId`를 요구.
-3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SaleQueryPort`의 읽기 모델로 분리했다.
+3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SalesQueryPort`의 읽기 모델로 분리했다.
 4. 우산 파일 목록과 4.1의 `ActorAccessPolicy` 경로 불일치.
 5. Task 3의 `SettlementFixtures`가 package-private이라 Task 6이 import 불가. Task 6은 애초에 그게 필요 없어 분리 확인으로 바꿨다.
 6. 서브태스크 의존성이 교차 Task를 안 적어 DAG가 거짓.

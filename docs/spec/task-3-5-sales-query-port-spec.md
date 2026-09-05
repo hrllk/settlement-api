@@ -1,17 +1,21 @@
-# Task 3.5 — `SettlementQueryPort` 명세
+# Task 3.5 — `SalesQueryPort` 명세
 
 부모: [`task-3-settlement-domain-spec.md`](./task-3-settlement-domain-spec.md) · 의존 3.2 · 5분
 
 선언만 한다. 구현체는 Task 2가 만든다.
 
-**이 포트는 정산 계산의 입력 전용이다.** 판매 등록·취소는 Task 4가 `domain/sales`의 `Sale` 애그리게이트와 도메인 `SaleRepository`로 소유하고, 판매 목록 조회는 `SaleQueryPort`가 맡는다. 읽기와 쓰기를 한 인터페이스에 섞지 않는다.
+**이 포트는 읽기 전용이다.** 쓰기는 Task 4가 `domain/sales`의 `Sale` 애그리게이트와 도메인 `SaleRepository`로 소유한다. 읽기와 쓰기를 한 인터페이스에 섞지 않는다.
+
+**Task 4가 이 인터페이스에 메서드를 더한다.** 판매 목록 조회 `findSalesForListing`과 강의 존재 검사 `courseExists`다. 조회 포트를 정산용과 판매용으로 나누지 않는 이유는 `findSales`와 `findSalesForListing`이 인자가 같고 반환 모델만 다르기 때문이다 — 포트를 나누면 같은 SQL을 감싸는 껍데기가 둘이 된다.
+
+Task 3은 자기가 쓰는 네 개만 선언한다. 없는 유스케이스의 시그니처를 추측하지 않는다.
 
 ## 타입
 
 ```java
 package com.liveclass.settlement.application.port.out;
 
-public interface SettlementQueryPort {
+public interface SalesQueryPort {
 
     List<SaleData>   findSales  (Instant fromInclusive, Instant toExclusive, String creatorId);
     List<CancelData> findCancels(Instant fromInclusive, Instant toExclusive, String creatorId);
@@ -43,7 +47,7 @@ public interface SettlementQueryPort {
 
 ## 파일
 
-`application/port/out/SettlementQueryPort.java`. `application/.gitkeep`을 지운다. 테스트는 없다 — 인터페이스 선언이다. Task 2의 구현체와 Task 4·5 호출부에서 검증한다.
+`application/port/out/SalesQueryPort.java`. `application/.gitkeep`을 지운다. 테스트는 없다 — 인터페이스 선언이다. Task 2의 구현체와 Task 4·5 호출부에서 검증한다.
 
 ## 완료 기준
 

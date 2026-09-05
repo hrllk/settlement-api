@@ -21,7 +21,7 @@
 | 3.2 | [값 타입과 환불 상태](./task-3-2-value-types-spec.md) | 3.3 | 20분 | 9 |
 | 3.3 | [`FeePolicy`](./task-3-3-fee-policy-spec.md) | — | 10분 | 6 |
 | 3.4 | [`SettlementCalculator`](./task-3-4-settlement-calculator-spec.md) | 3.1, 3.2, 3.3 | 15분 | 12 |
-| 3.5 | [`SettlementQueryPort`](./task-3-5-settlement-query-port-spec.md) | 3.2 | 5분 | 0 |
+| 3.5 | [`SalesQueryPort`](./task-3-5-sales-query-port-spec.md) | 3.2 | 5분 | 0 |
 
 3.1과 3.3은 서로 독립이다. `SettlementSummary.of`가 `FeePolicy`를 인자로 받으므로 3.2는 3.3 뒤에 온다. 3.4가 셋을 모은다. 각 문서는 단독으로 읽고 구현할 수 있다. 이 문서는 여러 서브태스크에 걸치는 것만 담는다.
 
@@ -72,7 +72,7 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 | `domain/settlement/SaleData.java`, `CancelData.java`, `SettlementSummary.java`, `RefundStatus.java` | 3.2 |
 | `domain/settlement/FeePolicy.java`, `FixedRateFeePolicy.java` | 3.3 |
 | `domain/settlement/SettlementCalculator.java` | 3.4 |
-| `application/port/out/SettlementQueryPort.java` | 3.5 |
+| `application/port/out/SalesQueryPort.java` | 3.5 |
 
 테스트는 `src/test/java/.../domain/settlement/`에 `SettlementPeriodTest`(3.1), `SettlementSummaryTest`·`RefundStatusTest`(3.2), `FixedRateFeePolicyTest`(3.3), `SettlementCalculatorTest`(3.4).
 
@@ -119,7 +119,7 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 
 - **Task 2**: 시간 컬럼을 `Instant`로 매핑. 인덱스는 현행 유지. 포트 구현 요구는 3.5 명세 참조.
 - **Task 4**: 예외 표 매핑을 지킨다.
-- **Task 4**: `settlement.fee.basis-points`를 `@ConfigurationProperties`로 바인딩해 `new FixedRateFeePolicy(bp)`를 조립하고 `SettlementCalculator`를 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다. `SettlementQueryPort`는 정산 계산의 입력 전용이다. 판매 등록·취소는 Task 4가 `domain/sales`의 `Sale` 애그리게이트와 `SaleRepository`로, 판매 목록 조회는 `SaleQueryPort`로 따로 만든다.
+- **Task 4**: `settlement.fee.basis-points`를 `@ConfigurationProperties`로 바인딩해 `new FixedRateFeePolicy(bp)`를 조립하고 `SettlementCalculator`를 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다. `SalesQueryPort`는 정산 계산의 입력 전용이다. 판매 등록·취소는 Task 4가 `domain/sales`의 `Sale` 애그리게이트와 `SaleRepository`로, 판매 목록 조회는 `SalesQueryPort`로 따로 만든다.
 - **Task 7 README**: 운영자 기간 집계가 월별 합이 아니라는 점을 최우선으로 적는다. 두 API를 돌리면 creator-2가 48,000원과 36,000원으로 갈리는데 문서가 없으면 버그로 읽힌다. 그 외 반열린 구간 근거, 초과 환불 거부 추가, 취소 데이터 정의 근거, 수수료·정산액 비대칭, 순수 계산기의 메모리 한계, 인덱스 순서 관찰, 식별자 `String` 선택, 기간 상한 없음, 액터 헤더 한계, 추가 테스트 케이스와 이유, 정산 상태 전이 확장 경로.
 
 ## GSTACK REVIEW REPORT

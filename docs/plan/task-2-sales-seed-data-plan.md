@@ -2,21 +2,21 @@
 
 ## 목표
 
-`SettlementQueryPort`의 JPA 구현체와, Task 3 기준표를 그대로 재현하는 초기 데이터를 만든다. 계산 규칙과 API는 범위 밖이다.
+`SalesQueryPort`의 JPA 구현체와, Task 3 기준표를 그대로 재현하는 초기 데이터를 만든다. 계산 규칙과 API는 범위 밖이다.
 
 ## 선행 조건
 
 Task 1과 Task 3 **양쪽**에 의존한다. `tasks.json`의 의존성을 `[1]`에서 `[1,3]`으로 고쳤다.
 
 - Task 1: 빌드 스크립트, `application.yml`, 루트 패키지
-- Task 3: `SettlementQueryPort` 인터페이스, `SaleData` / `CancelData` 값 타입
+- Task 3: `SalesQueryPort` 인터페이스, `SaleData` / `CancelData` 값 타입
 
 **2.5(포트 어댑터)는 Task 3의 포트 시그니처가 컴파일되기 전에는 착수할 수 없다.** 2.1~2.4, 2.6은 먼저 할 수 있다.
 
 ## 포함 범위
 
 - `CreatorEntity`, `CourseEntity`, `SaleEntity`, `CancelEntity`
-- Spring Data 리포지토리 4종과 `SettlementQueryPort` JPA 어댑터 (조회 전용)
+- Spring Data 리포지토리 4종과 `SalesQueryPort` JPA 어댑터 (조회 전용)
 - `data.sql` 초기 데이터
 - 시드 재현성 테스트
 
@@ -109,7 +109,7 @@ Task 3 기준표를 그대로 옮긴다. `application.yml`의 `defer-datasource-
 | 2.2 | 크리에이터·강의 엔티티 | `CreatorEntity`, `CourseEntity`. creator-3을 운영자 목록에 0원으로 넣으려면 존재 자체가 조회돼야 한다 |
 | 2.3 | 인덱스 정의 | `(course_id, paid_at)`, `(sale_id, cancelled_at)` — 현행 유지 |
 | 2.4 | Spring Data 리포지토리 | 판매·취소·크리에이터·**강의** 4종. 반열린 구간 쿼리 메서드. 강의 리포지토리는 Task 4의 `CourseNotFound` 판정에 필요하다 |
-| 2.5 | `SettlementQueryPort` JPA 어댑터 | 4개 메서드 구현. 엔티티 → 값 타입 변환. `null` 반환 금지, 빈 컬렉션 입력 방어. **Task 3 포트 확정 후 착수** |
+| 2.5 | `SalesQueryPort` JPA 어댑터 | 4개 메서드 구현. 엔티티 → 값 타입 변환. `null` 반환 금지, 빈 컬렉션 입력 방어. **Task 3 포트 확정 후 착수** |
 | 2.6 | `data.sql` 17행 | KST 주석 병기 |
 | 2.7 | 시드 재현성 테스트 | 건수, 취소↔판매 연결, `sale-5` 귀속월 단언 |
 

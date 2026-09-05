@@ -10,13 +10,18 @@
 
 정산 계산 쪽(Task 3)에는 애그리게이트를 두지 않았다. 거기는 불변식이 없고 전부 값에 대한 순수 함수다. **애그리게이트는 지킬 불변식이 있을 때만 값어치가 있다.**
 
-## 세 갈래 모델
+## 읽기 하나, 쓰기 하나
 
-| 방향 | 타입 | 위치 | 소유 |
+조회 포트는 **하나다.** 읽기 모델만 용도별로 나뉜다.
+
+| 방향 | 인터페이스 | 읽기 모델 | 위치 |
 | --- | --- | --- | --- |
-| 정산 계산 입력 | `SettlementQueryPort` → `SaleData` / `CancelData` | `application/port/out` | Task 3 선언, Task 2 구현 |
-| 판매 목록 조회 | `SaleQueryPort` → `SaleRecord` | `application/port/out` | **4.2** |
-| 판매 등록·취소 | `SaleRepository` → `Sale` | **`domain/sales`** | **4.2** |
+| 읽기 | `SalesQueryPort` | `SaleData` / `CancelData` (정산 계산)<br>`SaleRecord` (판매 목록) | `application/port/out` |
+| 쓰기 | `SaleRepository` | `Sale` 애그리게이트 | **`domain/sales`** |
+
+포트를 정산용과 판매용으로 나누지 않는다. 나누면 `findSales(from, to, creatorId)`와 `findSalesForListing(from, to, creatorId)`가 **인자가 같고 반환 모델만 다른 채로** 포트 둘, 어댑터 둘에 흩어진다. 같은 SQL을 감싸는 껍데기가 둘이 된다. 중복의 실체는 포트와 어댑터이지 모델이 아니다.
+
+읽기 모델이 둘인 것은 필요가 실제로 다르기 때문이다. 정산 계산기는 `courseId`를 안 쓰고 판매 목록 응답은 그게 필요하다. 하나로 합치면 계산기 입력이 안 쓰는 필드를 들고 다닌다.
 
 읽기가 애그리게이트를 쓰지 않는 이유는 N+1이다. 판매 목록 응답을 만들려고 애그리게이트를 N개 로딩하면 각각이 자기 취소를 딸고 온다. 목록은 판매 1회 + 취소 1회, 두 쿼리로 끝나야 한다. **두 방향의 필요가 달라 모델이 갈리는 것이지 유행이 아니다.**
 
@@ -53,7 +58,7 @@ public class Sale {
     public List<Cancel> cancels();           // 불변 뷰
 }
 
-public record Cancel(String id, String amount, Instant cancelledAt) { }   // amount는 long
+public record Cancel(String id, long amount, Instant cancelledAt) { }
 ```
 
 `cancel(...)` 본문:
@@ -98,21 +103,34 @@ public interface SaleRepository {
 
 **`findById`가 취소를 함께 읽는다.** 애그리게이트는 불변식을 지키는 단위이므로 부분만 적재하면 `cancelledTotal()`이 거짓말을 한다. Task 2의 엔티티에 `@OneToMany`가 없으므로 어댑터가 판매 1회 + 취소 1회로 조회해 조립한다. 취소 등록은 단건 경로라 N+1이 아니다.
 
-## 조회 포트
+## 조회 포트 확장
+
+`SalesQueryPort`는 Task 3.5가 이미 선언했다. 4.2는 **메서드 둘과 읽기 모델 하나를 그 인터페이스에 더한다.**
 
 ```java
 package com.liveclass.settlement.application.port.out;
 
-public interface SaleQueryPort {
+public interface SalesQueryPort {
 
+    // --- Task 3.5 선언, Task 2.5 구현 ---
+    List<SaleData>   findSales(Instant fromInclusive, Instant toExclusive, String creatorId);
+    List<CancelData> findCancels(Instant fromInclusive, Instant toExclusive, String creatorId);
+    List<CancelData> findCancelsBySaleIds(Collection<String> saleIds);
+    List<String>     findAllCreatorIds();
+
+    // --- 4.2가 추가 ---
     /** 판매 목록. 결과 없으면 빈 리스트. paidAt 오름차순. */
-    List<SaleRecord> findSalesByCreator(Instant fromInclusive, Instant toExclusive, String creatorId);
+    List<SaleRecord> findSalesForListing(Instant fromInclusive, Instant toExclusive, String creatorId);
 
     boolean courseExists(String courseId);
 }
 
 public record SaleRecord(String saleId, String courseId, long amount, Instant paidAt) { }
 ```
+
+**메서드를 Task 3이 미리 선언하지 않은 이유는 포트의 모양이 유스케이스에서 나오기 때문이다.** Task 3 시점에는 판매 목록 API도 강의 존재 검사도 없었다. 없는 유스케이스의 시그니처를 추측해 선언하면 틀린 모양이 굳는다.
+
+**Task 2의 어댑터를 4.2가 확장한다.** `SalesQueryJpaAdapter`는 Task 2.5가 네 메서드로 만들고, 4.2가 두 메서드를 더한다. 인터페이스가 자라면 구현체도 자라야 하므로 Task 2의 산출물을 Task 4가 편집하는 유일한 지점이다. Task 2 완료 시점에는 인터페이스에 네 개뿐이라 컴파일이 통과한다.
 
 **`SaleData`를 못 쓰는 이유.** 4.4의 응답 `SaleItem`에 `courseId`가 들어가는데 Task 3의 `SaleData`에는 그 필드가 없다. Task 3은 계산에 안 쓰는 필드를 의도적으로 뺐고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 자기 읽기 모델을 갖는다. Task 3의 고정된 포트를 건드리지 않는다.
 
@@ -131,9 +149,11 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
     // save: 엔티티로 변환해 저장. 기존 취소는 ID로 걸러 새것만 insert
 }
 
+// Task 2.5가 만든 클래스에 메서드 둘을 더한다. 새 클래스가 아니다.
 @Component
-public class SaleQueryJpaAdapter implements SaleQueryPort {
-    // findSalesByCreator: 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
+public class SalesQueryJpaAdapter implements SalesQueryPort {
+    // findSalesForListing: 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
+    //                      (findSales와 같은 쿼리, 매핑만 다르다)
     // courseExists: CourseRepository.existsById
 }
 ```
@@ -183,18 +203,18 @@ public class RegisterSaleUseCase {
 ## 파일
 
 `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java`
-`application/port/out/SaleQueryPort.java`, `SaleRecord.java`
-`adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SaleQueryJpaAdapter.java`
+`application/port/out/SalesQueryPort.java`, `SaleRecord.java`
+`adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SalesQueryJpaAdapter.java`
 `application/sale/RegisterSaleUseCase.java`
 `src/test/java/.../domain/sales/SaleTest.java`
 
 ## 완료 기준
 
-1. 컴파일되고 빈이 등록된다.
+1. 컴파일되고 빈이 등록된다. 조회 포트가 하나다.
 2. `SaleTest` 5건이 Spring 컨텍스트 없이 통과한다.
 3. `domain/sales`에 Spring 애노테이션과 JPA 애노테이션이 없다.
 4. 없는 `courseId`가 `CourseNotFound`를 던진다.
 5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
 6. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다.
 7. `findById`가 취소까지 적재한다. 부분 적재하지 않는다.
-8. `SaleQueryPort.findSalesByCreator`가 `courseId`를 담아 `paidAt` 오름차순으로 돌려준다.
+8. `SalesQueryPort.findSalesForListing`가 `courseId`를 담아 `paidAt` 오름차순으로 돌려준다.

@@ -79,7 +79,7 @@
    boolean courseExists(String courseId);  // CourseNotFound 판정용
    ```
 
-   Task 2의 `SettlementQueryPort`는 조회 메서드 4개뿐이라 등록 경로를 덮지 못한다. 포트의 모양은 유스케이스가 무엇을 필요로 하는지에서 나오므로, 그것을 아는 Task 4가 선언과 구현을 함께 갖는다. 어댑터는 Task 2가 만든 Spring Data 리포지토리를 감싼다.
+   Task 2의 `SalesQueryPort`는 조회 메서드 4개뿐이라 등록 경로를 덮지 못한다. 포트의 모양은 유스케이스가 무엇을 필요로 하는지에서 나오므로, 그것을 아는 Task 4가 선언과 구현을 함께 갖는다. 어댑터는 Task 2가 만든 Spring Data 리포지토리를 감싼다.
 
    **Task 2의 리포지토리는 4종이어야 한다.** 판매·취소·크리에이터에 **강의**를 더한다. `courseExists`가 없으면 `CourseNotFound`를 판정할 수 없다.
 
