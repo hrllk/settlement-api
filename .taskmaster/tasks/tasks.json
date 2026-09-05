@@ -150,7 +150,7 @@
             "description": "판매는 paidAt, 환불은 cancelledAt으로 각각 귀속 기간을 판단해 정산 요약을 만든다.",
             "details": "calculate(SettlementPeriod, List<SaleData>, List<CancelData>) -> SettlementSummary. 금액뿐 아니라 건수도 같은 이중 기준을 따른다. creator-2의 2025-02는 판매 건수 0, 취소 건수 1이다. 계산기가 기간 필터를 다시 적용하는 것은 의도적이다. (기간, 판매, 취소)의 순수 함수여야 포트 없이 단위 테스트가 성립한다. 크리에이터별 그룹핑은 하지 않으며 입력이 이미 한 크리에이터의 것이라고 가정한다. 로그를 남기지 않고 Spring 애노테이션을 쓰지 않는다. 명세: docs/spec/task-3-4-settlement-calculator-spec.md",
             "testStrategy": "SettlementCalculatorTest 14건. 월별 기준표 6행, 크리에이터별 기간 6값, 빈 입력, 동일 판매 다수 부분 취소. creator-1의 2025-03이 정산 예정 120,000원인지가 원본 과제 기대값이다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2,
