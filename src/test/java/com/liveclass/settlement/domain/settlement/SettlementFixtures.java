@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 /**
  * 원본 과제 샘플 데이터. 판매 7건은 과제가 준 값이고, 취소 3건은 과제에
- * 없어 직접 정의했다(금액과 귀속 월은 tasks.json이 확정, 시각은 정오로 고정).
+ * 없어 직접 정의했다(금액과 귀속 월은 tasks.json이 확정, 시각은 10:00 KST로 고정 — Task 2 시드와 같은 값이다).
  *
  * <p>KST 문자열을 그대로 쓰고 UTC로 손 변환하지 않는다. sale-5를
  * 2025-01-31T14:30:00Z로 옮겨 적다 한 자리만 틀리면 1월 판매가 2월로
@@ -35,9 +35,9 @@ final class SettlementFixtures {
     static final SaleData SALE_6 = sale("sale-6", CREATOR_2, 60_000, "2025-03-10T16:00:00+09:00");
     static final SaleData SALE_7 = sale("sale-7", CREATOR_3, 120_000, "2025-02-14T10:00:00+09:00");
 
-    static final CancelData CANCEL_1 = cancel("cancel-1", "sale-3", 80_000, "2025-03-25T12:00:00+09:00");
-    static final CancelData CANCEL_2 = cancel("cancel-2", "sale-4", 30_000, "2025-03-26T12:00:00+09:00");
-    static final CancelData CANCEL_3 = cancel("cancel-3", "sale-5", 60_000, "2025-02-03T12:00:00+09:00");
+    static final CancelData CANCEL_1 = cancel("cancel-1", "sale-3", 80_000, "2025-03-25T10:00:00+09:00");
+    static final CancelData CANCEL_2 = cancel("cancel-2", "sale-4", 30_000, "2025-03-26T10:00:00+09:00");
+    static final CancelData CANCEL_3 = cancel("cancel-3", "sale-5", 60_000, "2025-02-03T10:00:00+09:00");
 
     static List<SaleData> salesOf(String creatorId) {
         return Stream.of(SALE_1, SALE_2, SALE_3, SALE_4, SALE_5, SALE_6, SALE_7)
