@@ -2,6 +2,8 @@
 
 부모: [`task-7-readme-submission-spec.md`](./task-7-readme-submission-spec.md) · 의존 Task 2 · 15분
 
+**원본은 [`docs/persistence-decisions.md`](../persistence-decisions.md)다.** 영속성 설계 결정 10건과 근거, 예상 질문과 답이 정리돼 있다. 이 절은 거기서 데이터 모델과 직접 관련된 것만 추린다.
+
 ## ERD
 
 ```text
