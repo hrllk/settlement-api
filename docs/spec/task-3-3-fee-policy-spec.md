@@ -13,8 +13,6 @@ public interface FeePolicy {
 
 public record FixedRateFeePolicy(int basisPoints) implements FeePolicy {
 
-    public static final int PLATFORM_DEFAULT_BP = 2_000;   // 20%
-
     public FixedRateFeePolicy {
         if (basisPoints < 0 || basisPoints > 10_000) {
             throw new IllegalArgumentException("basisPoints must be 0..10000: " + basisPoints);
@@ -29,11 +27,21 @@ public record FixedRateFeePolicy(int basisPoints) implements FeePolicy {
 }
 ```
 
-호출부는 `new FixedRateFeePolicy(PLATFORM_DEFAULT_BP)`를 쓴다. 별도 정적 팩토리는 두지 않는다.
+**요율 값은 도메인이 갖지 않는다.** 도메인이 "현재 플랫폼 요율이 20%"라는 사업 사실을 알 이유가 없다. 값은 `application.yml`의 `settlement.fee.basis-points`에 두고 Task 5가 `@ConfigurationProperties`로 바인딩해 조립한다. 정적 팩토리도 두지 않는다.
 
 ## 결정
 
-인터페이스를 두는 이유는 원본 과제가 "수수료율 변경 가능성을 설계에 반영하면 가산점"을 명시했기 때문이다. 요율 이력과 시점별 적용은 만들지 않는다. 교체 지점만 열어 둔다.
+원본 과제가 "수수료율 변경 가능성을 설계에 반영하면 가산점"을 명시했다. 세 단계로 나뉜다.
+
+| 단계 | 내용 | 채택 |
+| --- | --- | --- |
+| 1 | `net * 0.2`를 계산식에 박는다 | 아니오 |
+| 2 | 정책 인터페이스 + 설정 주입 | **예** |
+| 3 | 요율 이력 테이블 + 시점별 적용 | 아니오 (선택 구현) |
+
+**3단계를 절반만 하면 안 된다.** 요율을 저장만 하고 이력을 안 두면, 요율이 바뀌는 순간 이미 조회한 과거 정산이 조용히 달라진다. 3월을 조회해 120,000원을 받았는데 요율 변경 후 다시 조회하면 112,500원이 나오는 식이다. 원본 과제도 선택 구현 항목에 "과거 정산은 당시 수수료율 적용"을 괄호로 달아 이 함정을 짚었다.
+
+2단계에서 멈춘 것은 의도적이다. 3단계로 가는 경로는 `FeePolicy`를 `FeePolicyResolver.resolve(period)`로 바꾸는 것이며, 근거와 함께 README에 남긴다.
 
 basis point는 `double` 없이 요율을 정수로 표현하려는 것이다. 20%를 `0.2`로 두면 부동소수점이 금액 계산에 끼어든다.
 
@@ -55,6 +63,8 @@ basis point는 `double` 없이 요율을 정수로 표현하려는 것이다. 20
 | 33,333 | 6,666 (실제 6,666.6) |
 | `new FixedRateFeePolicy(-1)`, `(10001)` | `IllegalArgumentException` |
 
+테스트는 요율 20%를 `SettlementFixtures.PLATFORM_FEE_BP`에서 가져온다. 운영 코드가 값을 갖지 않으므로 기대값 계산용 상수는 테스트 쪽에 둔다.
+
 버림 케이스가 필요한 이유는 샘플 금액이 전부 5의 배수라 20%가 정수로 떨어지기 때문이다. 제공 시나리오만으로는 반올림 정책이 검증되지 않는다. 원본 과제가 가산점을 건 항목이다.
 
 ## 파일
@@ -66,4 +76,5 @@ basis point는 `double` 없이 요율을 정수로 표현하려는 것이다. 20
 1. 6건 통과.
 2. 음수 판정이 나눗셈보다 먼저 실행된다.
 3. `double`이나 `BigDecimal`을 쓰지 않는다.
-4. 요율 이력이나 시점별 적용을 만들지 않는다.
+4. 요율 값이 도메인 코드에 없다. `application.yml`에 있다.
+5. 요율 이력이나 시점별 적용을 만들지 않는다.

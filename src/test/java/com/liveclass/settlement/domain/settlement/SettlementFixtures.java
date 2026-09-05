@@ -17,6 +17,12 @@ import java.util.stream.Stream;
  */
 final class SettlementFixtures {
 
+    /**
+     * 기대값 계산에 쓰는 요율 20%. 운영 코드는 이 값을 갖지 않고
+     * settlement.fee.basis-points 설정에서 주입받는다(Task 5).
+     */
+    static final int PLATFORM_FEE_BP = 2_000;
+
     static final String CREATOR_1 = "creator-1";
     static final String CREATOR_2 = "creator-2";
     static final String CREATOR_3 = "creator-3";

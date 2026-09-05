@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 class SettlementCalculatorTest {
 
     private final SettlementCalculator calculator =
-            new SettlementCalculator(new FixedRateFeePolicy(FixedRateFeePolicy.PLATFORM_DEFAULT_BP));
+            new SettlementCalculator(new FixedRateFeePolicy(SettlementFixtures.PLATFORM_FEE_BP));
 
     private SettlementSummary monthly(String creatorId, String yearMonth) {
         return calculator.calculate(

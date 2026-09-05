@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class FixedRateFeePolicyTest {
 
     private final FeePolicy policy =
-            new FixedRateFeePolicy(FixedRateFeePolicy.PLATFORM_DEFAULT_BP);
+            new FixedRateFeePolicy(SettlementFixtures.PLATFORM_FEE_BP);
 
     @Test
     @DisplayName("순 판매액의 20%를 수수료로 뗀다")

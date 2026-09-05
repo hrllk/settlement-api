@@ -58,7 +58,8 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 - 컨트롤러, DTO, 전역 예외 처리기 — Task 4·5
 - 초과 환불 거부의 누적 판정, 금액 부호 검증 — Task 4
 - 크리에이터별 그룹핑과 전체 합계, 접근 경계, Spring 빈 등록, 로깅 — Task 5
-- 수수료율 이력, 정산 상태 전이, CSV — 과제 명시적 제외
+- 수수료율 이력과 시점별 적용, 정산 상태 전이, CSV — 과제 명시적 제외
+- 수수료율 설정 바인딩 — Task 5. 값은 `application.yml`에 두고 도메인은 주입만 받는다
 
 ## 파일
 
@@ -117,6 +118,7 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 
 - **Task 2**: 시간 컬럼을 `Instant`로 매핑. 인덱스는 현행 유지. 포트 구현 요구는 3.5 명세 참조.
 - **Task 4**: 예외 표 매핑을 지킨다.
+- **Task 5**: `settlement.fee.basis-points`를 `@ConfigurationProperties`로 바인딩해 `new FixedRateFeePolicy(bp)`를 조립하고 `SettlementCalculator` 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다.
 - **Task 7 README**: 운영자 기간 집계가 월별 합이 아니라는 점을 최우선으로 적는다. 두 API를 돌리면 creator-2가 48,000원과 36,000원으로 갈리는데 문서가 없으면 버그로 읽힌다. 그 외 반열린 구간 근거, 초과 환불 거부 추가, 취소 데이터 정의 근거, 수수료·정산액 비대칭, 순수 계산기의 메모리 한계, 인덱스 순서 관찰, 식별자 `String` 선택, 기간 상한 없음, 액터 헤더 한계, 추가 테스트 케이스와 이유, 정산 상태 전이 확장 경로.
 
 ## GSTACK REVIEW REPORT
