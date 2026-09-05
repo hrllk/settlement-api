@@ -15,6 +15,10 @@ node_modules/
 # Editor directories and files
 .idea
 .vscode
+# Eclipse / JDT Language Server (Gradle 빌드 중 인덱서가 생성)
+.classpath
+.project
+.settings/
 *.suo
 *.ntvs*
 *.njsproj
