@@ -25,6 +25,19 @@
 
 읽기가 애그리게이트를 쓰지 않는 이유는 N+1이다. 판매 목록 응답을 만들려고 애그리게이트를 N개 로딩하면 각각이 자기 취소를 딸고 온다. 목록은 판매 1회 + 취소 1회, 두 쿼리로 끝나야 한다. **두 방향의 필요가 달라 모델이 갈리는 것이지 유행이 아니다.**
 
+## Lombok 경계
+
+Task 2가 영속성 계층 5개 파일에서 Lombok을 쓴다 — `@Getter`, `@NoArgsConstructor(access = PROTECTED)`, `@RequiredArgsConstructor`. Task 4는 **계층마다 다르게 간다.**
+
+| 계층 | Lombok | 이유 |
+| --- | --- | --- |
+| `domain/sales` | **쓰지 않는다** | 애그리게이트는 무엇을 노출할지가 곧 설계다. `@Getter`는 전부 연다 |
+| `adapter/out/persistence` | **쓴다** | Task 2와 같은 패키지다. 규약이 갈리면 읽는 사람이 멈춘다 |
+
+도메인에서 `@Getter`를 쓰면 안 되는 구체적 이유가 있다. `cancels` 필드가 가변 `List`인데 `@Getter`는 그걸 **그대로** 내준다. 그러면 호출자가 리스트에 직접 `add`해서 불변식을 우회한다. 아래 `cancels()`는 불변 뷰를 돌려주도록 손으로 쓴다. 테스트 케이스 5가 정확히 그걸 잠근다.
+
+접근자 4개(`id`·`courseId`·`amount`·`paidAt`)는 불변 값이라 `@Getter`로도 안전하지만, 한 클래스에서 일부만 애노테이션으로 만들면 규칙이 더 헷갈린다. 넷 다 손으로 쓴다.
+
 ## 애그리게이트
 
 ```java
@@ -150,23 +163,57 @@ public record SaleRecord(String saleId, String courseId, long amount, Instant pa
 
 ## 어댑터
 
+### 이름 세 개를 구분한다
+
+`Sale`이 붙은 리포지토리 계열이 셋이라 한 화면에 나오면 헷갈린다.
+
+| 이름 | 무엇 | 소유 | 계층 |
+| --- | --- | --- | --- |
+| `SaleRepository` | 애그리게이트를 주고받는 **도메인 인터페이스** | Task 4 | `domain/sales` |
+| `SaleRepositoryJpaAdapter` | 그 구현 | Task 4 | `adapter/out/persistence` |
+| `SaleJpaRepository` | Spring Data 인터페이스 | Task 2 | `adapter/out/persistence` |
+
+`SaleRepositoryJpaAdapter`가 `SaleJpaRepository`를 **쓴다.** 앞의 둘은 도메인 계약, 뒤의 하나는 JPA 도구다.
+
 ```java
 package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
+@RequiredArgsConstructor                          // Task 2 규약
 public class SaleRepositoryJpaAdapter implements SaleRepository {
-    // findById: SaleJpaRepository(2.4) 1회 + CancelJpaRepository.findBySaleId(2.4) 1회 -> Sale.restore
+
+    private final SaleJpaRepository sales;
+    private final CancelJpaRepository cancels;
+
+    // findById: sales.findById(1회) + cancels.findBySaleId(1회) -> Sale.restore
     // save: 엔티티로 변환해 저장. 기존 취소는 ID로 걸러 새것만 insert
 }
-
-// Task 2.5가 만든 클래스에 메서드 둘을 더한다. 새 클래스가 아니다.
-@Component
-public class SalesQueryJpaAdapter implements SalesQueryPort {
-    // findSalesForListing: 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
-    //                      (findSales와 같은 쿼리, 매핑만 다르다)
-    // courseExists: CourseJpaRepository.existsById
-}
 ```
+
+### `SalesQueryJpaAdapter`는 새로 만들지 않고 확장한다
+
+Task 2.5가 이미 만들었다. 실제 구현은 이렇다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class SalesQueryJpaAdapter implements SalesQueryPort {
+    private final SaleJpaRepository sales;
+    private final CancelJpaRepository cancels;
+    private final CreatorJpaRepository creators;   // 셋뿐
+```
+
+4.2는 **필드 하나와 메서드 둘을 더한다.**
+
+| 무엇 | 왜 |
+| --- | --- |
+| `private final CourseJpaRepository courses;` | `courseExists`가 쓴다. **이걸 빼먹으면 빈 주입 실패로 컨텍스트가 안 뜬다** |
+| `findSalesForListing` | 2.4의 `findByCreatorAndPeriod`를 `SaleRecord`로 매핑. `findSales`와 같은 쿼리, 매핑만 다르다 |
+| `courseExists` | `courses.existsById` |
+
+`@RequiredArgsConstructor`라 필드를 선언하면 생성자가 따라온다. 손으로 생성자를 고칠 필요는 없지만 **필드 선언을 빼면 조용히 안 된다.**
+
+`findByCreatorAndPeriod`의 실제 JPQL에 `order by s.paidAt, s.id`가 이미 있다. `findSalesForListing`은 그 쿼리를 재사용하므로 정렬 계약을 따로 구현하지 않아도 된다.
 
 Task 2.4가 만든 Spring Data 리포지토리 4종을 그대로 감싼다. 새 리포지토리를 만들지 않는다.
 
@@ -231,7 +278,9 @@ public class RegisterSaleUseCase {
 2. `SaleTest` 6건이 Spring 컨텍스트 없이 통과한다.
 2-b. 상한 검사가 뺄셈이다. 덧셈이면 케이스 6이 실패한다.
 2-c. `id()`·`courseId()`·`amount()`·`paidAt()` 접근자가 있어 유스케이스와 어댑터가 컴파일된다.
-3. `domain/sales`에 Spring 애노테이션과 JPA 애노테이션이 없다.
+3. `domain/sales`에 Spring 애노테이션, JPA 애노테이션, Lombok이 없다.
+3-b. `adapter/out/persistence`의 새 클래스가 Task 2와 같이 `@RequiredArgsConstructor`를 쓴다.
+3-c. `SalesQueryJpaAdapter`에 `CourseJpaRepository` 필드가 추가됐다.
 4. 없는 `courseId`가 `CourseNotFound`를 던진다.
 5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
 6. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다.

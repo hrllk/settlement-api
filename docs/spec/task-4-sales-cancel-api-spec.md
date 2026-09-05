@@ -8,7 +8,7 @@
 
 - 계획: `docs/plan/task-4-sales-cancel-api-plan.md`
 - Task 1: `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`, `WebMvcConfig`
-- Task 2: 엔티티, 리포지토리 4종, `SalesQueryJpaAdapter`
+- Task 2: 엔티티 4종(Lombok `@Getter`), Spring Data 리포지토리 4종(`SaleJpaRepository`, `CancelJpaRepository`, `CourseJpaRepository`, `CreatorJpaRepository`), `SalesQueryJpaAdapter`(`@RequiredArgsConstructor`, 리포지토리 3개 주입), `data.sql` 17행
 - Task 3: `SettlementPeriod`, `RefundStatus`, `InvalidSettlementPeriod`, `FeePolicy`, `SettlementCalculator`, `SaleData` / `CancelData`
 
 ## 서브태스크
@@ -153,33 +153,35 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | Review | Trigger | Why | Runs | Status | Findings |
 | --- | --- | --- | ---: | --- | --- |
 | CEO Review | `/plan-ceo-review` | 범위와 전략 | 1 | CLEAR | HOLD_SCOPE 확정 |
-| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 2 | CLEAR | 1회차 4건, **2회차(애그리게이트 반영 후) 5건** |
-| Outside Voice | Codex (독립) | 교차 검증 | 2 | CLEAR | 1회차 9건, **2회차 9건 중 8건 확인 1건 과장** |
+| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 3 | CLEAR | 1회 4건 · 2회 12건 · **3회(Task 2 실물 대조) 3건** |
+| Outside Voice | Codex (독립) | 교차 검증 | 2 | CLEAR | 1회 9건 · 2회 9건 중 8건 확인 1건 반박 |
 | Design Review | 해당 없음 | UI/UX | 0 | SKIPPED | 백엔드 전용 |
 | DX Review | 해당 없음 | 로컬 실행 | 0 | SKIPPED | Task 1에서 완료 |
 
-### 2회차 — 애그리게이트 도입 후 재검수
+### 3회차 — Task 2 구현 완료 후 실물 대조
 
-**P0 — 그대로 쓰면 컴파일이 안 되거나 조용히 틀린다**
+Task 2가 2.1~2.7을 구현하고 빌드가 그린이 된 시점에 그 **실제 코드**를 계약으로 삼아 다시 봤다. 블로커는 없었다. 앞선 두 라운드가 걸러냈다.
 
-1. **`Sale`에 접근자가 없었다.** 공개 메서드가 `register`·`restore`·`cancel`·`cancelledTotal`·`refundStatus`·`cancels` 여섯뿐인데 `RegisterSaleUseCase`가 `sale.id()`를 부르고 어댑터가 `courseId`·`amount`·`paidAt`을 읽어야 했다. 접근자 4개를 추가했다.
-2. **`RefundStatus.of(SaleRecord, Collection)` 오버로드가 없었다.** Task 3의 실제 시그니처는 `of(SaleData, Collection)`와 `of(long, long)` 둘뿐이다. 목록을 `SaleRecord`로 바꾸면서 호출이 따라오지 못했다. 취소 합계를 더해 2인자 쪽을 부르도록 고쳤고, Task 3에 오버로드를 추가하지 않았다 — `SaleRecord`는 `application.port.out`의 읽기 모델이라 도메인이 알면 방향이 뒤집힌다.
-3. **`RefundAmountExceeded`가 두 패키지에 선언됐다.** 4.1의 코드 블록은 `domain.settlement`, 4.1의 파일 목록과 4.2는 `domain/sales`였다. 코드 블록을 따라 구현하면 클래스가 둘 생기고 **컴파일은 통과하는데 409가 500으로 나간다.** `domain/sales` 하나로 통일했다.
-4. **Task 1 테스트가 깨진다.** `ActorContextArgumentResolverTest`는 `ActorContext`·`ActorRole`을 같은 패키지로 써서 import가 없다. 4.1이 두 타입을 옮기면 컴파일이 안 되는데 명세는 "기존 테스트 4건이 그대로 돈다"고 적혀 있었다. 고칠 파일 3개를 표로 명시했다.
+**계약 확인 3건 — 전부 통과**
 
-**P1**
+| 확인 | 결과 |
+| --- | --- |
+| `findByCreatorAndPeriod`의 정렬 | `order by s.paidAt, s.id` 실제 JPQL에 있음. `findSalesForListing`이 재사용 |
+| `SaleEntity` 접근자 | Lombok `@Getter`로 존재. `Sale.restore(...)` 조립 가능 |
+| 애그리게이트 적재 경로 | `CancelJpaRepository.findBySaleId` 존재 |
 
-5. **취소 등록에 트랜잭션 경계가 없었다.** `findById → cancel → save`이고 어댑터가 두 리포지토리를 쓴다. 유스케이스에 `@Transactional`을 걸었다. 애그리게이트 한 번의 변경이 한 트랜잭션이라는 것이 애그리게이트 경계의 정의이고, 어댑터 `save`에만 걸면 조회와 저장이 다른 트랜잭션이 되어 누적 검사가 낡은 데이터로 돈다.
-6. **`already + amount`가 오버플로하면 환불 상한을 우회한다.** `@Positive`가 `Long.MAX_VALUE`를 허용하므로 취소가 하나라도 있는 판매에 넣으면 합이 음수로 돌아 검사를 통과한다. 요청 두 번이면 닿는다. `amount > this.amount - already` 뺄셈 비교로 바꾸고 테스트 케이스 6을 추가했다.
+엔티티에 setter가 없는 것도 문제가 아니다. 판매는 불변이고 취소는 append-only라 새 `CancelEntity` 행을 만들면 된다.
 
-**P2 — 문서 정합성 6건**
+**규약 불일치 3건 — 반영**
 
-소요 3가지(135/125/120 → 130 통일), 테스트 수(표 16 vs 본문 11 → 17 통일, 4.2가 5→6건), 4.5의 DTO 개수(7 → 6), 4.2 자식 헤더의 의존·테스트 수 누락, `SaleWithRefundStatus` 필드 모양 미선언, "모든 실패가 한 가지 모양" 주장이 의도적 500과 충돌.
+1. **`SalesQueryJpaAdapter` 생성자 확장이 명세에 없었다.** 실제 어댑터는 `@RequiredArgsConstructor`에 리포지토리 셋을 주입한다. `courseExists`를 추가하려면 `CourseJpaRepository`가 네 번째 `final` 필드로 들어가야 하는데, 명세는 "메서드 둘을 더한다"고만 했다. **필드 선언을 빼면 빈 주입 실패로 컨텍스트가 안 뜬다.** 필드·메서드 표로 명시했다.
+2. **Lombok 규약이 한 줄도 없었다.** 계층별로 갈랐다 — `domain/sales`는 손으로, `adapter/out/persistence`는 Task 2와 같이 Lombok. 도메인에서 `@Getter`를 쓰면 안 되는 구체적 이유가 있다. `cancels`가 가변 `List`인데 `@Getter`는 그걸 그대로 내주어 호출자가 직접 `add`로 불변식을 우회한다. 테스트 케이스 5가 그걸 잠근다.
+3. **`Sale` 계열 이름이 셋이었다.** `SaleRepository`(도메인 인터페이스), `SaleRepositoryJpaAdapter`(그 구현), `SaleJpaRepository`(Spring Data). 논리는 맞지만 한 화면에 나오면 멈춘다. 역할 표를 넣었다.
 
-**CROSS-MODEL:** Codex가 9건을 냈고 8건이 사실이었다. 하나(`SaleWithRefundStatus`가 "파일 위치도 없다")는 과장이라 반박했다 — 위치는 명시돼 있었고 필드 모양만 없었다. 가장 값어치 있는 것은 1·2번으로, 애그리게이트 재작성 중 호출부가 모델 변경을 따라가지 못한 자리다. 제가 1회차에서 잡은 3번(예외 이중 선언)은 Codex가 못 봤다.
+**명세 갈라짐은 오해였다.** `task2` 브랜치가 Task 4 명세를 고친 커밋은 없다. main의 2회차 수정을 아직 안 받았을 뿐이라 머지하면 깨끗이 붙는다.
 
 **테스트 17건** — 4.2 `SaleTest` 6, 4.8 `SaleControllerTest` 11.
 
-**VERDICT:** CEO + ENG(2회) + OUTSIDE VOICE(2회) CLEARED — 구현 착수 가능.
+**VERDICT:** CEO + ENG(3회) + OUTSIDE VOICE(2회) CLEARED — 구현 착수 가능.
 
 NO UNRESOLVED DECISIONS
