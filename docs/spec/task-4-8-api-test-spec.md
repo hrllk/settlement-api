@@ -1,6 +1,6 @@
 # Task 4.8 — API 테스트 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.6, 4.7 · 25분 · 테스트 14
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.6, 4.7 · 25분 · 테스트 16
 
 ## 환경
 
@@ -37,6 +37,7 @@
 | 13 | `to` 파라미터 누락 | `from`만 보냄 | 400 `MISSING_PARAMETER` |
 | 14 | 응답 시각 직렬화 | 판매 등록 응답의 `paidAt` | `"2025-06-10T10:00..."` 문자열. epoch 숫자도 `Z`도 아니다 |
 | 15 | **오류 포맷 계약** | 케이스 2(없는 강의)를 재사용 | `Content-Type`이 `application/problem+json`이고 `type`·`title`·`status`·`detail`·`instance`·`code` 여섯이 전부 있다 |
+| 16 | **프레임워크 실패 포맷** | `PATCH /api/sales` | 405, `application/problem+json`, `title`·`status`·`detail`·`instance` |
 
 ## 각 케이스가 잡는 것
 
@@ -58,6 +59,8 @@
 
 **9번** — 이 태스크에서 가장 틀리기 쉬운 규칙. `findCancels(1/1, 2/1, creator-2)`로 환불 상태를 만들면 `cancel-3`(2월 3일)이 창에 안 잡혀 `NONE`이 나온다. `findCancelsBySaleIds`를 써야 `FULL`이 된다. 금액 집계는 기간으로 나뉘고 환불 상태는 안 나뉜다는 규칙 전체가 이 한 줄에 달려 있다.
 
+**16번** — `spring.mvc.problemdetails.enabled`가 꺼지면 405와 없는 경로가 본문 없이 나간다. 완료 기준 7이 "오류 응답이 **전부**"라고 쓰는데 15번은 우리 처리기가 만든 응답만 본다. 프레임워크가 만드는 응답은 이 케이스만 잡는다. `code`는 단언하지 않는다 -- 우리가 이름 붙이지 않은 실패다.
+
 ## 하지 않는 것
 
 | 검증 | 소유 |
@@ -75,13 +78,13 @@
 
 ## 완료 기준
 
-1. 15건이 통과한다.
+1. 16건이 통과한다.
 2. 2번이 404다. 500이 아니다.
 3. 7번이 400이고 8번이 403이다.
 4. 9번의 `refundStatus`가 `FULL`이다.
 5. 10번이 201이다. 전액 환불이 거부되지 않는다.
 6. 11번이 403이다.
-7. 오류 응답이 전부 RFC 9457이다. `Content-Type`이 `application/problem+json`이고 `type`·`title`·`status`·`detail`·`instance`·`code`를 갖는다. 15번이 이걸 단언한다.
+7. 오류 응답이 전부 RFC 9457이다. 우리 처리기가 만든 응답은 `type`·`title`·`status`·`detail`·`instance`·`code`를 갖고(15번), 프레임워크가 만든 응답은 `code` 없이 나머지를 갖는다(16번).
 
 **15번이 이 전환의 유일한 안전장치다.** 현재 오류 단언 10건은 전부 `$.code`만 본다. 그건 옛 `{code, message, status}` 포맷에서도 통과한다. 즉 **전환을 안 해도, 전환 후 되돌려도 초록불이다.** 15번이 없으면 명세가 요구하는 것을 아무것도 검증하지 않는다.
 

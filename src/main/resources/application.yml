@@ -11,6 +11,11 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     defer-datasource-initialization: true
+  mvc:
+    problemdetails:
+      # 프레임워크가 던지는 실패(405, 415, 없는 경로)도 RFC 9457로 나가게 한다.
+      # 끄면 그 응답들은 본문이 비어 나가고 "모든 오류가 한 모양"이 거짓이 된다.
+      enabled: true
   jackson:
     # OffsetDateTime을 그대로 두면 Jackson이 UTC로 정규화해 +09:00이 Z가 된다.
     # 타입만 OffsetDateTime으로 바꿔서는 KST 표기가 유지되지 않는다.

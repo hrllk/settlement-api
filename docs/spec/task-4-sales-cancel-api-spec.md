@@ -64,11 +64,14 @@ Boot 4가 테스트 자동설정을 모듈별로 쪼갰다. **Boot 3 임포트�
 **RFC 9457 Problem Details를 쓴다.** Spring 내장 `ProblemDetail`이라 우리가 record를 만들지 않는다.
 
 ```json
-{ "type": "about:blank", "title": "Conflict", "status": 409,
-  "detail": "...", "code": "REFUND_AMOUNT_EXCEEDED" }
+{ "type": "urn:problem-type:refund-amount-exceeded",
+  "title": "Conflict", "status": 409,
+  "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "instance": "/api/sales/sale-3/cancellations",
+  "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
 
-`Content-Type: application/problem+json`. `code`는 RFC 9457 확장 멤버로 남겨 기계가 읽을 판별자를 유지한다 — `type`이 `about:blank`라 그 역할이 비기 때문이다.
+`Content-Type: application/problem+json`. **`type`을 명시적으로 넣는다** — 기본값 `about:blank`는 직렬화에서 생략되어 필드가 사라진다. `code`는 같은 값의 짧은 표기로 남긴다. 상세는 4.1을 본다.
 
 **사용자가 유발할 수 있는 모든 실패가 이 한 가지 모양이다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. 위 표에서 500으로 남긴 `IllegalArgumentException`·`NullPointerException`은 예외다 — 우리 코드의 버그이므로 Spring 기본 500 본문으로 나가 스택트레이스가 로그에 남아야 한다. 둘을 안 잡으면 Spring 기본 본문으로 나가 포맷이 세 가지가 되고, README에 오류 예시를 세 번 적어야 한다. Task 5가 같은 처리기를 그대로 쓴다.
 
@@ -122,7 +125,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | 경로 | 서브태스크 |
 | --- | --- |
 | `adapter/in/web/GlobalExceptionHandler.java` | 4.1 |
-| `domain/settlement/SaleNotFound.java`, `CourseNotFound.java` | 4.1 |
+| `domain/sales/SaleNotFound.java`, `CourseNotFound.java` | 4.1 |
 | `config/DomainConfig.java` | 4.1 |
 | `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java` | 4.2~4.4 |
 | `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java` | 4.2 |
@@ -140,7 +143,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 1. `./gradlew test`가 통과한다.
 2. 3개 엔드포인트가 동작한다.
-3. 사용자 유발 오류 8종이 정해진 상태 코드로 나오고, 응답이 전부 RFC 9457 `application/problem+json`이며 `code` 확장 멤버를 갖는다.
+3. 사용자 유발 오류 9종이 정해진 상태 코드로 나오고, 응답이 전부 RFC 9457 `application/problem+json`이며 `code` 확장 멤버를 갖는다.
 3-b. `RefundAmountExceeded`가 저장소 전체에 하나만 존재한다 (`domain/sales`).
 4. `IllegalArgumentException` / `NullPointerException`이 400으로 매핑되지 않는다.
 5. 누적 초과 환불이 409로 거부된다.
@@ -158,7 +161,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | Review | Trigger | Why | Runs | Status | Findings |
 | --- | --- | --- | ---: | --- | --- |
 | CEO Review | `/plan-ceo-review` | 범위와 전략 | 1 | CLEAR | HOLD_SCOPE 확정 |
-| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 3 | CLEAR | 1회 4건 · 2회 12건 · **3회(Task 2 실물 대조) 3건** |
+| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 4 | CLEAR | 1회 4건 · 2회 12건 · **3회(Task 2 실물 대조) 3건** |
 | Outside Voice | Codex (독립) | 교차 검증 | 2 | CLEAR | 1회 9건 · 2회 9건 중 8건 확인 1건 반박 |
 | Design Review | 해당 없음 | UI/UX | 0 | SKIPPED | 백엔드 전용 |
 | DX Review | 해당 없음 | 로컬 실행 | 0 | SKIPPED | Task 1에서 완료 |

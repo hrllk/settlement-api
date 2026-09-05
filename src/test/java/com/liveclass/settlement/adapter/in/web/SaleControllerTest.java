@@ -1,6 +1,7 @@
 package com.liveclass.settlement.adapter.in.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -123,13 +124,7 @@ class SaleControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(saleBody("course-999", 50_000, JUNE_PAID)))
                     .andExpect(status().isNotFound())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-                    .andExpect(jsonPath("$.code").value("COURSE_NOT_FOUND"))
-                    .andExpect(jsonPath("$.status").value(404))
-                    .andExpect(jsonPath("$.title").isNotEmpty())
-                    .andExpect(jsonPath("$.detail").isNotEmpty())
-                    .andExpect(jsonPath("$.type").value("urn:problem-type:course-not-found"))
-                    .andExpect(jsonPath("$.instance").value("/api/sales"));
+                    .andExpect(jsonPath("$.code").value("COURSE_NOT_FOUND"));
         }
 
         @Test
@@ -175,6 +170,58 @@ class SaleControllerTest {
                             .content(saleBody("course-1", 50_000, JUNE_PAID)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_ACTOR_HEADER"));
+        }
+    }
+
+    /**
+     * 나머지 오류 단언 10건은 전부 {@code $.code}만 본다. 그건 옛
+     * {@code {code, message, status}} 포맷에서도 통과한다 -- 즉 되돌려도 초록불이다.
+     * 이 한 건이 그 전환을 잠근다.
+     *
+     * <p>한 건으로 충분한 이유는 응답 모양을 결정하는 코드 경로가
+     * {@code GlobalExceptionHandler}의 헬퍼 한 곳이기 때문이다. 거기서 나온 응답
+     * 하나를 통째로 잠그면 된다. 같은 단언을 10번 복사하면 포맷을 바꿀 때
+     * 고칠 곳이 10곳이 된다.
+     */
+    @Nested
+    @DisplayName("오류 포맷 계약")
+    class ErrorFormat {
+
+        @Test
+        @DisplayName("오류 응답이 RFC 9457 여섯 필드를 전부 갖는다")
+        void rfc9457Shape() throws Exception {
+            mvc.perform(post("/api/sales")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(saleBody("course-999", 50_000, JUNE_PAID)))
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    // type 은 명시하지 않으면 기본값 about:blank 가 직렬화에서 생략된다.
+                    .andExpect(jsonPath("$.type").value("urn:problem-type:course-not-found"))
+                    .andExpect(jsonPath("$.title").isNotEmpty())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.detail").value("course not found: course-999"))
+                    .andExpect(jsonPath("$.instance").value("/api/sales"))
+                    .andExpect(jsonPath("$.code").value("COURSE_NOT_FOUND"));
+        }
+
+        /**
+         * 프레임워크가 던지는 실패도 같은 포맷이어야 한다.
+         * {@code spring.mvc.problemdetails.enabled=true}가 없으면 405는 본문이
+         * 비어 나가고, 그러면 "모든 오류가 한 모양"이라는 주장이 거짓이 된다.
+         * {@code code}는 없다 -- 우리가 코드를 붙이지 않은 실패이고, 붙이려면
+         * 프레임워크 예외 목록을 우리가 복제해야 한다.
+         */
+        @Test
+        @DisplayName("허용되지 않은 메서드도 problem+json으로 나간다")
+        void frameworkFailureIsProblemJson() throws Exception {
+            mvc.perform(patch("/api/sales")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN"))
+                    .andExpect(status().isMethodNotAllowed())
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(jsonPath("$.title").isNotEmpty())
+                    .andExpect(jsonPath("$.status").value(405))
+                    .andExpect(jsonPath("$.detail").isNotEmpty())
+                    .andExpect(jsonPath("$.instance").value("/api/sales"));
         }
     }
 

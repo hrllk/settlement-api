@@ -85,6 +85,7 @@ public class ActorAccessPolicy {
 package com.liveclass.settlement.adapter.in.web;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)   // Spring의 ProblemDetailsExceptionHandler(@Order(0))보다 먼저
 public class GlobalExceptionHandler {
 
     private ProblemDetail problem(HttpStatus status, String code, String detail,
@@ -93,7 +94,11 @@ public class GlobalExceptionHandler {
                 status, detail != null ? detail : status.getReasonPhrase());
         // 기본값 about:blank 는 직렬화에서 생략된다. 실제 타입 URI를 넣어야
         // type 이 응답에 남는다. 문서를 호스팅하지 않으므로 URN을 쓴다.
-        body.setType(URI.create("urn:problem-type:" + code.toLowerCase().replace('_', '-')));
+        // Locale.ROOT 가 필요하다. 터키 로케일에서 toLowerCase()는 I를 ı로 바꿔
+        // urn:problem-type:ınvalid-actor-header 가 된다. 기계가 읽는 식별자가
+        // 서버 로케일에 따라 달라지면 안 된다.
+        body.setType(URI.create(
+                "urn:problem-type:" + code.toLowerCase(Locale.ROOT).replace('_', '-')));
         body.setProperty("code", code);                                  // RFC 9457 확장 멤버
         body.setInstance(URI.create(request.getRequestURI()));           // RFC 9457 표준 필드
         log.warn("request failed: code={}, status={}, path={}, detail={}",
@@ -123,6 +128,18 @@ public class GlobalExceptionHandler {
 
 `type`이 없다. Task 7.8이 `type` 존재를 요구하므로 코드에서 파생한 URN을 넣는다. RFC 9457도 문제 유형을 식별하는 URI를 권하므로 표준에도 더 맞는다.
 
+**프레임워크 실패도 RFC 9457로 내보낸다.** `application.yml`에 `spring.mvc.problemdetails.enabled: true`를 켠다. 안 켜면 405(허용되지 않은 메서드)와 없는 경로가 **본문 없이** 나가서 "모든 실패가 한 가지 모양"이 거짓이 된다. 실측으로 확인했다.
+
+```
+끄면:  405  Content-Type 없음  본문 없음
+켜면:  405  application/problem+json  {"detail":"Method 'PATCH' is not supported.",
+                                       "instance":"/api/sales","status":405,"title":"Method Not Allowed"}
+```
+
+**켜면 `@Order`가 반드시 따라와야 한다.** 이 속성이 켜는 Spring의 `ProblemDetailsExceptionHandler`가 `@Order(0)`인데, 우리 어드바이스는 순서를 안 주면 최저 우선순위다. 그러면 `MethodArgumentNotValidException`·`HttpMessageNotReadableException`·`ResponseStatusException`·`MissingServletRequestParameterException` 넷을 Spring이 먼저 가져가고 `code` 확장 멤버가 사라진다. 실제로 그 넷의 테스트가 한 번에 깨졌다. `@Order(Ordered.HIGHEST_PRECEDENCE)`를 붙이면 우리가 코드를 붙인 예외는 여기가 이기고, 405·415처럼 우리가 선언하지 않은 실패만 Spring이 맡는다.
+
+프레임워크가 만든 응답에는 `code`와 `type`이 없다. 붙이려면 Spring의 프레임워크 예외 목록을 우리가 복제해야 하고, 그 목록은 버전마다 바뀐다. 우리가 이름 붙인 실패에만 `code`를 준다.
+
 `code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. 프레임워크 예외 넷은 예외 이름이 사용자에게 의미가 없으므로 따로 정한다.
 
 | 예외 | `code` | status |
@@ -142,16 +159,17 @@ public class GlobalExceptionHandler {
 ### RFC 9457 필드 대응
 
 ```json
-{ "type": "about:blank",
+{ "type": "urn:problem-type:refund-amount-exceeded",
   "title": "Conflict",
   "status": 409,
   "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "instance": "/api/sales/sale-3/cancellations",
   "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
 
 | 필드 | 값 | 비고 |
 | --- | --- | --- |
-| `type` | `about:blank` | 문서 사이트가 없으므로 기본값을 쓴다. RFC가 허용한다 |
+| `type` | `urn:problem-type:<code를 kebab-case로>` | **명시적으로 넣어야 한다.** 기본값 `about:blank`는 직렬화에서 생략되어 필드가 통째로 사라진다 |
 | `title` | HTTP 상태 문구 | Spring이 자동으로 채운다 |
 | `status` | 상태 코드 | 기존 `status` 필드와 같다 |
 | `detail` | 예외 메시지 | **기존 `message`를 대체한다** |
@@ -164,7 +182,9 @@ public class GlobalExceptionHandler {
 
 **`$.code`가 최상위로 나오는 것은 Jackson이 클래스패스에 있기 때문이다.** Spring 문서 원문이다 — "When Jackson JSON is present on the classpath, any properties set here [are expanded as top-level], **otherwise they are rendered as a `properties` sub-map**." Task 1의 `spring-boot-starter-webmvc`가 Jackson을 가져오므로 참이다. **이 전제가 깨지면 `$.code`가 `$.properties.code`로 바뀌어 테스트 10건이 한꺼번에 깨진다.**
 
-**`code`를 남기는 이유.** `type`이 `about:blank`라 기계가 읽을 판별자가 없어진다. RFC 9457은 확장 멤버를 명시적으로 허용하므로 `code`가 그 역할을 이어받는다. 4.8의 단언 문자열이 그대로 살아남는 부수 효과도 있다.
+**`type`과 `code`가 같은 정보를 담는다.** `urn:problem-type:course-not-found`와 `COURSE_NOT_FOUND`는 표기만 다른 같은 값이다. 의도한 중복이다.
+
+`type`은 RFC가 정한 판별자이고 `code`는 확장 멤버다. 클라이언트가 URI를 파싱하게 하는 것보다 짧은 상수를 비교하게 하는 편이 실무에서 흔하고, 4.8의 기존 단언 10건이 그대로 살아남는다. 둘 중 하나를 지운다면 `code` 쪽이지만, 지금 지우면 테스트 10건을 고치면서 얻는 게 없다. **두 값이 갈라지지 않도록 한 함수에서 같은 `code` 문자열로 둘 다 만든다.**
 
 **`spring.mvc.problemdetails.enabled`는 켜지 않는다.** 그 스위치는 Spring의 `ResponseEntityExceptionHandler`가 프레임워크 예외를 자기 형식으로 처리하게 한다. 그러면 아래 넷에 우리 `code`가 안 붙어 포맷이 두 가지가 된다. 우리 `@RestControllerAdvice`가 여덟 개를 전부 명시적으로 잡는다.
 
@@ -222,7 +242,7 @@ public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring�
 
 ## 파일
 
-`domain/settlement/SaleNotFound.java`, `CourseNotFound.java`
+`domain/sales/SaleNotFound.java`, `CourseNotFound.java`
 (`RefundAmountExceeded`는 4.2가 `domain/sales`에 만든다. 여기서 만들지 않는다)
 `src/test/java/.../adapter/in/actor/ActorContextArgumentResolverTest.java` (import 2줄 추가)
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
