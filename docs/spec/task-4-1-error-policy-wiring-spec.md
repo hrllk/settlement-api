@@ -1,6 +1,6 @@
 # Task 4.1 — 예외·전역 처리기·접근 정책·빈 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 없음 · 25분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 형제 의존 없음. Task 1(액터 타입)과 Task 3(`FeePolicy`, `SettlementCalculator`, `InvalidSettlementPeriod`)이 선행 · 25분
 
 **Task 4에서 가장 먼저 한다.** 뒤 서브태스크 전부와 Task 5가 여기에 의존한다.
 
@@ -46,8 +46,9 @@ Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직은 안 바�
 | 파일 | 조치 |
 | --- | --- |
 | `ActorContextArgumentResolver.java` | `application.actor.ActorContext`, `ActorRole` import 추가 |
-| `WebMvcConfig.java` | import 경로 수정 |
 | `ActorContextArgumentResolverTest.java` | 같은 두 import 추가. 파일은 제자리에 둔다 |
+
+**`WebMvcConfig`는 고치지 않는다.** 실물을 확인했다 — `ActorContextArgumentResolver` 하나만 import하고 `ActorContext`나 `ActorRole`을 직접 참조하지 않는다. 해석기가 `adapter.in.actor`에 남으므로 그 import도 그대로다.
 
 테스트를 옮기지 않는 이유는 그게 해석기를 테스트하기 때문이다. 해석기는 어댑터에 남으므로 테스트도 남는다.
 
@@ -78,13 +79,33 @@ public class ActorAccessPolicy {
 
 ## 4. 전역 예외 처리기
 
+오류 본문은 **RFC 9457 Problem Details**를 쓴다. Spring이 `org.springframework.http.ProblemDetail`로 내장하고 있어 우리가 record를 만들지 않는다.
+
 ```java
 package com.liveclass.settlement.adapter.in.web;
 
-public record ErrorResponse(String code, String message, int status) { }
-
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)   // Spring의 ProblemDetailsExceptionHandler(@Order(0))보다 먼저
 public class GlobalExceptionHandler {
+
+    private ProblemDetail problem(HttpStatus status, String code, String detail,
+                                  HttpServletRequest request) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(
+                status, detail != null ? detail : status.getReasonPhrase());
+        // 기본값 about:blank 는 직렬화에서 생략된다. 실제 타입 URI를 넣어야
+        // type 이 응답에 남는다. 문서를 호스팅하지 않으므로 URN을 쓴다.
+        // Locale.ROOT 가 필요하다. 터키 로케일에서 toLowerCase()는 I를 ı로 바꿔
+        // urn:problem-type:ınvalid-actor-header 가 된다. 기계가 읽는 식별자가
+        // 서버 로케일에 따라 달라지면 안 된다.
+        body.setType(URI.create(
+                "urn:problem-type:" + code.toLowerCase(Locale.ROOT).replace('_', '-')));
+        body.setProperty("code", code);                                  // RFC 9457 확장 멤버
+        body.setInstance(URI.create(request.getRequestURI()));           // RFC 9457 표준 필드
+        log.warn("request failed: code={}, status={}, path={}, detail={}",
+                code, status.value(), request.getRequestURI(), detail);
+        return body;
+    }
+
     // 404 SaleNotFound, CourseNotFound
     // 409 RefundAmountExceeded
     // 403 ActorAccessDenied
@@ -96,9 +117,78 @@ public class GlobalExceptionHandler {
 }
 ```
 
-`code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. `RefundAmountExceeded` → `REFUND_AMOUNT_EXCEEDED`.
+모든 핸들러가 `ProblemDetail`을 돌려준다. Spring이 `Content-Type: application/problem+json`으로 직렬화한다.
 
-**`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring이 자체 `ProblemDetail` 본문을 내보내 포맷이 갈린다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
+**`type`을 명시적으로 넣어야 한다.** `forStatusAndDetail`의 기본값 `about:blank`는 직렬화에서 **생략된다**. 실제로 확인한 응답이 이랬다.
+
+```json
+{"detail":"course not found: course-999","instance":"/api/sales",
+ "status":404,"title":"Not Found","code":"COURSE_NOT_FOUND"}
+```
+
+`type`이 없다. Task 7.8이 `type` 존재를 요구하므로 코드에서 파생한 URN을 넣는다. RFC 9457도 문제 유형을 식별하는 URI를 권하므로 표준에도 더 맞는다.
+
+**프레임워크 실패도 RFC 9457로 내보낸다.** `application.yml`에 `spring.mvc.problemdetails.enabled: true`를 켠다. 안 켜면 405(허용되지 않은 메서드)와 없는 경로가 **본문 없이** 나가서 "모든 실패가 한 가지 모양"이 거짓이 된다. 실측으로 확인했다.
+
+```
+끄면:  405  Content-Type 없음  본문 없음
+켜면:  405  application/problem+json  {"detail":"Method 'PATCH' is not supported.",
+                                       "instance":"/api/sales","status":405,"title":"Method Not Allowed"}
+```
+
+**켜면 `@Order`가 반드시 따라와야 한다.** 이 속성이 켜는 Spring의 `ProblemDetailsExceptionHandler`가 `@Order(0)`인데, 우리 어드바이스는 순서를 안 주면 최저 우선순위다. 그러면 `MethodArgumentNotValidException`·`HttpMessageNotReadableException`·`ResponseStatusException`·`MissingServletRequestParameterException` 넷을 Spring이 먼저 가져가고 `code` 확장 멤버가 사라진다. 실제로 그 넷의 테스트가 한 번에 깨졌다. `@Order(Ordered.HIGHEST_PRECEDENCE)`를 붙이면 우리가 코드를 붙인 예외는 여기가 이기고, 405·415처럼 우리가 선언하지 않은 실패만 Spring이 맡는다.
+
+프레임워크가 만든 응답에는 `code`와 `type`이 없다. 붙이려면 Spring의 프레임워크 예외 목록을 우리가 복제해야 하고, 그 목록은 버전마다 바뀐다. 우리가 이름 붙인 실패에만 `code`를 준다.
+
+`code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. 프레임워크 예외 넷은 예외 이름이 사용자에게 의미가 없으므로 따로 정한다.
+
+| 예외 | `code` | status |
+| --- | --- | ---: |
+| `SaleNotFound` | `SALE_NOT_FOUND` | 404 |
+| `CourseNotFound` | `COURSE_NOT_FOUND` | 404 |
+| `RefundAmountExceeded` | `REFUND_AMOUNT_EXCEEDED` | 409 |
+| `ActorAccessDenied` | `ACTOR_ACCESS_DENIED` | 403 |
+| `InvalidSettlementPeriod` | `INVALID_SETTLEMENT_PERIOD` | 400 |
+| `MethodArgumentNotValidException` | `VALIDATION_FAILED` | 400 |
+| `ResponseStatusException` | `INVALID_ACTOR_HEADER` | 예외가 든 값 |
+| `HttpMessageNotReadableException` | `MALFORMED_REQUEST` | 400 |
+| `MissingServletRequestParameterException` | `MISSING_PARAMETER` | 400 |
+
+**이 표가 코드값의 단일 원본이다.** 4.5와 4.8이 여기를 참조한다. 흩어지면 테스트가 단언할 문자열을 찾으러 문서를 세 개 뒤져야 한다.
+
+### RFC 9457 필드 대응
+
+```json
+{ "type": "urn:problem-type:refund-amount-exceeded",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "instance": "/api/sales/sale-3/cancellations",
+  "code": "REFUND_AMOUNT_EXCEEDED" }
+```
+
+| 필드 | 값 | 비고 |
+| --- | --- | --- |
+| `type` | `urn:problem-type:<code를 kebab-case로>` | **명시적으로 넣어야 한다.** 기본값 `about:blank`는 직렬화에서 생략되어 필드가 통째로 사라진다 |
+| `title` | HTTP 상태 문구 | Spring이 자동으로 채운다 |
+| `status` | 상태 코드 | 기존 `status` 필드와 같다 |
+| `detail` | 예외 메시지 | **기존 `message`를 대체한다** |
+| `instance` | 요청 경로 | 핸들러가 이미 받는 `HttpServletRequest.getRequestURI()` |
+| `code` | 위 표의 값 | RFC 9457 **확장 멤버.** 최상위로 직렬화된다 |
+
+**`instance`를 채우는 이유.** 값이 이미 손에 있다. 현재 핸들러가 `HttpServletRequest`를 주입받아 경로를 **로그에만** 쓰고 있다. 응답에도 남기면 채점자가 curl로 오류를 받았을 때 어느 경로였는지 알 수 있다.
+
+**`detail`이 null이면 안 된다.** `ResponseStatusException.getReason()`은 `@Nullable`이다. Task 1의 해석기는 항상 reason을 주지만 다른 곳에서 reason 없는 예외가 오면 `detail`이 응답에서 통째로 빠진다. null이면 상태 문구로 대체한다.
+
+**`$.code`가 최상위로 나오는 것은 Jackson이 클래스패스에 있기 때문이다.** Spring 문서 원문이다 — "When Jackson JSON is present on the classpath, any properties set here [are expanded as top-level], **otherwise they are rendered as a `properties` sub-map**." Task 1의 `spring-boot-starter-webmvc`가 Jackson을 가져오므로 참이다. **이 전제가 깨지면 `$.code`가 `$.properties.code`로 바뀌어 테스트 10건이 한꺼번에 깨진다.**
+
+**`type`과 `code`가 같은 정보를 담는다.** `urn:problem-type:course-not-found`와 `COURSE_NOT_FOUND`는 표기만 다른 같은 값이다. 의도한 중복이다.
+
+`type`은 RFC가 정한 판별자이고 `code`는 확장 멤버다. 클라이언트가 URI를 파싱하게 하는 것보다 짧은 상수를 비교하게 하는 편이 실무에서 흔하고, 4.8의 기존 단언 10건이 그대로 살아남는다. 둘 중 하나를 지운다면 `code` 쪽이지만, 지금 지우면 테스트 10건을 고치면서 얻는 게 없다. **두 값이 갈라지지 않도록 한 함수에서 같은 `code` 문자열로 둘 다 만든다.**
+
+**`spring.mvc.problemdetails.enabled`는 켜지 않는다.** 그 스위치는 Spring의 `ResponseEntityExceptionHandler`가 프레임워크 예외를 자기 형식으로 처리하게 한다. 그러면 아래 넷에 우리 `code`가 안 붙어 포맷이 두 가지가 된다. 우리 `@RestControllerAdvice`가 여덟 개를 전부 명시적으로 잡는다.
+
+**`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring 기본 처리로 넘어가 `code` 없는 본문이 나간다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
 
 **`ResponseStatusException`도 잡는다.** Task 1의 `ActorContextArgumentResolver`가 헤더 오류에 이 예외를 던진다. Task 1 코드는 고치지 않고 여기서 흡수한다. `code`는 `INVALID_ACTOR_HEADER`, `status`는 예외가 들고 있는 값을 그대로 쓴다.
 
@@ -106,42 +196,60 @@ public class GlobalExceptionHandler {
 
 **`Exception`을 잡는 catch-all을 두지 않는다.** `IllegalArgumentException`과 `NullPointerException`은 Task 3의 값 타입 불변식 위반, 즉 우리 코드의 버그다. Spring 기본 500으로 나가게 두어야 스택트레이스가 로그에 남는다. **400으로 싸잡으면 프로그래밍 버그가 사용자 오류로 위장돼 사라진다.** Task 3 명세가 명시적으로 요구한 제약이다.
 
-## 5. 도메인 빈 등록
+## 5. 수수료 정책 빈 등록
 
 ```java
 package com.liveclass.settlement.config;
 
 @Configuration
 public class DomainConfig {
-    @Bean FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
+    @Bean
+    FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
         return new FixedRateFeePolicy(basisPoints);
-    }
-    @Bean SettlementCalculator settlementCalculator(FeePolicy feePolicy) {
-        return new SettlementCalculator(feePolicy);
     }
 }
 ```
 
-`application.yml`에 `settlement.fee.basis-points: 2000`을 넣는다.
+**`SettlementCalculator`는 여기서 등록하지 않는다. Task 5가 한다.** Task 4는 정산 계산을 하지 않으므로 쓰지 않는 빈을 만들 이유가 없다. 쓰는 태스크가 등록한다.
+
+### 빈 등록이 도메인 순수성을 깨지 않는 이유
+
+도메인 순수성은 **도메인이 Spring을 아느냐**의 문제다. Spring이 도메인을 아는 것은 상관없다.
+
+```java
+// 순수성이 깨지는 방식 -- 하지 않는다
+@Component
+public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring에 묶인다
+
+// 이 명세가 택한 방식
+// domain/settlement/FixedRateFeePolicy.java  -- 애노테이션 0
+// config/DomainConfig.java                   -- 조립만 여기서
+```
+
+`@Bean`을 `config`에 두면 의존 방향이 도메인 바깥에서 안쪽을 향한다. 도메인은 Spring의 존재를 모른다.
+
+증거는 테스트다. Task 3의 계산기 테스트 42건이 **Spring 컨텍스트 없이 돈다.** 도메인에 애노테이션이 하나라도 있으면 그게 성립하지 않는다. 구현 후 `domain` 패키지에 `org.springframework` import가 0건인지 확인한다.
+
+**빈으로 만드는 이유는 조립 지점을 한 곳에 모으기 위해서다.** 빈이 없으면 요율 설정 바인딩이 유스케이스마다 반복되고, 요율을 읽는 곳이 흩어져 하나만 고치면 두 API가 다른 요율로 계산한다.
+
+`application.yml`에 `settlement.fee.basis-points: 2000`이 **이미 있다** (Task 2에서 추가). 새로 넣지 않는다. `@Value`의 기본값 `:2000`은 설정이 지워졌을 때의 방어일 뿐이다.
 
 **요율 상수를 도메인에서 가져오지 않는다.** `FixedRateFeePolicy`에는 공개 상수가 없다. 실제 구현은 `record FixedRateFeePolicy(int basisPoints)`와 0~10000 범위 검증뿐이고, `2000`이라는 값은 Task 3의 테스트 픽스처에만 package-private으로 있다. 테스트 소스를 프로덕션이 참조할 수 없다.
 
 설정 프로퍼티로 두면 Task 3 전제 9의 "변경 가능성을 설계에 반영"이 애노테이션 하나로 완성된다. 요율을 바꾸려면 yml 한 줄만 고치면 되고 재컴파일이 없다.
 
-Task 3이 도메인에 Spring 애노테이션을 넣지 않기로 했으므로 등록은 `config`에서 한다. **Task 5가 아니라 Task 4에서 하는 이유는 순서다.** Task 4가 Spring 배선이 생기는 첫 Task이고, 등록을 Task 5로 미루면 Task 4가 도메인 빈을 하나라도 쓰는 순간 깨진다.
-
-Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서 등록한다 — "안 쓸 거다"는 검증되지 않는 가정이고, Task 5 착수 시점에 배선이 이미 끝나 있는 편이 낫다.
+**`FeePolicy`를 Task 4가 등록하는 이유는 설정 바인딩이 여기 있기 때문이다.** Task 4가 Spring 배선이 생기는 첫 Task이고, 요율 프로퍼티를 읽는 지점이 하나여야 한다. `SettlementCalculator`는 그 정책을 주입받을 뿐이므로 쓰는 쪽인 Task 5가 `DomainConfig`에 메서드를 더한다.
 
 ## 파일
 
-`domain/settlement/SaleNotFound.java`, `CourseNotFound.java`
+`domain/sales/SaleNotFound.java`, `CourseNotFound.java`
 (`RefundAmountExceeded`는 4.2가 `domain/sales`에 만든다. 여기서 만들지 않는다)
 `src/test/java/.../adapter/in/actor/ActorContextArgumentResolverTest.java` (import 2줄 추가)
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
 `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
 `adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
-`config/WebMvcConfig.java` (import 경로만 수정)
-`adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java`
+`adapter/in/web/GlobalExceptionHandler.java`
+(`ErrorResponse.java`는 만들지 않는다. Spring의 `ProblemDetail`을 쓴다)
 `config/DomainConfig.java`
 
 테스트는 없다. 4.8이 전부 검증한다.
@@ -149,11 +257,12 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 ## 완료 기준
 
 1. 컴파일되고 컨텍스트가 기동한다.
-2. 예외 8종이 표대로 매핑된다 (도메인 5 + 검증 + 역직렬화 + 파라미터 누락).
+2. 예외 9종이 표대로 매핑된다 (도메인 5 + 검증 + 액터 헤더 + 역직렬화 + 파라미터 누락).
 3. `IllegalArgumentException` / `NullPointerException` 핸들러가 **없다.**
 4. `@ExceptionHandler(Exception.class)`가 없다.
 5. 도메인 예외에 `@ResponseStatus`가 없다.
-6. `FeePolicy`와 `SettlementCalculator`가 빈으로 등록된다.
+6. `FeePolicy`가 빈으로 등록된다. `SettlementCalculator`는 등록하지 않는다 — Task 5 소관이다.
+6-b. `domain` 패키지에 `org.springframework` import가 0건이다.
 7. `application` 패키지가 `adapter`를 import하지 않는다.
 8. Task 1의 기존 테스트 4건이 import 수정 후 통과한다.
 9. `RefundAmountExceeded`가 저장소 전체에 **하나만** 존재한다 (`domain/sales`).

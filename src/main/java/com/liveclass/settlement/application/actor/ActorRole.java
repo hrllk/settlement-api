@@ -1,4 +1,4 @@
-package com.liveclass.settlement.adapter.in.actor;
+package com.liveclass.settlement.application.actor;
 
 import java.util.Optional;
 

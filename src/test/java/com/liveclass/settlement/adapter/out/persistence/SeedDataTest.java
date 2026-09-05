@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Import;
  * 그건 Task 3이 계산기 단위 테스트로 소유한다. 이 테스트는 "Task 3이 맞다고
  * 가정할 때 그 계산기에 들어갈 입력이 맞는가"를 잡는다.
  *
- * <p>{@code @Import}는 쓰지 않아도 붙인다. {@code SalesQueryJpaAdapterTest}와
+ * {@code @Import}는 쓰지 않아도 붙인다. {@code SalesQueryJpaAdapterTest}와
  * 애노테이션이 다르면 컨텍스트가 둘 생기고 같은 H2 인스턴스를 create-drop으로
  * 밟는다.
  */

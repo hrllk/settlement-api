@@ -1,6 +1,6 @@
 # Task 4.2 — `Sale` 애그리게이트와 판매 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1, Task 2·3 · 25분 · 테스트 5
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1, Task 2·3 · 25분 · 테스트 6
 
 ## 왜 애그리게이트인가
 

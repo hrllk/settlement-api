@@ -35,11 +35,17 @@ Jackson은 `Instant` 필드에 `"2025-03-05T10:00:00"`처럼 오프셋 없는 �
 
 `OffsetDateTime`은 오프셋이 없으면 파싱에 실패한다. `HttpMessageNotReadableException`이 나고 요청이 거부된다.
 
-응답도 `OffsetDateTime`으로 내보낸다. `Instant`로 직렬화하면 `Z`로만 나가 평가자가 KST 값을 암산해야 한다.
+응답도 `OffsetDateTime`으로 내보낸다.
+
+**단 타입만 바꿔서는 부족하다.** Jackson은 `OffsetDateTime`을 UTC로 정규화한다. 요청을 `+09:00`으로 보내고 컨트롤러가 `OffsetDateTime.ofInstant(instant, KST)`로 변환해도 응답은 `2025-06-10T01:00:00Z`로 나간다. 실제로 확인한 값이다.
+
+`application.yml`에 **`spring.jackson.time-zone: Asia/Seoul`**을 넣어야 `+09:00` 표기가 유지된다. 4.8의 직렬화 테스트가 이걸 잠근다.
 
 유스케이스에 넘길 때 `.toInstant()`로 변환한다. 컨트롤러가 그 경계를 담당한다.
 
-**`spring.jackson.serialization.write-dates-as-timestamps=false`를 `application.yml`에 넣는다.** 안 넣으면 Jackson이 시각을 epoch 숫자 배열로 직렬화해 README curl 예시가 읽을 수 없게 된다.
+**`spring.jackson.serialization.write-dates-as-timestamps`를 넣으면 안 된다.** Boot 4는 Jackson 3(`tools.jackson`)을 쓰고 그 프로퍼티가 존재하지 않는다. 넣으면 `JacksonProperties` 바인딩이 실패해 **컨텍스트 기동이 통째로 깨진다.** 실제로 밟은 함정이다.
+
+Jackson 3은 날짜를 기본으로 ISO 문자열로 내보내므로 그 설정이 필요 없다. 필요한 것은 시간대 설정 하나뿐이다.
 
 ## 검증 실패의 응답 포맷
 
@@ -47,7 +53,7 @@ Jackson은 `Instant` 필드에 `"2025-03-05T10:00:00"`처럼 오프셋 없는 �
 
 **오프셋 누락은 다른 예외다.** Jackson 역직렬화 단계에서 실패하므로 `HttpMessageNotReadableException`이 난다. 4.1의 처리기가 이것도 잡아 `code: "MALFORMED_REQUEST"`, 400으로 내보내야 한다. 안 잡으면 Spring 기본 본문으로 나가 포맷이 갈린다.
 
-이 항목은 4.1 명세의 처리기 목록에 없었다. **4.1을 구현할 때 함께 넣는다.**
+4.1의 처리기 목록에 이미 들어 있다. 코드값 `MALFORMED_REQUEST`는 4.1의 오류 코드 표를 따른다.
 
 ## 금액 검증을 DTO에서 하는 이유
 
@@ -66,4 +72,6 @@ Task 3의 `SaleData` / `CancelData`는 금액 부호를 검증하지 않는다. 
 1. 요청 DTO에 `@NotBlank`, `@Positive`, `@NotNull`이 있다.
 2. 시각 필드가 `OffsetDateTime`이다.
 3. 오프셋 없는 값이 400으로 거부된다.
-4. 응답 시각이 오프셋 포함 문자열로 직렬화된다. epoch 숫자가 아니다.
+4. 응답 시각이 `+09:00` 오프셋 포함 문자열로 직렬화된다. epoch 숫자도 `Z`도 아니다.
+5. `application.yml`에 `spring.jackson.time-zone: Asia/Seoul`이 있다.
+6. Jackson 2 전용 프로퍼티를 쓰지 않는다.
