@@ -130,7 +130,7 @@
             "description": "SaleData, CancelData, SettlementSummary, RefundStatus를 만든다.",
             "details": "SaleData(saleId, creatorId, amount, paidAt), CancelData(cancelId, saleId, amount, cancelledAt)에 Objects.requireNonNull을 필드명과 함께 건다. SettlementSummary는 총 판매액·판매 건수·환불액·취소 건수·순 판매액·수수료·정산 예정액 7필드이며 compact 생성자로 netSales == gross - refunds, payout == netSales - fee를 검증한다. RefundStatus.of(SaleData, Collection<CancelData>)가 saleId 일치만 보고 시각은 보지 않는 것이 핵심이다. 합산을 도메인 밖에 두면 기간 필터가 잘못 끼어들어 sale-5가 NONE으로 나온다. 초과 입력은 >=로 받아 FULL로 닫는다. amount 부호 검증은 Task 4 소관이다. 명세: docs/spec/task-3-2-value-types-spec.md SettlementSummary.of가 FeePolicy를 인자로 받으므로 3.3 뒤에 온다.",
             "testStrategy": "SettlementSummaryTest 2건(파생값 불변식 위반), RefundStatusTest 6건. 판매와 취소의 월이 달라도 FULL이 나오는 기간 무관 케이스와 타 판매 취소가 배제되는 케이스를 포함한다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               3
             ]
