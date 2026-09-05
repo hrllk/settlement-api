@@ -33,7 +33,7 @@
 
 `saleId`는 서버가 만드는 UUID다. 테스트가 미리 알 수 없으므로 1단계 응답 본문에서 꺼내야 한다.
 
-Task 4가 생성 ID를 응답에 담지 않으면 **이 테스트를 쓸 수 없다.** Task 4.2 명세가 `saveSale`이 ID를 반환하도록, 4.5가 `SaleResponse`에 `saleId`를 담도록 보장한다.
+Task 4가 생성 ID를 응답에 담지 않으면 **이 테스트를 쓸 수 없다.** `RegisterSaleUseCase.register(...)`가 ID를 반환하고 `SaleResponse`가 `saleId` 필드로 담는다. 둘 다 구현돼 있다.
 
 ## 2025-06을 쓰는 이유
 
