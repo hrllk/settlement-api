@@ -51,7 +51,7 @@ creator-2의 2025-01-01~03-31이 두 방식을 갈라놓는다.
 
 ## 크리에이터 목록 순서를 고정한다
 
-`findAllCreatorIds()`의 순서가 곧 응답 배열의 순서다. Task 2의 `CreatorRepository.findAll()`은 정렬을 안 주므로 SQL이 돌려주는 대로 나오고, 그건 보장된 순서가 아니다.
+`findAllCreatorIds()`의 순서가 곧 응답 배열의 순서다. Task 2의 `CreatorJpaRepository.findAll()`은 정렬을 안 주므로 SQL이 돌려주는 대로 나오고, 그건 보장된 순서가 아니다.
 
 **어댑터에서 `creatorId` 오름차순으로 정렬한다.** 전체 합계는 순서와 무관하지만 목록은 순서가 결과의 일부다. 정렬이 없으면 README curl 예시의 응답이 실행마다 달라지고, Task 6.3의 "두 번 연속 같은 결과" 점검도 흔들린다.
 

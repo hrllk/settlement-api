@@ -14,9 +14,9 @@ package com.liveclass.settlement.adapter.out.persistence;
 @Component
 public class SalesQueryJpaAdapter implements SalesQueryPort {
 
-    private final SaleRepository sales;
-    private final CancelRepository cancels;
-    private final CreatorRepository creators;
+    private final SaleJpaRepository sales;
+    private final CancelJpaRepository cancels;
+    private final CreatorJpaRepository creators;
 
     @Override
     public List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId) {
@@ -66,6 +66,8 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 
 따라서 변환 메서드는 `toSaleData(SaleEntity, String creatorId)`로 인자를 둘 받는다. 엔티티만 받는 시그니처로는 채택안을 구현할 수 없다.
 
+주입받는 셋은 2.4의 Spring Data 인터페이스다. 이름에 `Jpa`가 붙은 이유는 Task 4의 도메인 `SaleRepository`와 단순명이 겹치지 않게 하기 위해서다.
+
 **이 어댑터는 읽기 전용이다.** 쓰기는 Task 4가 `Sale` 애그리게이트와 도메인 `SaleRepository`로 따로 맡는다. 같은 테이블을 보지만 모델이 다르다.
 
 | 방향 | 인터페이스 | 위치 | 돌려주는 것 | 소유 |
@@ -84,6 +86,8 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 ## 테스트
 
 `SalesQueryJpaAdapterTest` — `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)` + `@Import(SalesQueryJpaAdapter.class)`.
+
+**2.7의 `SeedDataTest`도 애노테이션 세 줄을 똑같이 쓴다.** 설정이 다르면 컨텍스트가 둘 생기고, 둘 다 같은 이름의 인메모리 DB를 `ddl-auto=create-drop`으로 밟아 나중에 뜬 쪽이 먼저 쪽 테이블을 드롭한다. 근거는 2.7에 있다.
 
 | # | 케이스 | 기대 |
 | --- | --- | --- |

@@ -5,7 +5,7 @@
 ## 타입
 
 ```java
-public interface SaleRepository extends JpaRepository<SaleEntity, String> {
+public interface SaleJpaRepository extends JpaRepository<SaleEntity, String> {
 
     @Query("""
         select s from SaleEntity s
@@ -18,7 +18,7 @@ public interface SaleRepository extends JpaRepository<SaleEntity, String> {
                                             @Param("toExclusive") Instant toExclusive);
 }
 
-public interface CancelRepository extends JpaRepository<CancelEntity, String> {
+public interface CancelJpaRepository extends JpaRepository<CancelEntity, String> {
 
     @Query("""
         select x from CancelEntity x
@@ -32,15 +32,18 @@ public interface CancelRepository extends JpaRepository<CancelEntity, String> {
 
     List<CancelEntity> findBySaleIdIn(Collection<String> saleIds);
 
-    List<CancelEntity> findBySaleId(String saleId);   // Task 4의 누적 합계 판정용
+    List<CancelEntity> findBySaleId(String saleId);   // Task 4의 애그리게이트 적재용
 }
 
-public interface CreatorRepository extends JpaRepository<CreatorEntity, String> { }
+public interface CreatorJpaRepository extends JpaRepository<CreatorEntity, String> { }
 
-public interface CourseRepository extends JpaRepository<CourseEntity, String> { }
+public interface CourseJpaRepository extends JpaRepository<CourseEntity, String> { }
 ```
 
 ## 계약
+
+**이름에 `Jpa`가 붙는 이유.** Task 4가 `domain/sales`에 `SaleRepository`를 둔다. 애그리게이트를 주고받는 도메인 인터페이스다. 여기 Spring Data 인터페이스를 그냥 `SaleRepository`로 두면 단순명이 겹쳐, 둘을 함께 쓰는 `SaleRepositoryJpaAdapter`가 한쪽을 FQN으로 써야 한다. **도메인이 깨끗한 이름을 갖고 인프라가 접미사를 받는다.** 네 개 전부 같은 규칙을 따라 일관성을 유지한다.
+
 
 **반열린 구간을 쿼리에 직접 쓴다.** `>= :fromInclusive and < :toExclusive`다. `between`을 쓰면 양끝이 닫혀 종료 경계가 포함된다. Task 3이 반열린 구간을 핵심 설계 판단으로 잡았고 경계 테스트 3방향으로 잠갔는데, 여기서 `between`을 쓰면 그 판단이 어댑터에서 무너진다.
 
@@ -52,9 +55,11 @@ public interface CourseRepository extends JpaRepository<CourseEntity, String> { 
 
 **목록을 돌려주는 쿼리는 정렬을 고정한다.** `findByCreatorAndPeriod`는 `order by s.paidAt, s.id`, 취소 쪽은 `order by x.cancelledAt, x.id`를 붙인다. SQL은 정렬을 안 주면 순서를 보장하지 않는다. 정산 **금액**은 순서와 무관하지만 판매 **목록 응답**은 순서가 곧 결과라, 같은 요청이 실행마다 다른 순서로 나갈 수 있다. `id` 보조 정렬은 같은 시각의 두 행을 가르기 위한 것이다.
 
-**`findBySaleId`는 Task 4 전용이다.** 누적 초과 환불 판정에서 한 판매의 기존 취소 합계를 구한다. Task 2는 선언만 하고 쓰지 않는다.
+**`findBySaleId`는 Task 4 전용이다.** `SaleRepositoryJpaAdapter.findById`가 `Sale` 애그리게이트를 적재할 때 그 판매의 취소를 전부 읽는다. 애그리게이트는 불변식을 지키는 단위라 부분 적재하면 `cancelledTotal()`이 거짓말을 하고 초과 환불이 통과한다. Task 2는 선언만 하고 쓰지 않는다.
 
-**`CreatorRepository`와 `CourseRepository`는 비어 있다.** `findAll`과 `existsById`가 `JpaRepository`에서 온다. 전자는 `findAllCreatorIds()`가, 후자는 Task 4의 `CourseNotFound` 판정이 쓴다. **강의 리포지토리가 없으면 Task 4가 없는 강의를 걸러낼 수 없어 FK 부재와 맞물려 판매가 그냥 등록된다.**
+`findBySaleIdIn`(복수)과 `findBySaleId`(단수)가 둘 다 필요한 이유는 호출 형태가 다르기 때문이다. 전자는 판매 목록의 환불 상태를 한 번에 구하고, 후자는 단건 애그리게이트를 적재한다. 전자를 단건에 쓰면 컬렉션 포장이 붙고, 후자를 목록에 쓰면 N+1이 된다.
+
+**`CreatorJpaRepository`와 `CourseJpaRepository`는 비어 있다.** `findAll`과 `existsById`가 `JpaRepository`에서 온다. 전자는 `findAllCreatorIds()`가, 후자는 Task 4의 `CourseNotFound` 판정이 쓴다. **강의 리포지토리가 없으면 Task 4가 없는 강의를 걸러낼 수 없어 FK 부재와 맞물려 판매가 그냥 등록된다.**
 
 ## 파일
 

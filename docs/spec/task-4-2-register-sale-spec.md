@@ -145,7 +145,7 @@ package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
 public class SaleRepositoryJpaAdapter implements SaleRepository {
-    // findById: SaleRepository(2.4) 1회 + CancelRepository.findBySaleId(2.4) 1회 -> Sale.restore
+    // findById: SaleJpaRepository(2.4) 1회 + CancelJpaRepository.findBySaleId(2.4) 1회 -> Sale.restore
     // save: 엔티티로 변환해 저장. 기존 취소는 ID로 걸러 새것만 insert
 }
 
@@ -154,7 +154,7 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
 public class SalesQueryJpaAdapter implements SalesQueryPort {
     // findSalesForListing: 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
     //                      (findSales와 같은 쿼리, 매핑만 다르다)
-    // courseExists: CourseRepository.existsById
+    // courseExists: CourseJpaRepository.existsById
 }
 ```
 

@@ -8,9 +8,19 @@
 
 ## 테스트
 
-`SeedDataTest` — `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)`.
+`SeedDataTest` — `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)` + `@Import(SalesQueryJpaAdapter.class)`.
+
+**`@Import`를 2.5와 똑같이 붙인다. 쓰지 않아도 붙인다.** 이유는 컨텍스트 캐시다.
 
 `replace = NONE`이 없으면 `@DataJpaTest`가 내장 DB를 새로 띄워 `application.yml`의 H2와 `data.sql`을 무시한다. 시드 없는 빈 DB에서 돌아 네 건 전부 실패한다.
+
+## 컨텍스트를 2.5와 공유해야 한다
+
+`@Import`가 붙고 안 붙고는 **Spring의 컨텍스트 캐시 키를 가른다.** 설정이 다르면 컨텍스트가 둘 생기는데, 둘 다 `application.yml`의 `jdbc:h2:mem:creator-settlement;DB_CLOSE_DELAY=-1`을 본다. `DB_CLOSE_DELAY=-1`이라 JVM이 사는 동안 DB가 안 닫히므로 **서로 같은 인스턴스를 밟는다.**
+
+`ddl-auto=create-drop`이라 두 번째 컨텍스트가 뜨는 순간 첫 번째가 쓰던 테이블을 드롭하고 다시 만든다. 실행 순서에 따라 통과할 수도 있지만 그때부터 **테스트가 순서에 의존한다.** Task 3이 "실행 순서에 의존하지 않는다"를 규칙으로 잡았는데 통합 레벨에서 그게 깨진다.
+
+설정을 같게 두면 컨텍스트가 하나로 합쳐져 문제가 사라진다. Task 1의 `@SpringBootTest`는 어차피 별개 컨텍스트지만 엔티티도 시드도 안 보므로 영향이 없다. Task 4·6이 컨텍스트를 더 만들 때도 같은 규칙을 따른다.
 
 | # | 케이스 | 단언 |
 | --- | --- | --- |
@@ -43,6 +53,6 @@
 ## 완료 기준
 
 1. 테스트 4건이 통과한다.
-2. `@AutoConfigureTestDatabase(replace = NONE)`이 있다.
+2. `@AutoConfigureTestDatabase(replace = NONE)`과 `@Import(SalesQueryJpaAdapter.class)`가 2.5와 동일하다.
 3. `sale-5`의 KST 귀속월이 명시적으로 단언된다.
 4. 정산 금액을 단언하지 않는다.

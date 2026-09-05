@@ -32,11 +32,13 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | 2.2 | [크리에이터·강의 엔티티](./task-2-2-creator-course-entity-spec.md) | — | 5분 | 0 |
 | 2.3 | [인덱스 정의](./task-2-3-index-spec.md) | 2.1, 2.2 | 5분 | 0 |
 | 2.4 | [Spring Data 리포지토리 4종](./task-2-4-repository-spec.md) | 2.1, 2.2 | 10분 | 0 |
-| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, Task 3.5 | 15분 | 5 |
+| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, 2.6, Task 3.5 | 15분 | 6 |
 | 2.6 | [`data.sql` 초기 데이터 17행](./task-2-6-seed-data-spec.md) | 2.1, 2.2 | 10분 | 0 |
 | 2.7 | [시드 재현성 테스트](./task-2-7-seed-verification-spec.md) | 2.5, 2.6 | 10분 | 4 |
 
-약 55분, 새 테스트 9건.
+약 55분, 새 테스트 10건.
+
+2.1과 2.2는 서로 독립이다. 2.5가 2.6에 의존하는 이유는 테스트 여섯 건이 전부 시드를 단언하기 때문이다. 착수 순서는 2.1·2.2 → 2.3·2.4·2.6 → 2.5 → 2.7이다.
 
 ## 테스트 환경
 
@@ -110,7 +112,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | --- | --- |
 | `adapter/out/persistence/SaleEntity.java`, `CancelEntity.java` | 2.1, 2.3 |
 | `adapter/out/persistence/CreatorEntity.java`, `CourseEntity.java` | 2.2, 2.3 |
-| `adapter/out/persistence/SaleRepository.java`, `CancelRepository.java`, `CreatorRepository.java`, `CourseRepository.java` | 2.4 |
+| `adapter/out/persistence/SaleJpaRepository.java`, `CancelJpaRepository.java`, `CreatorJpaRepository.java`, `CourseJpaRepository.java` | 2.4 |
 | `adapter/out/persistence/SalesQueryJpaAdapter.java` | 2.5 |
 | `src/main/resources/data.sql` | 2.6 |
 
@@ -139,7 +141,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | Review | Trigger | Why | Runs | Status | Findings |
 | --- | --- | --- | ---: | --- | --- |
 | CEO Review | `/plan-ceo-review` | 범위와 전략 | 1 | CLEAR | 계획 단계에서 HOLD_SCOPE 확정, 25건 반영 |
-| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 1 | CLEAR | 4건 적발, 전부 반영 |
+| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 7 | CLEAR | 11건 적발, 전부 반영 |
 | Outside Voice | Codex (독립) | 교차 검증 | 1 | CLEAR | 블로커 6 + 중간 3, 전부 검증 후 반영 |
 | Design Review | 해당 없음 | UI/UX | 0 | SKIPPED | 백엔드 전용 |
 | DX Review | 해당 없음 | 로컬 실행 | 0 | SKIPPED | Task 1에서 완료 |
@@ -148,7 +150,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 
 **엔지니어링 검수 4건**
 1. 헥사고날 방향 역전. 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.actor`로 옮기고 해석기만 어댑터에 남겼다.
-2. `findSaleById`가 `SaleData`를 돌려주는데 `creatorId`를 채울 방법이 없어 NPE. 전용 `SaleRecord`를 신설했다.
+2. 판매 단건 조회가 `SaleData`를 돌려주면 `creatorId`를 채울 방법이 없어 NPE. 단건 경로는 `Sale` 애그리게이트로, 목록 경로는 전용 `SaleRecord`로 갈랐다.
 3. 5.2와 5.3이 조회·계산 세 줄을 복제. `SettlementQuery`로 뺐다.
 4. 테스트 공백 2건(전액 환불 경계, CREATOR 등록 403)과 `NoCurrentTimeUsageTest` 자기 매칭 버그.
 
@@ -165,7 +167,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 
 **CROSS-MODEL:** Codex가 낸 9건 중 반박한 것은 없다. 전부 실제 코드와 jar를 열어 확인했다. 1번은 제가 처음 읽었을 때 존재했으나 검수 도중 다른 세션이 지운 것이라, 두 번째 확인이 없었으면 놓쳤을 지점이다. 7번은 Boot 4 모듈 분할을 몰랐으면 구현자가 컴파일 오류로 시간을 태웠을 항목이다.
 
-**테스트 78건** — Task 1: 4, Task 2: 9, Task 3: 42, Task 4: 11, Task 5: 10, Task 6: 2.
+**테스트 84건** — Task 1: 4, Task 2: 10, Task 3: 42, Task 4: 16(애그리게이트 5 포함), Task 5: 10, Task 6: 2.
 
 **VERDICT:** CEO + ENG + OUTSIDE VOICE CLEARED — 구현 착수 가능.
 

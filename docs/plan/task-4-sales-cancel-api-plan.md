@@ -74,7 +74,7 @@
    ```java
    String save(NewSale sale);              // 서버 생성 UUID를 돌려준다
    Optional<SaleRecord> findById(String saleId);
-   long sumCancelledAmount(String saleId); // 누적 초과 환불 판정용
+   // 누적 초과 환불 판정은 Sale 애그리게이트가 소유한다 (명세 4.2에서 개편)
    void saveCancel(NewCancel cancel);
    boolean courseExists(String courseId);  // CourseNotFound 판정용
    ```
