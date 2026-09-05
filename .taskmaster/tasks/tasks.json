@@ -353,7 +353,7 @@
         "description": "조회 포트와 도메인 계산기를 사용해 크리에이터 월별 정산과 운영자 기간 집계를 반환한다.",
         "details": "총 판매액, 환불액, 순 판매액, 수수료, 정산 예정액, 판매 건수와 취소 건수를 명시적으로 반환한다. 건수도 금액과 같은 이중 기준을 따라 판매는 paidAt, 취소는 cancelledAt으로 귀속을 판단한다. 운영자 응답에는 크리에이터별 정산 예정액 목록과 전체 합계를 포함한다. 날짜 범위는 KST 시작일 포함·종료일 다음 날 00:00 미만으로 조회한다. 접근 경계는 ActorContext로 판단한다. CREATOR는 자신의 actorId와 일치하는 크리에이터의 정산만 조회할 수 있고, 운영자 기간 집계는 ADMIN만 조회할 수 있다. 위반은 Task 4에서 정의한 ActorAccessDenied로 403 응답을 만든다. 모든 컨트롤러 메서드가 ActorContext 파라미터를 선언해야 한다. 해석기는 필터가 아니라 opt-in이라 파라미터를 빠뜨리면 헤더 검사가 통째로 생략된다.",
         "testStrategy": "제공 시나리오 기준의 월별 정산 응답과 운영자 전체 합계를 검증한다. 크리에이터가 남의 정산을 조회하면 403으로 거부되는지 확인한다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           3,
@@ -366,7 +366,7 @@
             "title": "역할 매트릭스",
             "description": "엔드포인트 5개 규칙 확정. 판정 코드는 Task 4의 ActorAccessPolicy",
             "details": "엔드포인트 5개 규칙 확정. 판정 코드는 Task 4의 ActorAccessPolicy",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -374,7 +374,7 @@
             "title": "크리에이터 월별 정산 + SettlementQuery",
             "description": "조회·계산 공유 협력자. 빈 월은 200 + 전항목 0",
             "details": "조회·계산 공유 협력자. 빈 월은 200 + 전항목 0",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ]
@@ -384,7 +384,7 @@
             "title": "운영자 기간 집계",
             "description": "단일 구간 계산. findAllCreatorIds로 실적 0 포함, 정렬 고정",
             "details": "단일 구간 계산. findAllCreatorIds로 실적 0 포함, 정렬 고정",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2
@@ -395,7 +395,7 @@
             "title": "SettlementController",
             "description": "연월·일자를 String으로 수신. 두 메서드 다 ActorContext 선언",
             "details": "연월·일자를 String으로 수신. 두 메서드 다 ActorContext 선언",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2,
               3,
@@ -407,7 +407,7 @@
             "title": "응답 DTO",
             "description": "금액 5 + 판매 건수 + 취소 건수. payout은 음수 허용",
             "details": "금액 5 + 판매 건수 + 취소 건수. payout은 음수 허용",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -415,7 +415,7 @@
             "title": "접근 경계 테스트 + opt-in 가드",
             "description": "403 2종, 400 code 단언, 리플렉션 가드",
             "details": "403 2종, 400 code 단언, 리플렉션 가드",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               4
             ]
