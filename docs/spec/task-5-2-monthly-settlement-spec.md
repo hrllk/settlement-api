@@ -23,6 +23,7 @@ public class SettlementQuery {                       // 5.2와 5.3이 함께 쓴
 @Service
 public class MonthlySettlementUseCase {
 
+    @Transactional(readOnly = true)
     public SettlementSummary settle(ActorContext actor, String creatorId, String yearMonth) {
         accessPolicy.requireSelfOrAdmin(actor, creatorId);
         SettlementPeriod period = SettlementPeriod.ofYearMonth(yearMonth);
@@ -36,6 +37,8 @@ public class MonthlySettlementUseCase {
 **`SettlementQuery`를 빼는 이유는 세 줄을 아끼려는 게 아니다.** 이 세 줄이 프로젝트의 핵심 계산 진입점이고, 5.2와 5.3에 각자 복사돼 있으면 조회 순서나 기간 처리가 바뀔 때 한쪽만 고치는 사고가 난다. 그러면 같은 크리에이터의 월별 응답과 운영자 응답이 조용히 달라진다.
 
 유스케이스에 산술이 한 줄도 없어야 한다. 계산은 Task 3의 계산기가 소유한다.
+
+**`@Transactional(readOnly = true)`를 붙인다.** 안 붙이면 `findSales`와 `findCancels`가 각자 트랜잭션을 연다. 한 응답의 두 조회가 서로 다른 시점을 볼 수 있고, 커넥션도 두 번 빌린다. Task 4의 `ListCreatorSalesUseCase`가 같은 규칙이다.
 
 ## 연월을 `String`으로 받는다
 
@@ -79,4 +82,5 @@ creator-3의 2025-03은 판매도 취소도 없다. 포트가 빈 리스트 둘�
 2. 연월이 `String`이고 `ofYearMonth`가 파싱한다.
 3. 빈 월이 200 + 전 항목 0이다.
 4. `requireSelfOrAdmin`을 호출한다.
+4-b. `@Transactional(readOnly = true)`가 붙어 있다.
 5. 테스트 2건이 통과한다.

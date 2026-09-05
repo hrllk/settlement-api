@@ -65,6 +65,25 @@ ofDateRange("2025-03-01", "2025-03-31")
 
 시드에 3월 31일 데이터가 없어 `to=03-31`과 `to=04-01`이 **같은 168,000**을 낸다. 즉 **어떤 테스트도 이 규칙을 구분하지 못한다.** 문서로만 잡힌다. 7.2·7.4에 반영했다.
 
+## 3-b. 미리 확인해 둔 것 (Task 7.8 선점)
+
+7.8 체크리스트 중 지금 확인 가능한 것을 미리 돌렸다. Task 7이 다시 찾을 필요 없다.
+
+| 7.8 항목 | 결과 |
+| --- | --- |
+| 2. `gradlew` 100755, wrapper jar 추적 | ✅ `100755 gradlew`, `100644 gradle-wrapper.jar` |
+| 5. 빌드 산출물·`.gradle`·`.claude` 미추적 | ✅ `git ls-files` 결과 0건 |
+| 6. 수치 대조 | ✅ 5절 검산표 |
+| 7. 오류 포맷 | ✅ Task 4 검수에서 실측 |
+
+남는 것은 클린 클론(1), 기동(3), curl 실전(4), 감사표(8)다. 전부 Task 5·6이 끝나야 할 수 있다.
+
+**7.3의 인덱스·ERD 주장도 대조했다.** `idx_sales_course_paid (course_id, paid_at)`,
+`idx_cancels_sale_cancelled (sale_id, cancelled_at)` 실제와 일치한다.
+
+**6.1의 근거도 대조했다.** `SettlementFixtures`는 `final class`(package-private)이고
+`PLATFORM_FEE_BP`도 package-private이다. Task 6이 import 못 한다는 전제가 맞다.
+
 ---
 
 ## 4. 논의가 필요한 것

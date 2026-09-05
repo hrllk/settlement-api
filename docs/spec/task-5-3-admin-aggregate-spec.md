@@ -10,6 +10,7 @@
 @Service
 public class AdminSettlementUseCase {
 
+    @Transactional(readOnly = true)
     public AdminSettlement aggregate(ActorContext actor, String from, String to) {
         accessPolicy.requireAdmin(actor);
 
@@ -72,6 +73,8 @@ creator-3은 2025-03에 판매도 취소도 없다. 판매·취소 자료만 훑
 
 크리에이터 테이블을 따로 읽어야 실적 0인 사람도 0원으로 목록에 넣을 수 있다.
 
+`@Transactional(readOnly = true)`가 여기서는 5.2보다 더 중요하다. 크리에이터 3명이면 조회가 7회인데, 트랜잭션이 없으면 커넥션을 7번 빌리고 각 조회가 다른 시점을 본다.
+
 ## N+1을 감수한다
 
 크리에이터마다 포트를 두 번 부른다. 3명이면 조회 7회다. 한 번에 전부 긁어 메모리에서 그룹핑하는 방법도 있지만, 그러면 포트에 "전체 조회" 경로가 하나 더 생긴다.
@@ -110,4 +113,5 @@ Task 3이 포트 계약을 "`creatorId`는 항상 필수"로 잡았다. 조회 �
 4-b. 목록이 `creatorId` 오름차순으로 나온다. (Task 2가 이미 정렬하므로 확인만)
 4-c. `AdminSettlement`에 `SettlementPeriod` 필드가 없다.
 5. `requireAdmin`을 호출한다.
+5-b. `@Transactional(readOnly = true)`가 붙어 있다.
 6. 테스트 3건이 통과한다.
