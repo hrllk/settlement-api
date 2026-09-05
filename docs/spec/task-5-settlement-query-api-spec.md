@@ -9,7 +9,7 @@
 ## 현재 상태
 
 - 계획: `docs/plan/task-5-settlement-query-api-plan.md`
-- Task 2: `SettlementDataJpaAdapter` (조회 포트 구현)
+- Task 2: `SettlementQueryJpaAdapter` (조회 포트 구현)
 - Task 3: `SettlementPeriod`, `SettlementCalculator`, `SettlementSummary`, `FeePolicy`
 - Task 4: 전역 예외 처리기, 오류 포맷, `ActorAccessPolicy`, 도메인 빈 등록
 

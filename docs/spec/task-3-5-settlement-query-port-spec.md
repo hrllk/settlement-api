@@ -1,17 +1,17 @@
-# Task 3.5 — `SettlementDataPort` 명세
+# Task 3.5 — `SettlementQueryPort` 명세
 
 부모: [`task-3-settlement-domain-spec.md`](./task-3-settlement-domain-spec.md) · 의존 3.2 · 5분
 
 선언만 한다. 구현체는 Task 2가 만든다.
 
-**이 포트는 조회 전용이다.** 저장과 ID 조회는 Task 4가 `SaleCommandPort`와 그 JPA 어댑터를 따로 만들어 소유한다. 읽기와 쓰기를 한 인터페이스에 섞지 않는다.
+**이 포트는 조회 전용이다.** 저장과 ID 조회는 Task 4가 `SalePort`와 그 JPA 어댑터를 따로 만들어 소유한다. 읽기와 쓰기를 한 인터페이스에 섞지 않는다.
 
 ## 타입
 
 ```java
 package com.liveclass.settlement.application.port.out;
 
-public interface SettlementDataPort {
+public interface SettlementQueryPort {
 
     List<SaleData>   findSales  (Instant fromInclusive, Instant toExclusive, String creatorId);
     List<CancelData> findCancels(Instant fromInclusive, Instant toExclusive, String creatorId);
@@ -43,7 +43,7 @@ public interface SettlementDataPort {
 
 ## 파일
 
-`application/port/out/SettlementDataPort.java`. `application/.gitkeep`을 지운다. 테스트는 없다 — 인터페이스 선언이다. Task 2의 구현체와 Task 4·5 호출부에서 검증한다.
+`application/port/out/SettlementQueryPort.java`. `application/.gitkeep`을 지운다. 테스트는 없다 — 인터페이스 선언이다. Task 2의 구현체와 Task 4·5 호출부에서 검증한다.
 
 ## 완료 기준
 

@@ -18,7 +18,7 @@ import java.util.List;
  *
  * <p>구현체는 Task 2가 만든다.
  */
-public interface SettlementDataPort {
+public interface SettlementQueryPort {
 
     /** 기간 내 결제된 판매. creatorId는 필수다. */
     List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId);

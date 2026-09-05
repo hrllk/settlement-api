@@ -8,7 +8,7 @@ Spring과 데이터베이스 없이 동작하는 순수 정산 계산기를 만�
 
 `tasks.json`의 의존성은 `[1]`이지만 실제 결합은 루트 패키지 경로 하나뿐이다. 이 작업의 산출물은 Spring 컨텍스트와 JPA를 참조하지 않으므로 Task 1의 부트스트랩 완료를 기다리지 않고 병렬로 진행한다.
 
-**Task 2는 Task 1과 Task 3 양쪽 뒤에 온다.** 빌드 스크립트와 `application.yml`은 Task 1이 주고, `SettlementDataPort` 인터페이스와 `SaleData` / `CancelData` 값 타입은 Task 3가 준다. Task 2가 포트 구현체를 만들려면 둘 다 있어야 한다. `tasks.json`에는 Task 2의 의존성이 `[1]`로만 적혀 있어 이 순서가 드러나지 않는다.
+**Task 2는 Task 1과 Task 3 양쪽 뒤에 온다.** 빌드 스크립트와 `application.yml`은 Task 1이 주고, `SettlementQueryPort` 인터페이스와 `SaleData` / `CancelData` 값 타입은 Task 3가 준다. Task 2가 포트 구현체를 만들려면 둘 다 있어야 한다. `tasks.json`에는 Task 2의 의존성이 `[1]`로만 적혀 있어 이 순서가 드러나지 않는다.
 
 이 작업을 먼저 여는 이유는 설계 판단이 전부 여기 몰려 있기 때문이다. 이중 집계 기준, KST 경계, 음수 순 판매액 정책이 틀리면 Task 5와 Task 6이 다시 짜인다. Task 2와 Task 4는 기계적이다.
 
@@ -19,12 +19,12 @@ Spring과 데이터베이스 없이 동작하는 순수 정산 계산기를 만�
 - 환불 상태 `RefundStatus` — 판매별 취소 금액 합계에서 `NONE` / `PARTIAL` / `FULL`을 산출한다.
 - 수수료 정책 `FeePolicy` — 고정 20%를 인터페이스 뒤에 둔다.
 - 정산 계산기 `SettlementCalculator` — 원본 판매·취소 자료에서 요약을 산출한다.
-- 조회 아웃바운드 포트 `SettlementDataPort` — 인터페이스 선언만 둔다.
+- 조회 아웃바운드 포트 `SettlementQueryPort` — 인터페이스 선언만 둔다.
 - 위 전부에 대한 단위 테스트.
 
 ## 제외 범위
 
-- JPA 엔티티, 리포지토리, `SettlementDataPort` 구현체 — Task 2
+- JPA 엔티티, 리포지토리, `SettlementQueryPort` 구현체 — Task 2
 - 컨트롤러, 요청·응답 DTO, 전역 예외 처리기 — Task 4, Task 5
 - 초과 환불 거부 — 취소 등록 시점의 규칙이므로 Task 4에 둔다
 - 수수료율 이력 테이블, 정산 상태 전이, CSV 내보내기 — 명시적 제외 범위
@@ -137,7 +137,7 @@ record CancelData(String cancelId, String saleId, long amount, Instant cancelled
 ## 포트 계약
 
 ```java
-public interface SettlementDataPort {
+public interface SettlementQueryPort {
     List<SaleData>   findSales  (Instant fromInclusive, Instant toExclusive, String creatorId);
     List<CancelData> findCancels(Instant fromInclusive, Instant toExclusive, String creatorId);
     List<CancelData> findCancelsBySaleIds(Collection<String> saleIds);
@@ -213,12 +213,12 @@ com.liveclass.settlement.domain.settlement
   InvalidSettlementPeriod 도메인 예외
 
 com.liveclass.settlement.application.port.out
-  SettlementDataPort      선언만. 구현은 Task 2
+  SettlementQueryPort      선언만. 구현은 Task 2
 ```
 
 - Java 21과 Gradle을 쓴다. 루트 패키지는 Task 1이 확정한 `com.liveclass.settlement`이다.
 - `SaleData`, `CancelData`는 계산기 전용 입력 타입이다. JPA 엔티티를 domain으로 끌어오지 않는다. PRD의 "영속성 엔티티와 순수 정산 계산 타입을 분리한다"를 여기서 지킨다.
-- `SettlementDataPort`는 집계된 금액이 아니라 대상 기간의 원본 판매·취소 목록을 반환한다. 집계 책임은 전부 계산기에 있다.
+- `SettlementQueryPort`는 집계된 금액이 아니라 대상 기간의 원본 판매·취소 목록을 반환한다. 집계 책임은 전부 계산기에 있다.
 - 이 작업에서 Spring 애노테이션을 쓰지 않는다. 빈 등록은 **Task 4**에서 한다. (초판은 Task 5로 적었으나, Task 4가 Spring 배선이 생기는 첫 Task라 Task 4가 도메인 빈을 먼저 필요로 한다. Task 2·4·5 계획 검수에서 정정했다.)
 
 ## 검토 결과
@@ -237,7 +237,7 @@ com.liveclass.settlement.application.port.out
   - 검증: Task 5 착수 전 Task 4의 전역 예외 처리기가 존재하는지 확인
 - [ ] **T2 (P1, human: ~5min / CC: ~1min)** — `.taskmaster/tasks.json` — Task 2 `dependencies`를 `[1]` → `[1,3]`로 수정
   - 근거: 외부 검토 — Task 2의 포트 구현체가 Task 3의 인터페이스와 값 타입에 의존한다
-  - 검증: Task 2 착수 시 `SettlementDataPort`와 `SaleData`/`CancelData`가 컴파일되는지 확인
+  - 검증: Task 2 착수 시 `SettlementQueryPort`와 `SaleData`/`CancelData`가 컴파일되는지 확인
 - [ ] **T3 (P2, human: ~5min / CC: ~1min)** — `.taskmaster/tasks.json` — Task 5 상세의 "건수"를 "판매 건수와 취소 건수"로 수정
   - 근거: 모순 검증 — 원본 과제는 두 개를 요구한다
   - 검증: Task 5 응답 스키마에 두 필드가 있는지 확인

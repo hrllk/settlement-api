@@ -1,8 +1,8 @@
-# Task 2.5 — `SettlementDataPort` JPA 어댑터 명세
+# Task 2.5 — `SettlementQueryPort` JPA 어댑터 명세
 
 부모: [`task-2-sales-seed-data-spec.md`](./task-2-sales-seed-data-spec.md) · 의존 2.4, **2.6**, Task 3.5 · 15분 · 테스트 6
 
-**Task 3의 `SettlementDataPort`가 컴파일된 뒤에만 착수한다.**
+**Task 3의 `SettlementQueryPort`가 컴파일된 뒤에만 착수한다.**
 
 **2.6보다 먼저 착수하면 안 된다.** 아래 테스트가 전부 시드 데이터를 단언한다. `data.sql`이 없으면 빈 DB에서 여섯 건이 모두 실패한다.
 
@@ -12,7 +12,7 @@
 package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
-public class SettlementDataJpaAdapter implements SettlementDataPort {
+public class SettlementQueryJpaAdapter implements SettlementQueryPort {
 
     private final SaleRepository sales;
     private final CancelRepository cancels;
@@ -68,7 +68,7 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 
 | 방향 | 인터페이스 | 위치 | 돌려주는 것 | 소유 |
 | --- | --- | --- | --- | --- |
-| 읽기 | `SettlementDataPort` | `application/port/out` | `SaleData` / `CancelData` 값 | Task 3 선언, **Task 2 구현** |
+| 읽기 | `SettlementQueryPort` | `application/port/out` | `SaleData` / `CancelData` 값 | Task 3 선언, **Task 2 구현** |
 | 쓰기 | `SaleRepository` | `domain/sales` | `Sale` 애그리게이트 | Task 4 |
 
 읽기가 애그리게이트를 쓰지 않는 이유는 정산이 평평한 값의 합산이기 때문이다. 애그리게이트를 로딩하면 취소 목록이 딸려 오는데 집계에는 필요 없고, 크리에이터 한 명의 한 달치를 애그리게이트 N개로 읽으면 그게 곧 N+1이다. 쓰기가 애그리게이트를 쓰는 이유는 누적 환불 ≤ 원결제라는 불변식이 판매와 그 취소들에 함께 걸리기 때문이다. 두 방향의 필요가 달라 모델이 갈린다.
@@ -81,7 +81,7 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 
 ## 테스트
 
-`SettlementDataJpaAdapterTest` — `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)` + `@Import(SettlementDataJpaAdapter.class)`.
+`SettlementQueryJpaAdapterTest` — `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)` + `@Import(SettlementQueryJpaAdapter.class)`.
 
 | # | 케이스 | 기대 |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 
 ## 파일
 
-`adapter/out/persistence/SettlementDataJpaAdapter.java`.
+`adapter/out/persistence/SettlementQueryJpaAdapter.java`.
 
 ## 완료 기준
 

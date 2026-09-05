@@ -28,9 +28,9 @@ public interface SalePort {
 }
 ```
 
-**Task 2의 `SettlementDataPort`는 조회 메서드 4개뿐이라 등록 경로를 덮지 못한다.** 커맨드 포트를 Task 4가 소유하는 이유는 포트의 모양이 유스케이스에서 나오기 때문이다. Task 2 시점에는 등록 유스케이스가 없어 시그니처를 추측해야 한다.
+**Task 2의 `SettlementQueryPort`는 조회 메서드 4개뿐이라 등록 경로를 덮지 못한다.** 커맨드 포트를 Task 4가 소유하는 이유는 포트의 모양이 유스케이스에서 나오기 때문이다. Task 2 시점에는 등록 유스케이스가 없어 시그니처를 추측해야 한다.
 
-**커맨드 포트가 아니라 `SalePort`다.** 등록과 판매 목록 조회를 함께 갖는다. Task 2의 `SettlementDataPort`는 정산 계산의 입력을 주는 포트이고, 이쪽은 판매 API의 읽기·쓰기 모델이다. 같은 테이블을 보지만 목적이 다르다.
+**커맨드 포트가 아니라 `SalePort`다.** 등록과 판매 목록 조회를 함께 갖는다. Task 2의 `SettlementQueryPort`는 정산 계산의 입력을 주는 포트이고, 이쪽은 판매 API의 읽기·쓰기 모델이다. 같은 테이블을 보지만 목적이 다르다.
 
 **`saveCancel`이 취소 ID를 돌려준다.** 4.5의 `CancelResponse`가 `cancelId`를 담고 4.7이 로그에 남긴다. `void`로 두면 둘 다 채울 수 없다.
 

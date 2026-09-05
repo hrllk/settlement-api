@@ -93,7 +93,7 @@
         "id": 2,
         "title": "[feature] 판매 데이터와 시나리오 초기 데이터 구성",
         "description": "크리에이터, 강의, 판매, 취소를 영속화하고 전액·부분 환불과 월 경계 취소를 포함한 제공 시나리오를 초기화한다.",
-        "details": "단순한 JPA 엔티티를 사용하고 초기 데이터는 재현 가능하게 유지한다. cancel-1은 sale-3 전액 80,000원 3월 취소, cancel-2는 sale-4 부분 30,000원 3월 취소, cancel-3은 sale-5 전액 60,000원 2월 취소로 정의한다. 판매에는 course_id·paid_at, 취소에는 sale_id·cancelled_at 인덱스를 둔다. Spring Data 리포지토리는 판매·취소·크리에이터·강의 4종이다. 강의 리포지토리는 Task 4의 CourseNotFound 판정에 필요하다. SettlementDataPort는 조회 전용이며 커맨드 포트와 그 어댑터는 Task 4가 소유한다.",
+        "details": "단순한 JPA 엔티티를 사용하고 초기 데이터는 재현 가능하게 유지한다. cancel-1은 sale-3 전액 80,000원 3월 취소, cancel-2는 sale-4 부분 30,000원 3월 취소, cancel-3은 sale-5 전액 60,000원 2월 취소로 정의한다. 판매에는 course_id·paid_at, 취소에는 sale_id·cancelled_at 인덱스를 둔다. Spring Data 리포지토리는 판매·취소·크리에이터·강의 4종이다. 강의 리포지토리는 Task 4의 CourseNotFound 판정에 필요하다. SettlementQueryPort는 조회 전용이며 커맨드 포트와 그 어댑터는 Task 4가 소유한다.",
         "testStrategy": "기동 후 제공된 초기 데이터와 취소 연결 관계가 생성되는지 확인한다.",
         "status": "pending",
         "dependencies": [
@@ -142,7 +142,7 @@
           },
           {
             "id": 5,
-            "title": "SettlementDataPort JPA 어댑터",
+            "title": "SettlementQueryPort JPA 어댑터",
             "description": "조회 전용 4메서드. 빈 컬렉션 방어, null 반환 금지",
             "details": "조회 전용 4메서드. 빈 컬렉션 방어, null 반환 금지",
             "status": "pending",
@@ -178,7 +178,7 @@
         "id": 3,
         "title": "[feature] 정산 도메인 계산 구현",
         "description": "순수한 정산 기간, 정산 요약, 수수료 정책, 계산기와 조회 아웃바운드 포트를 만든다.",
-        "details": "SettlementDataPort는 원본 판매·취소 자료를 반환한다. Asia/Seoul 기준으로 paidAt 판매와 cancelledAt 환불을 서로 다른 기준으로 집계한다. 금액은 원 단위 long을 사용하고, 음수 순 판매액의 수수료는 0원으로 제한한다. 환불 상태는 취소 금액 합계에서 계산한다. 명세: docs/spec/task-3-settlement-domain-spec.md",
+        "details": "SettlementQueryPort는 원본 판매·취소 자료를 반환한다. Asia/Seoul 기준으로 paidAt 판매와 cancelledAt 환불을 서로 다른 기준으로 집계한다. 금액은 원 단위 long을 사용하고, 음수 순 판매액의 수수료는 0원으로 제한한다. 환불 상태는 취소 금액 합계에서 계산한다. 명세: docs/spec/task-3-settlement-domain-spec.md",
         "testStrategy": "계산기는 Spring과 DB 없이 단위 테스트로 검증한다. 음수 순 판매액과 수수료 0원 정책도 포함한다.",
         "status": "done",
         "dependencies": [
@@ -230,9 +230,9 @@
           },
           {
             "id": 5,
-            "title": "SettlementDataPort 아웃바운드 포트 선언",
+            "title": "SettlementQueryPort 아웃바운드 포트 선언",
             "description": "조회 포트를 선언만 한다. 구현체는 Task 2가 만든다.",
-            "details": "findSales(from, to, creatorId), findCancels(from, to, creatorId), findCancelsBySaleIds(Collection<String>), findAllCreatorIds() 4개. creatorId는 항상 필수이며 전체를 한 번에 긁는 경로는 두지 않는다. findAllCreatorIds가 필요한 이유는 판매도 취소도 없는 크리에이터를 운영자 목록에 0원으로 넣기 위해서다. findCancelsBySaleIds는 환불 상태 전용이다. 환불 상태는 기간 필터를 적용하지 않으므로 cancelledAt 창 조회로는 산출할 수 없다. 어떤 메서드도 null을 반환하지 않고 결과가 없으면 빈 리스트다. 명세: docs/spec/task-3-5-settlement-data-port-spec.md",
+            "details": "findSales(from, to, creatorId), findCancels(from, to, creatorId), findCancelsBySaleIds(Collection<String>), findAllCreatorIds() 4개. creatorId는 항상 필수이며 전체를 한 번에 긁는 경로는 두지 않는다. findAllCreatorIds가 필요한 이유는 판매도 취소도 없는 크리에이터를 운영자 목록에 0원으로 넣기 위해서다. findCancelsBySaleIds는 환불 상태 전용이다. 환불 상태는 기간 필터를 적용하지 않으므로 cancelledAt 창 조회로는 산출할 수 없다. 어떤 메서드도 null을 반환하지 않고 결과가 없으면 빈 리스트다. 명세: docs/spec/task-3-5-settlement-query-port-spec.md",
             "testStrategy": "인터페이스 선언이라 테스트는 없다. Task 2의 구현체와 Task 4·5의 호출부에서 검증한다. 조회 전용이며 쓰기 포트는 Task 4가 소유한다.",
             "status": "done",
             "dependencies": [
@@ -245,7 +245,7 @@
         "id": 4,
         "title": "[feature] 판매·취소 API 제공",
         "description": "판매 등록, 초과 환불 거부, 취소 등록, 크리에이터별 기간 판매 목록 조회 API를 제공한다.",
-        "details": "웹 어댑터는 HTTP 요청만 변환하고 비즈니스 규칙은 application/domain에 둔다. 기존 취소 금액 합계와 새 환불액의 합이 원결제 금액을 초과하면 거부한다. SaleNotFound, CourseNotFound, RefundAmountExceeded, InvalidSettlementPeriod, ActorAccessDenied를 전역 예외 처리기로 상태·코드·메시지 응답으로 변환한다. ActorAccessDenied는 403으로 변환한다. 헤더 형식 오류로 인한 400은 ActorContextArgumentResolver가 이미 처리하므로 인가 실패와 구분한다. 이 예외는 Task 5의 크리에이터 본인 확인과 운영자 전용 조회에서 사용하지만, 전역 예외 처리기를 두 번 열지 않도록 정의는 Task 4에서 함께 끝낸다. Bean Validation 실패와 액터 헤더 오류의 ResponseStatusException도 같은 처리기가 잡아 {code, message, status} 한 가지 포맷으로 통일한다. ActorAccessPolicy와 도메인 빈 등록, SaleCommandPort와 그 JPA 어댑터도 Task 4가 소유한다. 새 판매 ID는 서버가 UUID로 생성한다. 수수료율은 settlement.fee.basis-points 설정을 @ConfigurationProperties로 바인딩해 FixedRateFeePolicy를 조립하고 SettlementCalculator를 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다. 요율 이력과 시점별 적용은 구현하지 않으며, 이력 없이 요율만 바꾸면 이미 조회한 과거 정산이 달라진다는 점을 README에 남긴다.",
+        "details": "웹 어댑터는 HTTP 요청만 변환하고 비즈니스 규칙은 application/domain에 둔다. 기존 취소 금액 합계와 새 환불액의 합이 원결제 금액을 초과하면 거부한다. SaleNotFound, CourseNotFound, RefundAmountExceeded, InvalidSettlementPeriod, ActorAccessDenied를 전역 예외 처리기로 상태·코드·메시지 응답으로 변환한다. ActorAccessDenied는 403으로 변환한다. 헤더 형식 오류로 인한 400은 ActorContextArgumentResolver가 이미 처리하므로 인가 실패와 구분한다. 이 예외는 Task 5의 크리에이터 본인 확인과 운영자 전용 조회에서 사용하지만, 전역 예외 처리기를 두 번 열지 않도록 정의는 Task 4에서 함께 끝낸다. Bean Validation 실패와 액터 헤더 오류의 ResponseStatusException도 같은 처리기가 잡아 {code, message, status} 한 가지 포맷으로 통일한다. ActorAccessPolicy와 도메인 빈 등록, SalePort와 그 JPA 어댑터도 Task 4가 소유한다. 새 판매 ID는 서버가 UUID로 생성한다. 수수료율은 settlement.fee.basis-points 설정을 @ConfigurationProperties로 바인딩해 FixedRateFeePolicy를 조립하고 SettlementCalculator를 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다. 요율 이력과 시점별 적용은 구현하지 않으며, 이력 없이 요율만 바꾸면 이미 조회한 과거 정산이 달라진다는 점을 README에 남긴다.",
         "testStrategy": "누적 초과 환불과 없는 판매가 적절한 오류 응답으로 거부되는지 확인한다. ActorAccessDenied가 403으로 변환되는지도 확인한다.",
         "status": "pending",
         "dependencies": [

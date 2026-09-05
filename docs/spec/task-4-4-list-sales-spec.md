@@ -13,7 +13,7 @@ public class ListCreatorSalesUseCase {
         accessPolicy.requireSelfOrAdmin(actor, creatorId);
 
         SettlementPeriod period = SettlementPeriod.ofDateRange(from, to);
-        List<SaleRecord> sales = salePort.findSalesByCreator(          // SettlementDataPort가 아니다
+        List<SaleRecord> sales = salePort.findSalesByCreator(          // SettlementQueryPort가 아니다
                 period.fromInclusive(), period.toExclusive(), creatorId);
 
         List<CancelData> cancels = dataPort.findCancelsBySaleIds(
@@ -30,7 +30,7 @@ public class ListCreatorSalesUseCase {
 }
 ```
 
-## `SettlementDataPort`가 아니라 `SalePort`로 조회한다
+## `SettlementQueryPort`가 아니라 `SalePort`로 조회한다
 
 응답의 `SaleItem`에는 `courseId`가 들어간다. 그런데 Task 3의 `SaleData`에는 `courseId`가 없다.
 
@@ -40,7 +40,7 @@ public record SaleData(String saleId, String creatorId, long amount, Instant pai
 
 Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 **4.2의 `SalePort.findSalesByCreator`를 쓴다.** 그쪽 `SaleRecord`가 `courseId`를 갖는다.
 
-취소는 여전히 `SettlementDataPort.findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
+취소는 여전히 `SettlementQueryPort.findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
 
 ## 환불 상태에 기간 필터를 적용하지 않는다
 

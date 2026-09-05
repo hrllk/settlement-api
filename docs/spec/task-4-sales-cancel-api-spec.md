@@ -8,7 +8,7 @@
 
 - 계획: `docs/plan/task-4-sales-cancel-api-plan.md`
 - Task 1: `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`, `WebMvcConfig`
-- Task 2: 엔티티, 리포지토리 4종, `SettlementDataJpaAdapter`
+- Task 2: 엔티티, 리포지토리 4종, `SettlementQueryJpaAdapter`
 - Task 3: `SettlementPeriod`, `RefundStatus`, `InvalidSettlementPeriod`, `FeePolicy`, `SettlementCalculator`, `SaleData` / `CancelData`
 
 ## 서브태스크

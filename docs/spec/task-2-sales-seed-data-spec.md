@@ -8,7 +8,7 @@
 
 - 계획: `docs/plan/task-2-sales-seed-data-plan.md`
 - Task 1 완료: Java 21, Spring Boot 4.1.1, 메모리 H2, `ddl-auto=create-drop`, `defer-datasource-initialization=true`
-- Task 3에서 오는 것: `SettlementDataPort` 인터페이스, `SaleData`, `CancelData` 값 타입
+- Task 3에서 오는 것: `SettlementQueryPort` 인터페이스, `SaleData`, `CancelData` 값 타입
 - **2.5는 Task 3의 포트가 컴파일된 뒤에만 착수할 수 있다.** 2.1~2.4와 2.6은 먼저 할 수 있다.
 
 ## 읽기와 쓰기의 경계
@@ -19,7 +19,7 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | --- | --- | --- |
 | 엔티티 | `SaleEntity`, `CancelEntity`, `CreatorEntity`, `CourseEntity` | — |
 | Spring Data 리포지토리 | 4종 | 재사용 |
-| 정산 조회 | `SettlementDataPort` 어댑터 | — |
+| 정산 조회 | `SettlementQueryPort` 어댑터 | — |
 | 판매 등록·취소 | — | `Sale` 애그리게이트 + 도메인 `SaleRepository` + 어댑터 |
 
 초과 환불 불변식(누적 취소 ≤ 원결제)은 Task 4의 애그리게이트가 강제한다. Task 2는 그 규칙을 알지 않는다. 엔티티에 setter도 검증도 두지 않는 이유가 여기 있다.
@@ -32,7 +32,7 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | 2.2 | [크리에이터·강의 엔티티](./task-2-2-creator-course-entity-spec.md) | — | 5분 | 0 |
 | 2.3 | [인덱스 정의](./task-2-3-index-spec.md) | 2.1, 2.2 | 5분 | 0 |
 | 2.4 | [Spring Data 리포지토리 4종](./task-2-4-repository-spec.md) | 2.1, 2.2 | 10분 | 0 |
-| 2.5 | [`SettlementDataPort` JPA 어댑터](./task-2-5-data-port-adapter-spec.md) | 2.4, Task 3.5 | 15분 | 5 |
+| 2.5 | [`SettlementQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, Task 3.5 | 15분 | 5 |
 | 2.6 | [`data.sql` 초기 데이터 17행](./task-2-6-seed-data-spec.md) | 2.1, 2.2 | 10분 | 0 |
 | 2.7 | [시드 재현성 테스트](./task-2-7-seed-verification-spec.md) | 2.5, 2.6 | 10분 | 4 |
 
@@ -89,7 +89,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | 책임 | 소유 |
 | --- | --- |
 | 엔티티, 리포지토리, 조회 포트 어댑터, 시드 | **Task 2** |
-| `SettlementDataPort` 인터페이스 선언, 값 타입 | Task 3 |
+| `SettlementQueryPort` 인터페이스 선언, 값 타입 | Task 3 |
 | 판매 포트 `SalePort`와 그 어댑터 | **Task 4** |
 | 초과 환불 거부, 금액 부호 검증 | Task 4 |
 | 정산 계산 | Task 3 |
@@ -110,12 +110,12 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | `adapter/out/persistence/SaleEntity.java`, `CancelEntity.java` | 2.1, 2.3 |
 | `adapter/out/persistence/CreatorEntity.java`, `CourseEntity.java` | 2.2, 2.3 |
 | `adapter/out/persistence/SaleRepository.java`, `CancelRepository.java`, `CreatorRepository.java`, `CourseRepository.java` | 2.4 |
-| `adapter/out/persistence/SettlementDataJpaAdapter.java` | 2.5 |
+| `adapter/out/persistence/SettlementQueryJpaAdapter.java` | 2.5 |
 | `src/main/resources/data.sql` | 2.6 |
 
 `adapter/out/.gitkeep`은 2.1이 지운다.
 
-테스트는 `src/test/java/.../adapter/out/persistence/`에 `SettlementDataJpaAdapterTest`(2.5), `SeedDataTest`(2.7).
+테스트는 `src/test/java/.../adapter/out/persistence/`에 `SettlementQueryJpaAdapterTest`(2.5), `SeedDataTest`(2.7).
 
 ## 완료 기준
 
