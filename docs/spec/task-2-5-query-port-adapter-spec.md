@@ -1,6 +1,6 @@
 # Task 2.5 — `SalesQueryPort` JPA 어댑터 명세
 
-부모: [`task-2-sales-seed-data-spec.md`](./task-2-sales-seed-data-spec.md) · 의존 2.4, **2.6**, Task 3.5 · 15분 · 테스트 6
+부모: [`task-2-sales-seed-data-spec.md`](./task-2-sales-seed-data-spec.md) · 의존 2.4, **2.6**, Task 3.5 · 15분 · 테스트 7
 
 **Task 3의 `SalesQueryPort`가 컴파일된 뒤에만 착수한다.**
 
@@ -12,6 +12,7 @@
 package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
+@RequiredArgsConstructor
 public class SalesQueryJpaAdapter implements SalesQueryPort {
 
     private final SaleJpaRepository sales;
@@ -81,7 +82,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 
 **`CancelData`에는 `creatorId`가 없다.** Task 3이 의도적으로 뺐다. 취소를 항상 크리에이터로 좁혀 조회하므로 값 자체가 귀속 정보를 들 필요가 없다.
 
-**`@Component`를 붙인다.** 어댑터는 `adapter.out`에 있으므로 Spring 애노테이션이 허용된다. Spring 금지는 `domain`과 `application.port.out`에만 적용된다.
+**`@Component`를 붙인다.** 어댑터는 `adapter.out`에 있으므로 Spring 애노테이션이 허용된다. Spring 금지는 `domain`과 `application.port.out`에만 적용된다. Lombok의 `@RequiredArgsConstructor`도 같은 이유로 여기서는 허용된다.
 
 ## 테스트
 
@@ -97,6 +98,9 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 | 4 | `findCancelsBySaleIds([])` | 빈 리스트. 예외 없음 |
 | 5 | `findAllCreatorIds()` | 3건. 실적 없는 크리에이터 포함. `creator-1, 2, 3` 순서 |
 | 6 | `findSales` creator-3, 2025-03 KST 구간 | 빈 리스트. 4번이 방어하는 빈 컬렉션 경로를 실제로 밟는 시나리오다 |
+| 7 | `findCancels` creator-1, 2025-03 KST 구간 | `cancel-1`, `cancel-2` 순. 합 110,000. 3단 서브쿼리를 결과 2건으로 확인한다 |
+
+1번과 7번은 `saleId` / `cancelId`로 순서를 직접 단언한다. 금액으로 보면 값이 같을 때 정렬이 틀려도 통과한다.
 
 `Instant`는 `OffsetDateTime.parse("2025-03-01T00:00:00+09:00").toInstant()`로 만든다. UTC로 손 변환하지 않는다.
 
@@ -110,5 +114,5 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 2. 빈 컬렉션 입력이 쿼리 없이 빈 리스트를 돌려준다.
 3. 어떤 경로도 `null`을 반환하지 않는다.
 3-b. `findAllCreatorIds()`가 `creatorId` 오름차순이다.
-4. 테스트 6건이 통과한다.
+4. 테스트 7건이 통과한다.
 5. `domain`이 이 클래스를 참조하지 않는다.

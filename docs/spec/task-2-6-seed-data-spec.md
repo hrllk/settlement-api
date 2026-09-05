@@ -13,12 +13,12 @@ Task 1이 `spring.jpa.defer-datasource-initialization=true`를 넣었다. 이게
 ```sql
 -- creators
 insert into creators (id, name) values
-  ('creator-1', '크리에이터 1'), ('creator-2', '크리에이터 2'), ('creator-3', '크리에이터 3');
+  ('creator-1', '김강사'), ('creator-2', '이강사'), ('creator-3', '박강사');
 
 -- courses
 insert into courses (id, creator_id, title) values
-  ('course-1', 'creator-1', '강의 1'), ('course-2', 'creator-1', '강의 2'),
-  ('course-3', 'creator-2', '강의 3'), ('course-4', 'creator-3', '강의 4');
+  ('course-1', 'creator-1', 'Spring Boot 입문'), ('course-2', 'creator-1', 'JPA 실전'),
+  ('course-3', 'creator-2', 'Kotlin 기초'), ('course-4', 'creator-3', 'MSA 설계');
 
 -- sales  (주석은 KST, 값은 UTC)
 insert into sales (id, course_id, amount, paid_at) values
@@ -36,6 +36,8 @@ insert into cancels (id, sale_id, amount, cancelled_at) values
   ('cancel-2', 'sale-4', 30000, '2025-03-26T01:00:00Z'),   -- 2025-03-26 10:00 KST  부분
   ('cancel-3', 'sale-5', 60000, '2025-02-03T01:00:00Z');   -- 2025-02-03 10:00 KST  전액, 월 경계
 ```
+
+이름과 제목은 원본 과제 JSON의 값을 그대로 쓴다. 자리표시자를 쓰면 평가자가 자기 데이터와 대조할 때 한 번 더 매핑해야 한다.
 
 ## KST 주석이 필수인 이유
 

@@ -11,6 +11,12 @@
 - Task 3에서 오는 것: `SalesQueryPort` 인터페이스, `SaleData`, `CancelData` 값 타입
 - **2.5는 Task 3의 포트가 컴파일된 뒤에만 착수할 수 있다.** 2.1~2.4와 2.6은 먼저 할 수 있다.
 
+## Lombok 사용 범위
+
+`adapter/out/persistence`에만 쓴다. 엔티티 넷은 `@Getter` + `@NoArgsConstructor(PROTECTED)`, 어댑터는 `@RequiredArgsConstructor`다. `@Data`·`@EqualsAndHashCode`·`@ToString`·`@Setter`·`@AllArgsConstructor`는 쓰지 않으며 근거는 2.1에 있다.
+
+`domain`과 `application`에는 쓰지 않는다. 전부 `record`라 Lombok이 할 일이 없다.
+
 ## 읽기와 쓰기의 경계
 
 Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**을 만든다.
@@ -19,7 +25,7 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | --- | --- | --- |
 | 엔티티 | `SaleEntity`, `CancelEntity`, `CreatorEntity`, `CourseEntity` | — |
 | Spring Data 리포지토리 | 4종 | 재사용 |
-| 정산 조회 | `SalesQueryPort` 어댑터 | — |
+| 정산 조회 | `SalesQueryPort` 어댑터 (`SalesQueryJpaAdapter`) — Task 4가 메서드 둘을 나중에 더한다 | — |
 | 판매 등록·취소 | — | `Sale` 애그리게이트 + 도메인 `SaleRepository` + 어댑터 |
 
 초과 환불 불변식(누적 취소 ≤ 원결제)은 Task 4의 애그리게이트가 강제한다. Task 2는 그 규칙을 알지 않는다. 엔티티에 setter도 검증도 두지 않는 이유가 여기 있다.
@@ -32,11 +38,11 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | 2.2 | [크리에이터·강의 엔티티](./task-2-2-creator-course-entity-spec.md) | — | 5분 | 0 |
 | 2.3 | [인덱스 정의](./task-2-3-index-spec.md) | 2.1, 2.2 | 5분 | 0 |
 | 2.4 | [Spring Data 리포지토리 4종](./task-2-4-repository-spec.md) | 2.1, 2.2 | 10분 | 0 |
-| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, 2.6, Task 3.5 | 15분 | 6 |
+| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, 2.6, Task 3.5 | 15분 | 7 |
 | 2.6 | [`data.sql` 초기 데이터 17행](./task-2-6-seed-data-spec.md) | 2.1, 2.2 | 10분 | 0 |
 | 2.7 | [시드 재현성 테스트](./task-2-7-seed-verification-spec.md) | 2.5, 2.6 | 10분 | 4 |
 
-약 55분, 새 테스트 10건.
+약 55분, 새 테스트 11건.
 
 2.1과 2.2는 서로 독립이다. 2.5가 2.6에 의존하는 이유는 테스트 여섯 건이 전부 시드를 단언하기 때문이다. 착수 순서는 2.1·2.2 → 2.3·2.4·2.6 → 2.5 → 2.7이다.
 
@@ -91,8 +97,8 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | 책임 | 소유 |
 | --- | --- |
 | 엔티티, 리포지토리, 조회 포트 어댑터, 시드 | **Task 2** |
-| `SalesQueryPort` 인터페이스 선언, 값 타입 | Task 3 |
-| 판매 목록 조회 `SalesQueryPort`와 그 어댑터 | **Task 4** |
+| `SalesQueryPort` 인터페이스 선언(정산용 4개), `SaleData`·`CancelData` | Task 3 |
+| `SalesQueryPort`에 판매 목록 조회·강의 존재 검사 메서드 추가와 어댑터 확장 | **Task 4** |
 | `Sale` 애그리게이트와 도메인 `SaleRepository` | **Task 4** |
 | 초과 환불 거부, 금액 부호 검증 | Task 4 |
 | 정산 계산 | Task 3 |

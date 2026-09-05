@@ -9,6 +9,8 @@ package com.liveclass.settlement.adapter.out.persistence;
 
 @Entity
 @Table(name = "sales", indexes = { /* 2.3 */ })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)   // Hibernate 전용
 public class SaleEntity {
 
     @Id
@@ -24,9 +26,7 @@ public class SaleEntity {
     @Column(name = "paid_at", nullable = false)
     private Instant paidAt;
 
-    protected SaleEntity() { }                      // JPA 전용
     public SaleEntity(String id, String courseId, long amount, Instant paidAt) { ... }
-    // getter만. setter 없음
 }
 ```
 
@@ -47,6 +47,19 @@ public class SaleEntity {
 **setter를 만들지 않는다.** 두 엔티티 모두 등록 후 변경되지 않는다. 판매 금액이나 결제 시각이 사후에 바뀌면 이미 계산된 정산이 조용히 달라진다. 환불 상태도 저장하지 않는다 — Task 3 전제 10에 따라 취소 합계에서 매번 계산한다.
 
 **`protected` 기본 생성자가 필요하다.** Hibernate가 프록시를 만들 때 쓴다. `public`으로 두면 애플리케이션 코드가 빈 엔티티를 만들 수 있다.
+
+## Lombok은 두 애노테이션만 쓴다
+
+`@Getter`와 `@NoArgsConstructor(access = PROTECTED)`다. 아래는 붙이지 않는다.
+
+| 애노테이션 | 이유 |
+| --- | --- |
+| `@Data`, `@EqualsAndHashCode` | equals/hashCode가 전체 필드 기반이 되어 JPA의 식별자 의미론과 어긋나고 프록시에서 깨진다 |
+| `@ToString` | 연관을 걸면 지연 로딩을 건드린다. 지금은 연관이 없지만 규칙으로 막아 둔다 |
+| `@Setter` | 등록 후 변경되지 않아야 한다 |
+| `@AllArgsConstructor` | 생성자 시그니처가 필드 선언 순서에 묶인다. `SaleEntity(String id, String courseId, ...)`는 `String`이 인접해 순서를 바꿔도 호출부가 컴파일된다. 지금 이 생성자를 부르는 테스트가 없어 잘못돼도 아무것도 못 잡는다. Task 4가 쓰기 시작하고 테스트가 생기면 그때 검토한다 |
+
+`domain`에는 Lombok을 쓰지 않는다. 전부 `record`라 필요가 없고, 쓰면 오히려 후퇴한다.
 
 **FK 제약을 걸지 않는다.** `ddl-auto=create-drop`이 만드는 스키마에 `@ManyToOne`이 없으므로 FK도 없다. 없는 `courseId`로 판매를 등록하는 것은 Task 4가 `courseExists`로 막는다. DB 제약에 맡기면 `DataIntegrityViolationException`이 500으로 새어 나간다.
 

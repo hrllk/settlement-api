@@ -23,7 +23,7 @@ public class CourseEntity {
 }
 ```
 
-규칙은 2.1과 같다. setter 없음, `protected` 기본 생성자, `@ManyToOne` 없음.
+규칙은 2.1과 같다. setter 없음, `protected` 기본 생성자, `@ManyToOne` 없음. Lombok은 `@Getter`와 `@NoArgsConstructor(access = PROTECTED)`만 쓴다.
 
 ## 왜 이 두 엔티티가 필요한가
 

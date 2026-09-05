@@ -18,7 +18,9 @@
 
 `@Import`가 붙고 안 붙고는 **Spring의 컨텍스트 캐시 키를 가른다.** 설정이 다르면 컨텍스트가 둘 생기는데, 둘 다 `application.yml`의 `jdbc:h2:mem:creator-settlement;DB_CLOSE_DELAY=-1`을 본다. `DB_CLOSE_DELAY=-1`이라 JVM이 사는 동안 DB가 안 닫히므로 **서로 같은 인스턴스를 밟는다.**
 
-`ddl-auto=create-drop`이라 두 번째 컨텍스트가 뜨는 순간 첫 번째가 쓰던 테이블을 드롭하고 다시 만든다. 실행 순서에 따라 통과할 수도 있지만 그때부터 **테스트가 순서에 의존한다.** Task 3이 "실행 순서에 의존하지 않는다"를 규칙으로 잡았는데 통합 레벨에서 그게 깨진다.
+`ddl-auto=create-drop`이라 두 번째 컨텍스트가 뜨는 순간 첫 번째가 쓰던 테이블을 드롭하고 다시 만든다. `data.sql`도 컨텍스트마다 다시 실행되므로 드롭 직후 재삽입되어 데이터가 영구히 사라지지는 않는다. 그래도 컨텍스트 기동 시점과 테스트 실행 시점이 엇갈리면 통과 여부가 순서에 달린다. Task 3이 "실행 순서에 의존하지 않는다"를 규칙으로 잡았는데 통합 레벨에서 그게 깨진다.
+
+`@DataJpaTest` 슬라이스가 `data.sql`을 실행한다는 것은 이 프로젝트에서 실제로 확인했다. `DataSourceInitializationAutoConfiguration`과 `dataSourceScriptDatabaseInitializer`가 슬라이스 컨텍스트에 들어온다. 슬라이스 애노테이션의 `.imports` 목록에는 SQL 초기화가 없지만, 그 목록이 "무엇이 켜지는가"의 완전한 답은 아니다.
 
 설정을 같게 두면 컨텍스트가 하나로 합쳐져 문제가 사라진다. Task 1의 `@SpringBootTest`는 어차피 별개 컨텍스트지만 엔티티도 시드도 안 보므로 영향이 없다. Task 4·6이 컨텍스트를 더 만들 때도 같은 규칙을 따른다.
 
@@ -26,7 +28,7 @@
 | --- | --- | --- |
 | 1 | 행 수 | creators 3, courses 4, sales 7, cancels 3 |
 | 2 | `sale-5`의 저장값 | `paidAt`이 정확히 `Instant.parse("2025-01-31T14:30:00Z")` |
-| 3 | `sale-5`의 KST 귀속월 | KST 1월 구간 `[2024-12-31T15:00Z, 2025-01-31T15:00Z)`에 들어가고, KST 2월 구간에는 안 들어간다 |
+| 3 | `sale-5`의 KST 귀속월 | KST 1월 구간 `[2024-12-31T15:00Z, 2025-01-31T15:00Z)`에 들어가고, KST 2월 구간에는 안 들어간다. 두 구간을 손으로 계산해 `boolean` 둘로 단언한다 — Task 3의 `SettlementPeriod`를 쓰면 그쪽 버그가 시드 버그를 가린다 |
 | 4 | 취소↔판매 연결 | `cancel-1`→`sale-3`, `cancel-2`→`sale-4`, `cancel-3`→`sale-5`. 금액 80,000 / 30,000 / 60,000 |
 
 ## 2번과 3번이 따로 있는 이유

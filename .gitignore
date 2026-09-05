@@ -43,3 +43,4 @@ build/
 # 루트 한정. 'out/'로 두면 adapter/out 같은 소스 패키지까지 삼킨다.
 /out/
 /bin/
+.factorypath
