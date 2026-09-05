@@ -27,17 +27,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * <b>모든 메서드가 {@link ActorContext} 파라미터를 선언한다.</b>
+ * 모든 메서드가 {@link ActorContext} 파라미터를 선언해야 한다. 해석기는
+ * 필터가 아니라 파라미터 타입 기반 opt-in이라, 빠뜨린 메서드는 헤더 검사 없이
+ * 조용히 열린다. 컴파일러가 못 잡으므로 가드 테스트가 검사한다.
  *
- * <p>Task 1의 해석기는 필터가 아니라 opt-in이다.
- * {@code ActorContextArgumentResolver.supportsParameter}가 파라미터 타입을 보고
- * 동작하므로, 파라미터를 선언하지 않은 메서드는 헤더 검사를 통째로 건너뛴다.
- * 그 엔드포인트는 인증 흔적도 없이 조용히 열린다. 컴파일러가 잡아주지 않는
- * 유일한 구조적 위험이라 Task 5.6의 리플렉션 가드 테스트가 검사한다.
- *
- * <p>컨트롤러가 하는 일은 DTO 변환과 상태 코드뿐이다. 접근 판정은 유스케이스가
- * 한다 -- 컨트롤러에 두면 Task 4와 Task 5가 같은 호출을 각자 복제하고 유스케이스를
- * 직접 테스트할 때 경계가 빠진다. 로깅도 두지 않는다.
+ * 컨트롤러는 DTO 변환과 상태 코드만 한다. 접근 판정은 유스케이스가 한다.
  */
 @RestController
 @RequestMapping("/api")
@@ -74,11 +68,7 @@ public class SaleController {
                         request.amount(), request.cancelledAt()));
     }
 
-    /**
-     * 날짜를 {@code String}으로 받는다. {@code LocalDate}로 바인딩하면 Spring이
-     * {@code MethodArgumentTypeMismatchException}을 먼저 던져 {@code 2025-13}의
-     * 거부가 도메인이 아니라 프레임워크에서 일어난다.
-     */
+    /** 날짜를 {@code String}으로 받는다. 타입 바인딩하면 검증이 도메인이 아닌 Spring에서 일어난다. */
     @GetMapping("/creators/{creatorId}/sales")
     CreatorSalesResponse list(@PathVariable String creatorId,
                               @RequestParam String from,

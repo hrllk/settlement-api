@@ -23,12 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
  * 하는데 그러면 검증하는 것이 배선이 아니라 목 설정이 된다. 시드가 이미 있으므로
  * 실제 스택으로 돌린다.
  *
- * <p>{@code @Transactional}로 롤백한다. <b>그리고 등록 테스트는 2025-06을 쓴다.</b>
+ * {@code @Transactional}로 롤백한다. 그리고 등록 테스트는 2025-06을 쓴다.
  * 롤백이 한 번이라도 새면 creator-1의 3월 기대값 120,000원이 조용히 틀어지고,
  * 깨지는 것은 이 파일이 아니라 다른 파일이다. 월을 분리하면 롤백이 실패해도
  * 아무것도 안 깨진다.
  *
- * <p>Task 5·6이 API 테스트를 추가할 때 이 애노테이션 세 줄을 그대로 쓴다.
+ * Task 5·6이 API 테스트를 추가할 때 이 애노테이션 세 줄을 그대로 쓴다.
  * 다르게 쓰면 Spring 컨텍스트가 하나 더 생기고, 같은 이름의 인메모리 DB를
  * create-drop으로 밟는 컨텍스트가 늘어난다.
  */
@@ -99,7 +99,7 @@ class SaleControllerTest {
          * 응답 시각이 epoch 숫자가 아니라 오프셋 포함 문자열이어야 한다.
          * 숫자로 나가면 README curl 예시를 읽을 수 없고 평가자가 KST를 암산해야 한다.
          *
-         * <p>Boot 4는 Jackson 3을 쓰고 날짜를 기본으로 ISO 문자열로 내보낸다.
+         * Boot 4는 Jackson 3을 쓰고 날짜를 기본으로 ISO 문자열로 내보낸다.
          * Jackson 2 시절의 spring.jackson.serialization.write-dates-as-timestamps는
          * 존재하지 않는 프로퍼티라 넣으면 컨텍스트 기동이 통째로 실패한다.
          */
@@ -178,7 +178,7 @@ class SaleControllerTest {
      * {@code {code, message, status}} 포맷에서도 통과한다 -- 즉 되돌려도 초록불이다.
      * 이 한 건이 그 전환을 잠근다.
      *
-     * <p>한 건으로 충분한 이유는 응답 모양을 결정하는 코드 경로가
+     * 한 건으로 충분한 이유는 응답 모양을 결정하는 코드 경로가
      * {@code GlobalExceptionHandler}의 헬퍼 한 곳이기 때문이다. 거기서 나온 응답
      * 하나를 통째로 잠그면 된다. 같은 단언을 10번 복사하면 포맷을 바꿀 때
      * 고칠 곳이 10곳이 된다.

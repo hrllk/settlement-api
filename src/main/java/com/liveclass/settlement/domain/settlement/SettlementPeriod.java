@@ -9,14 +9,12 @@ import java.time.format.DateTimeParseException;
 /**
  * KST 기준 정산 기간. 하한 포함, 상한 배제인 반열린 구간이다.
  *
- * <pre>
  *   ofYearMonth("2025-03")
  *     [ 2025-03-01T00:00+09:00 , 2025-04-01T00:00+09:00 )
  *     ^ 포함                     ^ 배제
  *
- *   원본 과제는 "말일 23:59:59"로 적었으나 초 미만 구간이 누락되므로
- *   의도적으로 이탈했다. 근거는 README에 있다.
- * </pre>
+ * 원본 과제는 "말일 23:59:59"로 적었으나 초 미만 구간이 누락되므로
+ * 의도적으로 이탈했다. 근거는 README에 있다.
  */
 public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
 
@@ -56,11 +54,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         return date.atStartOfDay(KST).toInstant();
     }
 
-    /**
-     * 파싱 전에 null과 공백을 직접 막는다. {@code YearMonth.parse(null)}은
-     * {@link DateTimeParseException}이 아니라 진입부 requireNonNull의 NPE를
-     * 던지므로, 파싱 예외만 잡으면 NPE가 그대로 500으로 나간다.
-     */
+    /** null·공백을 직접 막는다. {@code YearMonth.parse(null)}은 파싱 예외가 아니라 NPE다. */
     private static String requireText(String raw, String field) {
         if (raw == null || raw.isBlank()) {
             throw new InvalidSettlementPeriod(field + " must not be blank: " + raw);
