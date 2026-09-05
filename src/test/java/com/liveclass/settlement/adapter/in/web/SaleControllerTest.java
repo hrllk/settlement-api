@@ -2,6 +2,7 @@ package com.liveclass.settlement.adapter.in.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -122,8 +123,13 @@ class SaleControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(saleBody("course-999", 50_000, JUNE_PAID)))
                     .andExpect(status().isNotFound())
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                     .andExpect(jsonPath("$.code").value("COURSE_NOT_FOUND"))
-                    .andExpect(jsonPath("$.status").value(404));
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.title").isNotEmpty())
+                    .andExpect(jsonPath("$.detail").isNotEmpty())
+                    .andExpect(jsonPath("$.type").value("urn:problem-type:course-not-found"))
+                    .andExpect(jsonPath("$.instance").value("/api/sales"));
         }
 
         @Test

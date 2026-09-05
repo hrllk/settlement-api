@@ -22,9 +22,9 @@
 | 4.5 | [DTO와 Bean Validation](./task-4-5-dto-validation-spec.md) | — | 10분 | 0 |
 | 4.6 | [`SaleController`](./task-4-6-controller-spec.md) | 4.2~4.5 | 15분 | 0 |
 | 4.7 | [로깅](./task-4-7-logging-spec.md) | 4.2~4.4 | 5분 | 0 |
-| 4.8 | [API 테스트](./task-4-8-api-test-spec.md) | 4.6, 4.7 | 25분 | 14 |
+| 4.8 | [API 테스트](./task-4-8-api-test-spec.md) | 4.6, 4.7 | 25분 | 15 |
 
-약 130분, 새 테스트 20건 (4.2의 6건 + 4.8의 14건).
+약 130분, 새 테스트 21건 (4.2의 6건 + 4.8의 15건).
 
 **표의 의존은 부모 Task 의존(`[2,3]`)에 더해지는 것이다.** 4.1은 Task 1의 액터 타입을 옮기고 Task 3의 `FeePolicy`·`SettlementCalculator`·`InvalidSettlementPeriod`를 참조하므로 둘 다 있어야 한다. 4.4는 Task 2의 리포지토리와 Task 3의 `SettlementPeriod`·`RefundStatus`·`findCancelsBySaleIds`를 쓴다.
 
@@ -61,9 +61,14 @@ Boot 4가 테스트 자동설정을 모듈별로 쪼갰다. **Boot 3 임포트�
 
 ## 오류 응답 포맷
 
+**RFC 9457 Problem Details를 쓴다.** Spring 내장 `ProblemDetail`이라 우리가 record를 만들지 않는다.
+
 ```json
-{ "code": "REFUND_AMOUNT_EXCEEDED", "message": "...", "status": 409 }
+{ "type": "about:blank", "title": "Conflict", "status": 409,
+  "detail": "...", "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
+
+`Content-Type: application/problem+json`. `code`는 RFC 9457 확장 멤버로 남겨 기계가 읽을 판별자를 유지한다 — `type`이 `about:blank`라 그 역할이 비기 때문이다.
 
 **사용자가 유발할 수 있는 모든 실패가 이 한 가지 모양이다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. 위 표에서 500으로 남긴 `IllegalArgumentException`·`NullPointerException`은 예외다 — 우리 코드의 버그이므로 Spring 기본 500 본문으로 나가 스택트레이스가 로그에 남아야 한다. 둘을 안 잡으면 Spring 기본 본문으로 나가 포맷이 세 가지가 되고, README에 오류 예시를 세 번 적어야 한다. Task 5가 같은 처리기를 그대로 쓴다.
 
@@ -116,7 +121,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 | 경로 | 서브태스크 |
 | --- | --- |
-| `adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java` | 4.1 |
+| `adapter/in/web/GlobalExceptionHandler.java` | 4.1 |
 | `domain/settlement/SaleNotFound.java`, `CourseNotFound.java` | 4.1 |
 | `config/DomainConfig.java` | 4.1 |
 | `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java` | 4.2~4.4 |
@@ -135,7 +140,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 1. `./gradlew test`가 통과한다.
 2. 3개 엔드포인트가 동작한다.
-3. 사용자 유발 오류 7종이 정해진 상태 코드로 나오고, 응답이 전부 `{code, message, status}` 한 가지 모양이다.
+3. 사용자 유발 오류 8종이 정해진 상태 코드로 나오고, 응답이 전부 RFC 9457 `application/problem+json`이며 `code` 확장 멤버를 갖는다.
 3-b. `RefundAmountExceeded`가 저장소 전체에 하나만 존재한다 (`domain/sales`).
 4. `IllegalArgumentException` / `NullPointerException`이 400으로 매핑되지 않는다.
 5. 누적 초과 환불이 409로 거부된다.

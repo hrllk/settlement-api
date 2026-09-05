@@ -6,9 +6,10 @@ import com.liveclass.settlement.domain.settlement.CourseNotFound;
 import com.liveclass.settlement.domain.settlement.InvalidSettlementPeriod;
 import com.liveclass.settlement.domain.settlement.SaleNotFound;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -17,7 +18,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * 모든 실패를 {@link ErrorResponse} 한 가지 모양으로 바꾼다.
+ * 모든 실패를 RFC 9457 Problem Details 한 가지 모양으로 바꾼다.
+ *
+ * <p>본문 타입을 직접 만들지 않는다. Spring이 {@link ProblemDetail}을 내장하고
+ * {@code application/problem+json}으로 직렬화한다. {@code code}는 RFC 9457 확장
+ * 멤버로 남겨 기계가 읽을 판별자를 유지한다 -- 표준 필드 {@code type}이
+ * {@code about:blank}라 그 역할이 비기 때문이다.
  *
  * <p><b>{@code Exception}을 잡는 catch-all을 두지 않는다.</b>
  * {@code IllegalArgumentException}과 {@code NullPointerException}은 Task 3 값 타입
@@ -32,38 +38,37 @@ import org.springframework.web.server.ResponseStatusException;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({SaleNotFound.class, CourseNotFound.class})
-    ResponseEntity<ErrorResponse> notFound(RuntimeException e, HttpServletRequest request) {
+    ProblemDetail notFound(RuntimeException e, HttpServletRequest request) {
         String code = e instanceof SaleNotFound ? "SALE_NOT_FOUND" : "COURSE_NOT_FOUND";
-        return respond(code, e, HttpStatus.NOT_FOUND, request);
+        return problem(HttpStatus.NOT_FOUND, code, e.getMessage(), request);
     }
 
     @ExceptionHandler(RefundAmountExceeded.class)
-    ResponseEntity<ErrorResponse> refundExceeded(RefundAmountExceeded e, HttpServletRequest request) {
-        return respond("REFUND_AMOUNT_EXCEEDED", e, HttpStatus.CONFLICT, request);
+    ProblemDetail refundExceeded(RefundAmountExceeded e, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "REFUND_AMOUNT_EXCEEDED", e.getMessage(), request);
     }
 
     @ExceptionHandler(ActorAccessDenied.class)
-    ResponseEntity<ErrorResponse> accessDenied(ActorAccessDenied e, HttpServletRequest request) {
-        return respond("ACTOR_ACCESS_DENIED", e, HttpStatus.FORBIDDEN, request);
+    ProblemDetail accessDenied(ActorAccessDenied e, HttpServletRequest request) {
+        return problem(HttpStatus.FORBIDDEN, "ACTOR_ACCESS_DENIED", e.getMessage(), request);
     }
 
     @ExceptionHandler(InvalidSettlementPeriod.class)
-    ResponseEntity<ErrorResponse> invalidPeriod(InvalidSettlementPeriod e, HttpServletRequest request) {
-        return respond("INVALID_SETTLEMENT_PERIOD", e, HttpStatus.BAD_REQUEST, request);
+    ProblemDetail invalidPeriod(InvalidSettlementPeriod e, HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_SETTLEMENT_PERIOD", e.getMessage(), request);
     }
 
     /**
-     * 안 잡으면 Spring이 자체 {@code ProblemDetail} 본문을 내보내 포맷이 갈린다.
-     * 여러 필드가 실패하면 첫 위반의 메시지를 쓴다.
+     * 안 잡으면 Spring이 자체 {@code ProblemDetail}을 내보내 {@code code} 확장
+     * 멤버가 빠진다. 여러 필드가 실패하면 첫 위반의 메시지를 쓴다.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ErrorResponse> validationFailed(MethodArgumentNotValidException e,
-                                                   HttpServletRequest request) {
-        String message = e.getBindingResult().getFieldErrors().stream()
+    ProblemDetail validationFailed(MethodArgumentNotValidException e, HttpServletRequest request) {
+        String detail = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .orElse("validation failed");
-        return build("VALIDATION_FAILED", message, HttpStatus.BAD_REQUEST, request);
+        return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", detail, request);
     }
 
     /**
@@ -71,36 +76,37 @@ public class GlobalExceptionHandler {
      * Task 1 코드를 고치지 않고 여기서 흡수한다. 상태는 예외가 든 값을 그대로 쓴다.
      */
     @ExceptionHandler(ResponseStatusException.class)
-    ResponseEntity<ErrorResponse> actorHeader(ResponseStatusException e, HttpServletRequest request) {
+    ProblemDetail actorHeader(ResponseStatusException e, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
-        return build("INVALID_ACTOR_HEADER", e.getReason(), status, request);
+        return problem(status, "INVALID_ACTOR_HEADER", e.getReason(), request);
     }
 
     /** 오프셋 없는 시각 등 역직렬화 실패. DTO를 OffsetDateTime으로 둔 이유가 이것이다. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ErrorResponse> malformed(HttpMessageNotReadableException e,
-                                            HttpServletRequest request) {
-        return build("MALFORMED_REQUEST", "request body is malformed",
-                HttpStatus.BAD_REQUEST, request);
+    ProblemDetail malformed(HttpMessageNotReadableException e, HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST",
+                "request body is malformed", request);
     }
 
     /** from/to 누락. 안 잡으면 "모든 실패가 한 가지 모양"이라는 주장이 거짓이 된다. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    ResponseEntity<ErrorResponse> missingParameter(MissingServletRequestParameterException e,
-                                                   HttpServletRequest request) {
-        return build("MISSING_PARAMETER", e.getMessage(), HttpStatus.BAD_REQUEST, request);
+    ProblemDetail missingParameter(MissingServletRequestParameterException e,
+                                   HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER", e.getMessage(), request);
     }
 
-    private ResponseEntity<ErrorResponse> respond(String code, RuntimeException e,
-                                                  HttpStatus status, HttpServletRequest request) {
-        return build(code, e.getMessage(), status, request);
-    }
-
-    private ResponseEntity<ErrorResponse> build(String code, String message,
-                                                HttpStatus status, HttpServletRequest request) {
-        log.warn("request failed: code={}, status={}, path={}, message={}",
-                code, status.value(), request.getRequestURI(), message);
-        return ResponseEntity.status(status)
-                .body(new ErrorResponse(code, message, status.value()));
+    private ProblemDetail problem(HttpStatus status, String code, String detail,
+                                  HttpServletRequest request) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(
+                status, detail != null ? detail : status.getReasonPhrase());
+        // 기본값 about:blank 는 직렬화에서 생략된다. 실제 타입 URI를 넣어야
+        // type 이 응답에 남고, RFC 9457도 문제 유형을 식별하는 URI를 권한다.
+        // 문서를 호스팅하지 않으므로 URN을 쓴다.
+        body.setType(URI.create("urn:problem-type:" + code.toLowerCase().replace('_', '-')));
+        body.setProperty("code", code);
+        body.setInstance(URI.create(request.getRequestURI()));
+        log.warn("request failed: code={}, status={}, path={}, detail={}",
+                code, status.value(), request.getRequestURI(), detail);
+        return body;
     }
 }

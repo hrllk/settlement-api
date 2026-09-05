@@ -39,13 +39,21 @@ curl -s -X POST localhost:8080/api/sales \
 
 ## 오류 응답 포맷
 
+**RFC 9457 Problem Details를 쓴다.** 커스텀 포맷을 발명하지 않았다는 것 자체가 설명이 된다.
+
 ```json
-{ "code": "REFUND_AMOUNT_EXCEEDED", "message": "...", "status": 409 }
+{ "type": "about:blank", "title": "Conflict", "status": 409,
+  "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
+
+`Content-Type: application/problem+json`.
 
 **모든 실패가 이 한 가지 모양임을 명시한다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. Task 4.1이 세 종류로 갈릴 뻔한 것을 하나로 모았다.
 
-| code | status | 언제 |
+`type`이 `about:blank`인 이유를 한 줄 적는다 — 오류 문서 사이트를 만들지 않았고 RFC가 기본값을 허용한다. 기계가 읽을 판별자는 `code` 확장 멤버가 맡는다.
+
+| `code` (확장 멤버) | status | 언제 |
 | --- | ---: | --- |
 | `SALE_NOT_FOUND` | 404 | 없는 판매에 취소 |
 | `COURSE_NOT_FOUND` | 404 | 없는 강의로 판매 등록 |

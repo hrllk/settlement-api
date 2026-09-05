@@ -79,13 +79,28 @@ public class ActorAccessPolicy {
 
 ## 4. 전역 예외 처리기
 
+오류 본문은 **RFC 9457 Problem Details**를 쓴다. Spring이 `org.springframework.http.ProblemDetail`로 내장하고 있어 우리가 record를 만들지 않는다.
+
 ```java
 package com.liveclass.settlement.adapter.in.web;
 
-public record ErrorResponse(String code, String message, int status) { }
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private ProblemDetail problem(HttpStatus status, String code, String detail,
+                                  HttpServletRequest request) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(
+                status, detail != null ? detail : status.getReasonPhrase());
+        // 기본값 about:blank 는 직렬화에서 생략된다. 실제 타입 URI를 넣어야
+        // type 이 응답에 남는다. 문서를 호스팅하지 않으므로 URN을 쓴다.
+        body.setType(URI.create("urn:problem-type:" + code.toLowerCase().replace('_', '-')));
+        body.setProperty("code", code);                                  // RFC 9457 확장 멤버
+        body.setInstance(URI.create(request.getRequestURI()));           // RFC 9457 표준 필드
+        log.warn("request failed: code={}, status={}, path={}, detail={}",
+                code, status.value(), request.getRequestURI(), detail);
+        return body;
+    }
+
     // 404 SaleNotFound, CourseNotFound
     // 409 RefundAmountExceeded
     // 403 ActorAccessDenied
@@ -96,6 +111,17 @@ public class GlobalExceptionHandler {
     // 400 MissingServletRequestParameterException ← from/to 누락
 }
 ```
+
+모든 핸들러가 `ProblemDetail`을 돌려준다. Spring이 `Content-Type: application/problem+json`으로 직렬화한다.
+
+**`type`을 명시적으로 넣어야 한다.** `forStatusAndDetail`의 기본값 `about:blank`는 직렬화에서 **생략된다**. 실제로 확인한 응답이 이랬다.
+
+```json
+{"detail":"course not found: course-999","instance":"/api/sales",
+ "status":404,"title":"Not Found","code":"COURSE_NOT_FOUND"}
+```
+
+`type`이 없다. Task 7.8이 `type` 존재를 요구하므로 코드에서 파생한 URN을 넣는다. RFC 9457도 문제 유형을 식별하는 URI를 권하므로 표준에도 더 맞는다.
 
 `code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. 프레임워크 예외 넷은 예외 이름이 사용자에게 의미가 없으므로 따로 정한다.
 
@@ -113,7 +139,36 @@ public class GlobalExceptionHandler {
 
 **이 표가 코드값의 단일 원본이다.** 4.5와 4.8이 여기를 참조한다. 흩어지면 테스트가 단언할 문자열을 찾으러 문서를 세 개 뒤져야 한다.
 
-**`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring이 자체 `ProblemDetail` 본문을 내보내 포맷이 갈린다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
+### RFC 9457 필드 대응
+
+```json
+{ "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "code": "REFUND_AMOUNT_EXCEEDED" }
+```
+
+| 필드 | 값 | 비고 |
+| --- | --- | --- |
+| `type` | `about:blank` | 문서 사이트가 없으므로 기본값을 쓴다. RFC가 허용한다 |
+| `title` | HTTP 상태 문구 | Spring이 자동으로 채운다 |
+| `status` | 상태 코드 | 기존 `status` 필드와 같다 |
+| `detail` | 예외 메시지 | **기존 `message`를 대체한다** |
+| `instance` | 요청 경로 | 핸들러가 이미 받는 `HttpServletRequest.getRequestURI()` |
+| `code` | 위 표의 값 | RFC 9457 **확장 멤버.** 최상위로 직렬화된다 |
+
+**`instance`를 채우는 이유.** 값이 이미 손에 있다. 현재 핸들러가 `HttpServletRequest`를 주입받아 경로를 **로그에만** 쓰고 있다. 응답에도 남기면 채점자가 curl로 오류를 받았을 때 어느 경로였는지 알 수 있다.
+
+**`detail`이 null이면 안 된다.** `ResponseStatusException.getReason()`은 `@Nullable`이다. Task 1의 해석기는 항상 reason을 주지만 다른 곳에서 reason 없는 예외가 오면 `detail`이 응답에서 통째로 빠진다. null이면 상태 문구로 대체한다.
+
+**`$.code`가 최상위로 나오는 것은 Jackson이 클래스패스에 있기 때문이다.** Spring 문서 원문이다 — "When Jackson JSON is present on the classpath, any properties set here [are expanded as top-level], **otherwise they are rendered as a `properties` sub-map**." Task 1의 `spring-boot-starter-webmvc`가 Jackson을 가져오므로 참이다. **이 전제가 깨지면 `$.code`가 `$.properties.code`로 바뀌어 테스트 10건이 한꺼번에 깨진다.**
+
+**`code`를 남기는 이유.** `type`이 `about:blank`라 기계가 읽을 판별자가 없어진다. RFC 9457은 확장 멤버를 명시적으로 허용하므로 `code`가 그 역할을 이어받는다. 4.8의 단언 문자열이 그대로 살아남는 부수 효과도 있다.
+
+**`spring.mvc.problemdetails.enabled`는 켜지 않는다.** 그 스위치는 Spring의 `ResponseEntityExceptionHandler`가 프레임워크 예외를 자기 형식으로 처리하게 한다. 그러면 아래 넷에 우리 `code`가 안 붙어 포맷이 두 가지가 된다. 우리 `@RestControllerAdvice`가 여덟 개를 전부 명시적으로 잡는다.
+
+**`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring 기본 처리로 넘어가 `code` 없는 본문이 나간다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
 
 **`ResponseStatusException`도 잡는다.** Task 1의 `ActorContextArgumentResolver`가 헤더 오류에 이 예외를 던진다. Task 1 코드는 고치지 않고 여기서 흡수한다. `code`는 `INVALID_ACTOR_HEADER`, `status`는 예외가 들고 있는 값을 그대로 쓴다.
 
@@ -173,7 +228,8 @@ public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring�
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
 `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
 `adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
-`adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java`
+`adapter/in/web/GlobalExceptionHandler.java`
+(`ErrorResponse.java`는 만들지 않는다. Spring의 `ProblemDetail`을 쓴다)
 `config/DomainConfig.java`
 
 테스트는 없다. 4.8이 전부 검증한다.
