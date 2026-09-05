@@ -16,15 +16,15 @@
 | ID | 명세 | 의존 | 예상 | 테스트 |
 | --- | --- | --- | ---: | ---: |
 | 4.1 | [예외·전역 처리기·접근 정책·빈 등록](./task-4-1-error-policy-wiring-spec.md) | Task 1·3 | 25분 | 0 |
-| 4.2 | [`Sale` 애그리게이트와 판매 등록](./task-4-2-register-sale-spec.md) | 4.1, Task 2·3 | 25분 | 5 |
-| 4.3 | [취소 등록 + 누적 초과 환불 거부](./task-4-3-register-cancel-spec.md) | 4.2 | 15분 | 0 |
+| 4.2 | [`Sale` 애그리게이트와 판매 등록](./task-4-2-register-sale-spec.md) | 4.1, Task 2·3 | 25분 | 6 |
+| 4.3 | [취소 등록 + 누적 초과 환불 거부](./task-4-3-register-cancel-spec.md) | 4.2 | 10분 | 0 |
 | 4.4 | [크리에이터별 기간 판매 목록](./task-4-4-list-sales-spec.md) | 4.1, 4.2, Task 2·3 | 15분 | 0 |
 | 4.5 | [DTO와 Bean Validation](./task-4-5-dto-validation-spec.md) | — | 10분 | 0 |
 | 4.6 | [`SaleController`](./task-4-6-controller-spec.md) | 4.2~4.5 | 15분 | 0 |
 | 4.7 | [로깅](./task-4-7-logging-spec.md) | 4.2~4.4 | 5분 | 0 |
 | 4.8 | [API 테스트](./task-4-8-api-test-spec.md) | 4.6, 4.7 | 25분 | 11 |
 
-약 125분, 새 테스트 11건.
+약 130분, 새 테스트 17건 (4.2의 6건 + 4.8의 11건).
 
 **표의 의존은 부모 Task 의존(`[2,3]`)에 더해지는 것이다.** 4.1은 Task 1의 액터 타입을 옮기고 Task 3의 `FeePolicy`·`SettlementCalculator`·`InvalidSettlementPeriod`를 참조하므로 둘 다 있어야 한다. 4.4는 Task 2의 리포지토리와 Task 3의 `SettlementPeriod`·`RefundStatus`·`findCancelsBySaleIds`를 쓴다.
 
@@ -65,7 +65,7 @@ Boot 4가 테스트 자동설정을 모듈별로 쪼갰다. **Boot 3 임포트�
 { "code": "REFUND_AMOUNT_EXCEEDED", "message": "...", "status": 409 }
 ```
 
-**모든 실패가 이 한 가지 모양이다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. 둘을 안 잡으면 Spring 기본 본문으로 나가 포맷이 세 가지가 되고, README에 오류 예시를 세 번 적어야 한다. Task 5가 같은 처리기를 그대로 쓴다.
+**사용자가 유발할 수 있는 모든 실패가 이 한 가지 모양이다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. 위 표에서 500으로 남긴 `IllegalArgumentException`·`NullPointerException`은 예외다 — 우리 코드의 버그이므로 Spring 기본 500 본문으로 나가 스택트레이스가 로그에 남아야 한다. 둘을 안 잡으면 Spring 기본 본문으로 나가 포맷이 세 가지가 되고, README에 오류 예시를 세 번 적어야 한다. Task 5가 같은 처리기를 그대로 쓴다.
 
 ## 요청·응답 계약
 
@@ -117,9 +117,9 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | 경로 | 서브태스크 |
 | --- | --- |
 | `adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java` | 4.1 |
-| `domain/settlement/SaleNotFound.java`, `CourseNotFound.java`, `RefundAmountExceeded.java` | 4.1 |
+| `domain/settlement/SaleNotFound.java`, `CourseNotFound.java` | 4.1 |
 | `config/DomainConfig.java` | 4.1 |
-| `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java` | 4.2~4.4 |
+| `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java` | 4.2~4.4 |
 | `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java` | 4.2 |
 | `application/port/out/SalesQueryPort.java`, `SaleRecord.java` | 4.2 |
 | `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동) | 4.1 |
@@ -135,7 +135,8 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 1. `./gradlew test`가 통과한다.
 2. 3개 엔드포인트가 동작한다.
-3. 오류 5종이 정해진 상태 코드로 나오고, 응답이 전부 `{code, message, status}` 한 가지 모양이다.
+3. 사용자 유발 오류 7종이 정해진 상태 코드로 나오고, 응답이 전부 `{code, message, status}` 한 가지 모양이다.
+3-b. `RefundAmountExceeded`가 저장소 전체에 하나만 존재한다 (`domain/sales`).
 4. `IllegalArgumentException` / `NullPointerException`이 400으로 매핑되지 않는다.
 5. 누적 초과 환불이 409로 거부된다.
 6. 없는 강의로 판매 등록이 404로 거부된다. 500이 아니다.
@@ -145,41 +146,40 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 ## 롤백 · 소요
 
-신규 파일만 추가한다. 커밋을 되돌리면 된다. 약 120분.
+신규 파일만 추가한다. 다만 4.1이 Task 1의 액터 타입 2개를 옮기고 그 테스트의 import를 고치며, 4.2가 Task 2의 `SalesQueryJpaAdapter`에 메서드 둘을 더한다. 커밋을 되돌리면 된다. 약 130분.
 
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 | --- | --- | --- | ---: | --- | --- |
-| CEO Review | `/plan-ceo-review` | 범위와 전략 | 1 | CLEAR | 계획 단계에서 HOLD_SCOPE 확정, 25건 반영 |
-| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 1 | CLEAR | 4건 적발, 전부 반영 |
-| Outside Voice | Codex (독립) | 교차 검증 | 1 | CLEAR | 블로커 6 + 중간 3, 전부 검증 후 반영 |
+| CEO Review | `/plan-ceo-review` | 범위와 전략 | 1 | CLEAR | HOLD_SCOPE 확정 |
+| Eng Review | `/plan-eng-review` | 아키텍처와 테스트 | 2 | CLEAR | 1회차 4건, **2회차(애그리게이트 반영 후) 5건** |
+| Outside Voice | Codex (독립) | 교차 검증 | 2 | CLEAR | 1회차 9건, **2회차 9건 중 8건 확인 1건 과장** |
 | Design Review | 해당 없음 | UI/UX | 0 | SKIPPED | 백엔드 전용 |
 | DX Review | 해당 없음 | 로컬 실행 | 0 | SKIPPED | Task 1에서 완료 |
 
-**세트 검수 결과.** 38건을 한 세트로 봤다. 따로 봤으면 안 잡혔을 것이 대부분이다.
+### 2회차 — 애그리게이트 도입 후 재검수
 
-**엔지니어링 검수 4건**
-1. 헥사고날 방향 역전. 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.actor`로 옮기고 해석기만 어댑터에 남겼다.
-2. 판매 단건 조회가 `SaleData`를 돌려주면 `creatorId`를 채울 방법이 없어 NPE. 단건 경로는 `Sale` 애그리게이트로, 목록 경로는 전용 `SaleRecord`로 갈랐다.
-3. 5.2와 5.3이 조회·계산 세 줄을 복제. `SettlementQuery`로 뺐다.
-4. 테스트 공백 2건(전액 환불 경계, CREATOR 등록 403)과 `NoCurrentTimeUsageTest` 자기 매칭 버그.
+**P0 — 그대로 쓰면 컴파일이 안 되거나 조용히 틀린다**
 
-**Outside Voice 6 + 3 (전부 실물로 검증)**
-1. `FixedRateFeePolicy.PLATFORM_DEFAULT_BP`가 없다. 검수 도중 Task 3 세션이 지웠다. 설정 프로퍼티 주입으로 바꿨다.
-2. `saveCancel`이 `void`인데 `CancelResponse`가 `cancelId`를 요구.
-3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SalesQueryPort`의 읽기 모델로 분리했다.
-4. 우산 파일 목록과 4.1의 `ActorAccessPolicy` 경로 불일치.
-5. Task 3의 `SettlementFixtures`가 package-private이라 Task 6이 import 불가. Task 6은 애초에 그게 필요 없어 분리 확인으로 바꿨다.
-6. 서브태스크 의존성이 교차 Task를 안 적어 DAG가 거짓.
-7. **Boot 4 테스트 애노테이션 패키지 이동.** `spring-boot-test-autoconfigure` jar에 `@DataJpaTest`·`@AutoConfigureTestDatabase`·`@AutoConfigureMockMvc`가 없다. jar를 열어 확인했다. Boot 3 임포트를 쓰면 컴파일이 안 된다.
-8. 목록 쿼리와 크리에이터 목록에 정렬 계약이 없어 응답 순서가 비결정적.
-9. `from`/`to` 누락 시 `MissingServletRequestParameterException`이 포맷 통일을 깬다.
+1. **`Sale`에 접근자가 없었다.** 공개 메서드가 `register`·`restore`·`cancel`·`cancelledTotal`·`refundStatus`·`cancels` 여섯뿐인데 `RegisterSaleUseCase`가 `sale.id()`를 부르고 어댑터가 `courseId`·`amount`·`paidAt`을 읽어야 했다. 접근자 4개를 추가했다.
+2. **`RefundStatus.of(SaleRecord, Collection)` 오버로드가 없었다.** Task 3의 실제 시그니처는 `of(SaleData, Collection)`와 `of(long, long)` 둘뿐이다. 목록을 `SaleRecord`로 바꾸면서 호출이 따라오지 못했다. 취소 합계를 더해 2인자 쪽을 부르도록 고쳤고, Task 3에 오버로드를 추가하지 않았다 — `SaleRecord`는 `application.port.out`의 읽기 모델이라 도메인이 알면 방향이 뒤집힌다.
+3. **`RefundAmountExceeded`가 두 패키지에 선언됐다.** 4.1의 코드 블록은 `domain.settlement`, 4.1의 파일 목록과 4.2는 `domain/sales`였다. 코드 블록을 따라 구현하면 클래스가 둘 생기고 **컴파일은 통과하는데 409가 500으로 나간다.** `domain/sales` 하나로 통일했다.
+4. **Task 1 테스트가 깨진다.** `ActorContextArgumentResolverTest`는 `ActorContext`·`ActorRole`을 같은 패키지로 써서 import가 없다. 4.1이 두 타입을 옮기면 컴파일이 안 되는데 명세는 "기존 테스트 4건이 그대로 돈다"고 적혀 있었다. 고칠 파일 3개를 표로 명시했다.
 
-**CROSS-MODEL:** Codex가 낸 9건 중 반박한 것은 없다. 전부 실제 코드와 jar를 열어 확인했다. 1번은 제가 처음 읽었을 때 존재했으나 검수 도중 다른 세션이 지운 것이라, 두 번째 확인이 없었으면 놓쳤을 지점이다. 7번은 Boot 4 모듈 분할을 몰랐으면 구현자가 컴파일 오류로 시간을 태웠을 항목이다.
+**P1**
 
-**테스트 78건** — Task 1: 4, Task 2: 9, Task 3: 42, Task 4: 11, Task 5: 10, Task 6: 2.
+5. **취소 등록에 트랜잭션 경계가 없었다.** `findById → cancel → save`이고 어댑터가 두 리포지토리를 쓴다. 유스케이스에 `@Transactional`을 걸었다. 애그리게이트 한 번의 변경이 한 트랜잭션이라는 것이 애그리게이트 경계의 정의이고, 어댑터 `save`에만 걸면 조회와 저장이 다른 트랜잭션이 되어 누적 검사가 낡은 데이터로 돈다.
+6. **`already + amount`가 오버플로하면 환불 상한을 우회한다.** `@Positive`가 `Long.MAX_VALUE`를 허용하므로 취소가 하나라도 있는 판매에 넣으면 합이 음수로 돌아 검사를 통과한다. 요청 두 번이면 닿는다. `amount > this.amount - already` 뺄셈 비교로 바꾸고 테스트 케이스 6을 추가했다.
 
-**VERDICT:** CEO + ENG + OUTSIDE VOICE CLEARED — 구현 착수 가능.
+**P2 — 문서 정합성 6건**
+
+소요 3가지(135/125/120 → 130 통일), 테스트 수(표 16 vs 본문 11 → 17 통일, 4.2가 5→6건), 4.5의 DTO 개수(7 → 6), 4.2 자식 헤더의 의존·테스트 수 누락, `SaleWithRefundStatus` 필드 모양 미선언, "모든 실패가 한 가지 모양" 주장이 의도적 500과 충돌.
+
+**CROSS-MODEL:** Codex가 9건을 냈고 8건이 사실이었다. 하나(`SaleWithRefundStatus`가 "파일 위치도 없다")는 과장이라 반박했다 — 위치는 명시돼 있었고 필드 모양만 없었다. 가장 값어치 있는 것은 1·2번으로, 애그리게이트 재작성 중 호출부가 모델 변경을 따라가지 못한 자리다. 제가 1회차에서 잡은 3번(예외 이중 선언)은 Codex가 못 봤다.
+
+**테스트 17건** — 4.2 `SaleTest` 6, 4.8 `SaleControllerTest` 11.
+
+**VERDICT:** CEO + ENG(2회) + OUTSIDE VOICE(2회) CLEARED — 구현 착수 가능.
 
 NO UNRESOLVED DECISIONS

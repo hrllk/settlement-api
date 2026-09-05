@@ -1,6 +1,6 @@
 # Task 4.2 — `Sale` 애그리게이트와 판매 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1 · 25분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1, Task 2·3 · 25분 · 테스트 5
 
 ## 왜 애그리게이트인가
 
@@ -56,6 +56,12 @@ public class Sale {
     public long cancelledTotal();
     public RefundStatus refundStatus();      // Task 3의 enum을 그대로 쓴다
     public List<Cancel> cancels();           // 불변 뷰
+
+    // 접근자. 유스케이스가 id()를, 어댑터가 나머지 셋을 쓴다
+    public String  id();
+    public String  courseId();
+    public long    amount();
+    public Instant paidAt();
 }
 
 public record Cancel(String id, long amount, Instant cancelledAt) { }
@@ -65,13 +71,17 @@ public record Cancel(String id, long amount, Instant cancelledAt) { }
 
 ```java
 long already = cancelledTotal();
-if (already + amount > this.amount) {
+if (amount > this.amount - already) {          // 덧셈이 아니라 뺄셈이다
     throw new RefundAmountExceeded(id, this.amount, already, amount);
 }
 Cancel c = new Cancel(cancelId, amount, cancelledAt);
 cancels.add(c);
 return c;
 ```
+
+**`already + amount`로 쓰면 안 된다.** `@Positive`는 `Long.MAX_VALUE`를 허용한다. 취소가 하나라도 있는 판매에 `MAX_VALUE`를 넣으면 합이 오버플로해 음수가 되고, `음수 > this.amount`가 거짓이라 **상한 검사를 그냥 통과한다.** 요청 두 번이면 닿는다.
+
+`this.amount - already`는 두 항 모두 음수가 아니므로 넘치지 않는다. 애그리게이트를 둔 이유가 이 불변식을 지키기 위해서인데 산술로 우회되면 의미가 없다.
 
 **`>`이지 `>=`가 아니다.** 합계가 원결제액과 정확히 같은 것은 전액 환불이며 허용해야 한다. `cancel-1`이 그 경우다 — `sale-3`의 80,000원 전액. `>=`로 쓰면 시드가 들어가지 않는다.
 
@@ -170,6 +180,7 @@ package com.liveclass.settlement.application.sale;
 @Service
 public class RegisterSaleUseCase {
 
+    @Transactional
     public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
         accessPolicy.requireAdmin(actor);
         if (!saleQueryPort.courseExists(courseId)) throw new CourseNotFound(courseId);
@@ -182,13 +193,17 @@ public class RegisterSaleUseCase {
 }
 ```
 
+**트랜잭션 경계는 유스케이스에 둔다.** 등록·취소 유스케이스에 `@Transactional`, 조회 전용 유스케이스에 `@Transactional(readOnly = true)`를 붙인다.
+
+애그리게이트 한 번의 변경이 한 트랜잭션이라는 것이 애그리게이트 경계의 정의이고, 그 경계를 아는 곳은 유스케이스다. 어댑터의 `save`에만 걸면 `findById`와 `save`가 다른 트랜잭션이 되어, 그 틈에 다른 요청이 취소를 넣으면 누적 검사가 낡은 데이터로 돌아간다. 어댑터가 판매·취소 두 리포지토리를 쓰므로 부분 저장도 가능하다.
+
 **`courseExists` 검사가 필수다.** Task 2가 FK 제약을 걸지 않았으므로 없는 `courseId`로도 행이 그냥 들어간다. 그러면 그 판매는 어떤 크리에이터에도 속하지 않아 정산 조회에서 영원히 안 보이는 유령 데이터가 된다. FK를 걸었다면 `DataIntegrityViolationException`이 500으로 샜을 것이다. 어느 쪽이든 여기서 막아야 한다.
 
 **등록을 ADMIN으로 제한하는 것은 판단이다.** 원본 과제에 명시가 없다. 크리에이터가 자기 강의의 판매를 임의로 등록할 수 있으면 정산을 스스로 부풀릴 수 있다. 등록은 결제 시스템이 하는 일이라고 보고 운영자로 좁힌다. README에 가정으로 남긴다.
 
 **금액 부호는 여기서 보지 않는다.** 4.5의 Bean Validation이 `@Positive`로 막는다. 요청 형식의 문제이지 도메인 규칙이 아니다.
 
-## 테스트 — `SaleTest` 5건
+## 테스트 — `SaleTest` 6건
 
 애그리게이트는 Spring 없이 단위 테스트로 잠근다. 불변식이 도메인에 있으므로 HTTP까지 안 가도 검증된다.
 
@@ -199,10 +214,12 @@ public class RegisterSaleUseCase {
 | 3 | 80,000 판매에 80,000 전액 | 통과. 상태 `FULL`. `>=`로 잘못 쓰면 여기서 걸린다 |
 | 4 | 80,000 판매에 30,000 + 50,000 | 통과. 합계가 정확히 원결제액이다 |
 | 5 | `cancels()` 반환값 수정 시도 | `UnsupportedOperationException`. 외부에서 불변식을 우회할 수 없다 |
+| 6 | 30,000 취소가 있는 80,000 판매에 `Long.MAX_VALUE` | **`RefundAmountExceeded`.** 덧셈으로 쓰면 오버플로로 통과한다 |
 
 ## 파일
 
 `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java`
+  (`RefundAmountExceeded`는 **여기에만** 만든다. 4.1은 만들지 않는다)
 `application/port/out/SalesQueryPort.java`, `SaleRecord.java`
 `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SalesQueryJpaAdapter.java`
 `application/sale/RegisterSaleUseCase.java`
@@ -211,10 +228,13 @@ public class RegisterSaleUseCase {
 ## 완료 기준
 
 1. 컴파일되고 빈이 등록된다. 조회 포트가 하나다.
-2. `SaleTest` 5건이 Spring 컨텍스트 없이 통과한다.
+2. `SaleTest` 6건이 Spring 컨텍스트 없이 통과한다.
+2-b. 상한 검사가 뺄셈이다. 덧셈이면 케이스 6이 실패한다.
+2-c. `id()`·`courseId()`·`amount()`·`paidAt()` 접근자가 있어 유스케이스와 어댑터가 컴파일된다.
 3. `domain/sales`에 Spring 애노테이션과 JPA 애노테이션이 없다.
 4. 없는 `courseId`가 `CourseNotFound`를 던진다.
 5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
 6. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다.
 7. `findById`가 취소까지 적재한다. 부분 적재하지 않는다.
+7-b. 등록·취소 유스케이스에 `@Transactional`이 있다.
 8. `SalesQueryPort.findSalesForListing`가 `courseId`를 담아 `paidAt` 오름차순으로 돌려준다.

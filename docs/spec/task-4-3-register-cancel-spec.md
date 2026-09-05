@@ -8,6 +8,7 @@
 @Service
 public class RegisterCancelUseCase {
 
+    @Transactional                                   // 애그리게이트 한 번의 변경 = 한 트랜잭션
     public String register(ActorContext actor, String saleId, long amount, Instant cancelledAt) {
         accessPolicy.requireAdmin(actor);
 

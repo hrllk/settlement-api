@@ -57,7 +57,7 @@ Task 3의 `SaleData` / `CancelData`는 금액 부호를 검증하지 않는다. 
 
 ## 파일
 
-`adapter/in/web/dto/` 아래 record 7개. `application.yml`에 Jackson 설정 한 줄.
+`adapter/in/web/dto/` 아래 record 6개. `application.yml`에 Jackson 설정 한 줄.
 
 테스트는 없다. 4.8이 검증한다.
 

@@ -4,7 +4,7 @@
 
 **Task 4에서 가장 먼저 한다.** 뒤 서브태스크 전부와 Task 5가 여기에 의존한다.
 
-## 1. 도메인 예외 3종
+## 1. 도메인 예외 2종
 
 ```java
 package com.liveclass.settlement.domain.settlement;
@@ -13,14 +13,15 @@ public class SaleNotFound extends RuntimeException {
     public SaleNotFound(String saleId) { super("sale not found: " + saleId); }
 }
 public class CourseNotFound extends RuntimeException { ... }
-public class RefundAmountExceeded extends RuntimeException {
-    public RefundAmountExceeded(String saleId, long saleAmount, long already, long requested) { ... }
-}
 ```
 
-`RefundAmountExceeded`는 네 값을 메시지에 담는다. 로그만 보고 왜 거부됐는지 재구성할 수 있어야 한다.
+**`RefundAmountExceeded`는 여기서 만들지 않는다.** 4.2가 `domain/sales`에 만든다. 그 애그리게이트가 던지는 예외이므로 던지는 쪽에 둔다.
 
-셋 다 `domain.settlement`에 둔다. Task 3의 `InvalidSettlementPeriod`와 같은 자리다. **Spring 애노테이션을 붙이지 않는다** — `@ResponseStatus`를 쓰면 도메인이 HTTP를 알게 되고, 상태 코드가 처리기와 애노테이션 두 곳에 흩어진다.
+이 구분이 중요한 이유는 **같은 이름의 클래스를 두 패키지에 만들면 컴파일은 통과하고 런타임이 틀리기 때문이다.** 전역 처리기가 `domain.settlement` 것을 잡도록 import하고 애그리게이트가 `domain.sales` 것을 던지면, `@ExceptionHandler`가 매칭되지 않아 409 대신 500이 나간다. 4.8 케이스 6이 잡긴 하지만 원인을 찾는 데 시간이 든다.
+
+전역 처리기는 `com.liveclass.settlement.domain.sales.RefundAmountExceeded`를 import한다.
+
+둘 다 `domain.settlement`에 둔다. Task 3의 `InvalidSettlementPeriod`와 같은 자리다. **Spring 애노테이션을 붙이지 않는다** — `@ResponseStatus`를 쓰면 도메인이 HTTP를 알게 되고, 상태 코드가 처리기와 애노테이션 두 곳에 흩어진다.
 
 ## 2. 액터 타입을 `application`으로 옮긴다
 
@@ -36,7 +37,19 @@ Task 1은 `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`를 전부 
 
 "이 요청을 누가 보냈는가"는 유스케이스의 입력이지 HTTP의 개념이 아니다. **헤더에서 꺼내는 해석기만 어댑터다.**
 
-Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직이 안 바뀌므로 기존 테스트 4건이 그대로 돈다. `WebMvcConfig`의 import도 함께 고친다.
+Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직은 안 바뀐다.
+
+**단 "테스트가 그대로 돈다"는 아니다.** `ActorContextArgumentResolverTest`는 `package com.liveclass.settlement.adapter.in.actor`라 `ActorContext`와 `ActorRole`을 **같은 패키지로 쓰고 있어 import가 없다.** 두 타입이 `application.actor`로 가면 그 테스트가 컴파일되지 않는다.
+
+고칠 곳은 셋이다.
+
+| 파일 | 조치 |
+| --- | --- |
+| `ActorContextArgumentResolver.java` | `application.actor.ActorContext`, `ActorRole` import 추가 |
+| `WebMvcConfig.java` | import 경로 수정 |
+| `ActorContextArgumentResolverTest.java` | 같은 두 import 추가. 파일은 제자리에 둔다 |
+
+테스트를 옮기지 않는 이유는 그게 해석기를 테스트하기 때문이다. 해석기는 어댑터에 남으므로 테스트도 남는다.
 
 ## 3. 접근 예외와 정책
 
@@ -122,7 +135,8 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 ## 파일
 
 `domain/settlement/SaleNotFound.java`, `CourseNotFound.java`
-`domain/sales/RefundAmountExceeded.java` (4.2의 `Sale` 애그리게이트가 던진다)
+(`RefundAmountExceeded`는 4.2가 `domain/sales`에 만든다. 여기서 만들지 않는다)
+`src/test/java/.../adapter/in/actor/ActorContextArgumentResolverTest.java` (import 2줄 추가)
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
 `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
 `adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
@@ -141,4 +155,5 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 5. 도메인 예외에 `@ResponseStatus`가 없다.
 6. `FeePolicy`와 `SettlementCalculator`가 빈으로 등록된다.
 7. `application` 패키지가 `adapter`를 import하지 않는다.
-8. Task 1의 기존 테스트 4건이 패키지 이동 후에도 통과한다.
+8. Task 1의 기존 테스트 4건이 import 수정 후 통과한다.
+9. `RefundAmountExceeded`가 저장소 전체에 **하나만** 존재한다 (`domain/sales`).

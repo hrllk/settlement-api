@@ -23,14 +23,44 @@ public class ListCreatorSalesUseCase {
                 cancels.stream().collect(groupingBy(CancelData::saleId));
 
         return sales.stream()
-                .map(s -> new SaleWithRefundStatus(
-                        s, RefundStatus.of(s, bySale.getOrDefault(s.saleId(), List.of()))))
+                .map(s -> new SaleWithRefundStatus(s, refundStatusOf(s, bySale)))
                 .toList();
     }
 }
 ```
 
-## `SalesQueryPort`가 아니라 `SalesQueryPort`로 조회한다
+## `RefundStatus`는 2인자 오버로드를 쓴다
+
+Task 3의 실제 시그니처는 둘뿐이다.
+
+```java
+public static RefundStatus of(SaleData sale, Collection<CancelData> cancelsOfSale)
+public static RefundStatus of(long saleAmount, long cancelledTotal)
+```
+
+**`SaleRecord`를 받는 오버로드는 없다.** 목록 조회가 `SaleData`에서 `SaleRecord`로 바뀌면서 첫 번째 오버로드를 쓸 수 없게 됐다. 취소 금액을 합해 2인자 쪽을 부른다.
+
+```java
+private static RefundStatus refundStatusOf(SaleRecord s, Map<String, List<CancelData>> bySale) {
+    long cancelled = bySale.getOrDefault(s.saleId(), List.of())
+                           .stream().mapToLong(CancelData::amount).sum();
+    return RefundStatus.of(s.amount(), cancelled);
+}
+```
+
+Task 3에 `SaleRecord` 오버로드를 추가하지 않는다. `SaleRecord`는 `application.port.out`의 읽기 모델이고 도메인이 그걸 알면 방향이 뒤집힌다.
+
+## 반환 타입
+
+```java
+package com.liveclass.settlement.application.sale;
+
+public record SaleWithRefundStatus(SaleRecord sale, RefundStatus refundStatus) { }
+```
+
+4.6 컨트롤러가 이걸 4.5의 `SaleItem`으로 옮긴다. `sale`을 통째로 들고 있어 `saleId`·`courseId`·`amount`·`paidAt`을 다 꺼낼 수 있다.
+
+## `SalesQueryPort`의 목록 전용 메서드를 쓴다
 
 응답의 `SaleItem`에는 `courseId`가 들어간다. 그런데 Task 3의 `SaleData`에는 `courseId`가 없다.
 
@@ -66,7 +96,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 
 ## 파일
 
-`application/sale/ListCreatorSalesUseCase.java`. 반환 타입 `SaleWithRefundStatus`도 같은 패키지에 record로 둔다.
+`application/sale/ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java`.
 
 테스트는 없다. 4.8이 검증한다.
 
@@ -75,6 +105,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 1. `sale-5`를 1월 구간으로 조회해도 환불 상태가 `FULL`이다.
 2. `findCancelsBySaleIds`를 쓴다. `findCancels`로 환불 상태를 만들지 않는다.
 2-b. 판매 조회는 `SalesQueryPort.findSalesForListing`를 쓴다. `courseId`가 응답에 담긴다. 애그리게이트를 로딩하지 않는다.
+2-c. `RefundStatus.of(long, long)` 2인자 오버로드를 쓴다. Task 3에 오버로드를 추가하지 않는다.
 3. `2025-13` 같은 잘못된 값이 `InvalidSettlementPeriod`를 던진다.
 4. CREATOR가 타인 목록을 조회하면 `ActorAccessDenied`가 난다.
 5. 판매 0건이어도 예외 없이 빈 목록을 돌려준다.
