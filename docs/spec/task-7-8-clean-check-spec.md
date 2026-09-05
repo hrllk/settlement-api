@@ -78,7 +78,16 @@ curl -si localhost:8080/api/creators/creator-1/settlements/2025-13 \
 curl -si localhost:8080/api/creators/creator-1/settlements/2025-03   # 헤더 없이
 ```
 
-**둘 다 `Content-Type: application/problem+json`이고 `type`·`title`·`status`·`detail`·`instance`·`code`를 가져야 한다.** `type`이 응답에 없으면 `setType`을 빠뜨린 것이다 — 기본값 `about:blank`는 직렬화에서 생략된다. 하나라도 `code`가 없으면 Task 4.1의 처리기를 거치지 않고 Spring 기본 처리로 샌 것이다.
+**둘 다 `Content-Type: application/problem+json`이고 `type`·`title`·`status`·`detail`·`instance`·`code`를 가져야 한다.** `type`이 없으면 `setType`을 빠뜨린 것이다 — 기본값 `about:blank`는 직렬화에서 생략된다. `code`가 없으면 Task 4.1의 처리기를 거치지 않고 Spring 기본 처리로 샌 것이다.
+
+프레임워크 실패도 한 번 본다.
+
+```bash
+curl -si -X PATCH localhost:8080/api/sales \
+  -H 'X-Actor-Id: admin-1' -H 'X-Actor-Role: ADMIN'
+```
+
+**405이고 `application/problem+json`이되 `code`와 `type`은 없다.** 그게 정상이다. 본문이 통째로 비었으면 `spring.mvc.problemdetails.enabled`가 꺼진 것이다.
 
 ### 8. 커버리지 감사 반영
 
@@ -94,7 +103,7 @@ Task 6.4의 `docs/coverage-audit.md`가 채워졌는지, 빈 행이 없는지 �
 | 4 | README curl 전부 실행, 응답 일치 | |
 | 5 | `git status` 비어 있음, 산출물 미추적 | |
 | 6 | README 수치 = 테스트 기대값 | |
-| 7 | 오류 응답 전부 RFC 9457 + `code` 확장 멤버 | |
+| 7 | 오류 전부 problem+json. 우리 예외는 `code`까지, 프레임워크 실패는 `code` 없이 | |
 | 8 | 커버리지 감사 빈 행 없음 | |
 
 결과를 `docs/coverage-audit.md` 하단에 덧붙인다.

@@ -18,14 +18,14 @@ public class AdminSettlementUseCase {
         List<CreatorPayout> items = new ArrayList<>();
         long totalPayout = 0;
 
-        for (String creatorId : dataPort.findAllCreatorIds()) {     // 실적 0도 포함, 정렬됨
+        for (String creatorId : queryPort.findAllCreatorIds()) {     // 실적 0도 포함, 정렬됨
             SettlementSummary s = query.summarize(period, creatorId);   // 5.2와 같은 경로
             items.add(new CreatorPayout(creatorId, s));
             totalPayout += s.payout();
         }
 
         log.info(...);
-        return new AdminSettlement(period, items, totalPayout);
+        return new AdminSettlement(items, totalPayout);   // period 는 담지 않는다
     }
 }
 ```
@@ -49,11 +49,16 @@ creator-2의 2025-01-01~03-31이 두 방식을 갈라놓는다.
 
 **이 판단의 최대 리스크는 정책이 아니라 미문서화다.** 평가자가 creator-2를 월별로 세 번 조회하고 운영자 조회와 비교하면 48,000과 36,000으로 갈린다. Task 7 README 최우선 항목이다.
 
-## 크리에이터 목록 순서를 고정한다
+## 크리에이터 목록 순서 — 이미 고정돼 있다
 
-`findAllCreatorIds()`의 순서가 곧 응답 배열의 순서다. Task 2의 `CreatorJpaRepository.findAll()`은 정렬을 안 주므로 SQL이 돌려주는 대로 나오고, 그건 보장된 순서가 아니다.
+`findAllCreatorIds()`의 순서가 곧 응답 배열의 순서다. **Task 2가 `Sort.by("id")`로 이미 고정했다.** Task 5는 어댑터를 건드리지 않는다. 확인만 한다.
 
-**어댑터에서 `creatorId` 오름차순으로 정렬한다.** 전체 합계는 순서와 무관하지만 목록은 순서가 결과의 일부다. 정렬이 없으면 README curl 예시의 응답이 실행마다 달라지고, Task 6.3의 "두 번 연속 같은 결과" 점검도 흔들린다.
+```java
+// SalesQueryJpaAdapter.findAllCreatorIds()
+return creators.findAll(Sort.by("id"))...
+```
+
+정렬이 없으면 README curl 예시의 응답이 실행마다 달라지고 Task 6.3의 "두 번 연속 같은 결과" 점검이 흔들린다.
 
 ## 5.2와 같은 경로를 탄다
 
@@ -85,6 +90,12 @@ Task 3이 포트 계약을 "`creatorId`는 항상 필수"로 잡았다. 조회 �
 
 **2번이 이 서브태스크의 유일한 회귀 방어선이다.** 월별 합산으로 잘못 구현해도 1번(2025-03)은 정답이 나온다. 3월에는 음수 월이 없기 때문이다. 2번이 없으면 이 버그가 통과한다.
 
+## 반환 타입에 기간을 담지 않는다
+
+`AdminSettlement`는 `(items, totalPayout)` 둘뿐이다. 응답의 `from`/`to`는 5.5가 정한 대로 **요청에 온 문자열을 컨트롤러가 그대로 담는다.**
+
+`SettlementPeriod`를 담아 되돌려주면 쓸 수 없다. `toExclusive`가 `2025-04-01`이라 요청의 `to=2025-03-31`과 다르게 나간다.
+
 ## 파일
 
 `application/settlement/AdminSettlementUseCase.java`. 반환 타입 `AdminSettlement`, `CreatorPayout`도 같은 패키지에 record로 둔다.
@@ -96,6 +107,7 @@ Task 3이 포트 계약을 "`creatorId`는 항상 필수"로 잡았다. 조회 �
 2. `findAllCreatorIds()`로 목록을 받는다.
 3. 2025-01~03 전체 합계가 264,000이다.
 4. 실적 0인 크리에이터가 0원으로 포함된다.
-4-b. 목록이 `creatorId` 오름차순으로 나온다.
+4-b. 목록이 `creatorId` 오름차순으로 나온다. (Task 2가 이미 정렬하므로 확인만)
+4-c. `AdminSettlement`에 `SettlementPeriod` 필드가 없다.
 5. `requireAdmin`을 호출한다.
 6. 테스트 3건이 통과한다.

@@ -47,7 +47,9 @@ System.currentTimeMillis(
 
 JUnit 5는 기본적으로 메서드 순서를 보장하지 않는다. 클래스 순서도 마찬가지다. 이미 순서 비의존이 기본값이므로 별도 설정을 넣지 않는다.
 
-`@TestMethodOrder`나 `@Order`를 쓴 곳이 있는지 확인한다. 있으면 그 테스트는 순서에 기대고 있다는 뜻이라 없앤다.
+`src/test`에서 `@TestMethodOrder`나 `@Order`를 쓴 곳이 있는지 확인한다. 있으면 그 테스트는 순서에 기대고 있다는 뜻이라 없앤다.
+
+**`src/main`은 대상이 아니다.** `GlobalExceptionHandler`에 `@Order(Ordered.HIGHEST_PRECEDENCE)`가 붙어 있는데 그건 어드바이스 우선순위이지 테스트 순서가 아니다. 트리 전체를 grep하면 오탐이 난다.
 
 ## 외부 서비스 비의존
 
@@ -65,5 +67,5 @@ H2는 인메모리라 외부 의존이 아니다. 네트워크가 끊긴 상태�
 
 1. `NoCurrentTimeUsageTest`가 통과한다. **자기 파일을 대상에서 제외해 자기 매칭으로 실패하지 않는다.**
 2. `./gradlew cleanTest test`를 두 번 연속 돌려 같은 결과가 나온다.
-3. `@TestMethodOrder`나 `@Order`를 쓴 테스트가 없다.
+3. `src/test`에 `@TestMethodOrder`나 `@Order`를 쓴 테스트가 없다.
 4. 프로덕션 코드에 `now()` 호출이 없다.

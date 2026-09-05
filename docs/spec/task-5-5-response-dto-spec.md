@@ -51,6 +51,8 @@ creator-2의 2025-02는 −60,000이다. 크리에이터가 플랫폼에 돌려�
 
 `yearMonth`, `from`, `to`는 요청에 온 문자열을 그대로 담는다. 응답에 요청 조건이 있어야 여러 호출의 결과를 섞지 않는다.
 
+**도메인에서 되짚어 만들면 안 된다.** `SettlementPeriod.toExclusive()`는 `to=2025-03-31` 요청에 대해 `2025-04-01`이다. `ofDateRange`가 종료일에 하루를 더해 반열린 구간으로 바꾸기 때문이다. 그 값을 응답에 넣으면 요청과 다른 날짜가 나가 평가자가 하루 밀린 것으로 읽는다.
+
 ## 파일
 
 `adapter/in/web/dto/MonthlySettlementResponse.java`, `CreatorPayoutItem.java`, `AdminSettlementResponse.java`.

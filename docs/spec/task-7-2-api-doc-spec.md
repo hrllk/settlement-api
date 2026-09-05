@@ -44,14 +44,18 @@ curl -s -X POST localhost:8080/api/sales \
 ```json
 { "type": "urn:problem-type:refund-amount-exceeded",
   "title": "Conflict", "status": 409,
-  "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "detail": "refund exceeds sale amount: saleId=sale-3, saleAmount=80000, alreadyCancelled=30000, requested=60000",
   "instance": "/api/sales/sale-3/cancellations",
   "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
 
+`detail`은 예외 메시지 그대로다. **문서에 옮길 때 지어내지 않는다** — 7.8 항목 4가 실제 응답과 대조한다.
+
 `Content-Type: application/problem+json`.
 
-**모든 실패가 이 한 가지 모양임을 명시한다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. Task 4.1이 세 종류로 갈릴 뻔한 것을 하나로 모았다.
+**모든 실패가 이 한 가지 모양이다.** Bean Validation 실패와 액터 헤더 오류도 포함한다.
+
+**단, `code`가 붙는 것은 우리가 이름 붙인 실패뿐이다.** 405(허용되지 않은 메서드)나 없는 경로처럼 프레임워크가 만드는 실패는 `application/problem+json`이지만 `code`와 `type`이 없다. `spring.mvc.problemdetails.enabled=true`가 그 응답까지 RFC 9457로 만들고, 거기에 `code`를 붙이려면 Spring의 예외 목록을 우리가 복제해야 한다. 한 줄로 적는다.
 
 `type`이 `urn:problem-type:...` 형태인 이유를 한 줄 적는다 — 오류 문서 사이트가 없어 해석 가능한 URL 대신 URN을 쓴다. RFC가 허용하는 형태다. `code`는 같은 값의 짧은 표기이며 클라이언트 분기용이다.
 
@@ -78,6 +82,12 @@ curl -s -X POST localhost:8080/api/sales \
 
 성공 경로만 적으면 오류 설계를 했는지 알 수 없다. 최소 두 개는 실제 curl로 보인다.
 
+## `from`/`to`는 종료일을 포함한다
+
+`?from=2025-03-01&to=2025-03-31`은 **3월 31일 하루 전체를 포함한다.** 내부적으로 `[03-01 00:00 KST, 04-01 00:00 KST)`로 바뀐다.
+
+한 줄로 적는다. 안 적으면 평가자가 "31일이 빠졌나"를 확인하려고 데이터를 뒤진다. 판매 목록 조회(`GET /api/creators/{id}/sales`)도 같은 규칙이다.
+
 ## 시각 포맷
 
 **오프셋을 포함한 ISO-8601만 받는다.** `2025-03-05T10:00:00+09:00`. 오프셋이 없으면 400이다.
@@ -90,5 +100,5 @@ curl -s -X POST localhost:8080/api/sales \
 2. 모든 curl에 액터 헤더가 있다.
 3. 성공 3개, 오류 2개 이상의 curl 예시가 있다.
 4. 예시가 시드 데이터로 실제 동작하고 응답이 문서와 일치한다.
-5. 오류 code 8종이 표로 있다.
+5. 오류 `code` 9종이 표로 있고, 프레임워크 실패에는 `code`가 없다는 단서가 있다.
 6. 400과 403의 차이가 설명돼 있다.

@@ -15,8 +15,8 @@ public class SettlementQuery {                       // 5.2와 5.3이 함께 쓴
     public SettlementSummary summarize(SettlementPeriod period, String creatorId) {
         return calculator.calculate(
                 period,
-                dataPort.findSales(period.fromInclusive(), period.toExclusive(), creatorId),
-                dataPort.findCancels(period.fromInclusive(), period.toExclusive(), creatorId));
+                queryPort.findSales(period.fromInclusive(), period.toExclusive(), creatorId),
+                queryPort.findCancels(period.fromInclusive(), period.toExclusive(), creatorId));
     }
 }
 

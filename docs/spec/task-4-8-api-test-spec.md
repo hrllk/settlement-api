@@ -14,7 +14,9 @@
 
 `data.sql`이 컨텍스트마다 재실행되므로 드롭 직후 재삽입되어 데이터가 영구히 사라지지는 않는다. `@DataJpaTest` 슬라이스가 `data.sql`을 실행한다는 것은 이 프로젝트에서 실측으로 확인했다 — `DataSourceInitializationAutoConfiguration`이 슬라이스 컨텍스트에 들어온다.
 
-그래도 컨텍스트를 늘리지 않는 것이 낫다. **Task 5·6이 API 테스트를 추가할 때 이 파일과 같은 애노테이션 세 줄을 쓴다.** 다르게 쓰면 컨텍스트가 또 하나 늘어난다.
+**캐시 키를 정하는 것은 `@SpringBootTest`와 `@AutoConfigureMockMvc`뿐이다.** `@Transactional`은 아니다 — 실측으로 확인했다. 애노테이션 세 줄짜리와 두 줄짜리 테스트를 나란히 띄우니 `ApplicationContext` 식별자가 같았다. `@Transactional`은 컨텍스트 설정이 아니라 `TransactionalTestExecutionListener`가 메서드마다 적용하는 것이라 캐시 키에 안 들어간다.
+
+그래서 Task 5의 `SettlementControllerTest`는 조회만 하므로 `@Transactional` 없이 앞 두 줄만 써도 컨텍스트가 안 늘어난다. **쓰기가 있는 테스트만 `@Transactional`이 필요하다** — 이 파일과 Task 6.2가 그렇다.
 
 **등록 테스트는 2025-06을 쓴다.** 시드는 2025년 1~3월만 쓴다. 롤백이 한 번이라도 새면 creator-1의 3월 기대값 120,000원이 조용히 틀어지고, 깨지는 것은 이 파일이 아니라 다른 파일이다. 월을 분리하면 롤백이 실패해도 아무것도 안 깨진다. Task 6.2가 같은 규칙을 쓴다.
 
