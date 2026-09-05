@@ -81,7 +81,7 @@ Task 3 계획의 후속 항목과 Task 2·4·5에서 새로 생긴 판단을 합
 | git 청결 | `git status` 비어 있음, `build/`·`.gradle/`·`.claude/` 미추적 |
 | curl | README의 모든 예시가 실제로 동작 |
 | 금액 | README의 모든 수치가 테스트 기대값과 일치 |
-| 오류 포맷 | 모든 오류 응답이 `{code, message, status}` 한 가지 모양 |
+| 오류 포맷 | 모든 오류 응답이 `RFC 9457 problem+json` 한 가지 모양 |
 
 **클린 클론 점검이 핵심이다.** 로컬에만 있고 커밋 안 된 파일에 의존하면 평가자 환경에서 깨진다. Task 1에서 실제로 겪은 문제다 — `.gitignore`의 `out/` 패턴이 `adapter/out` 소스 패키지를 삼켰고, `git add -n`으로 확인해서 잡았다.
 

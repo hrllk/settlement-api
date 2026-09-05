@@ -72,12 +72,13 @@ README와 테스트가 갈리면 어느 쪽이 맞는지 평가자가 알 수 �
 일부러 실패시켜 응답 모양을 본다.
 
 ```bash
-curl -s localhost:8080/api/creators/creator-1/settlements/2025-13 \
+# -i 로 헤더까지 본다. -s 만 쓰면 Content-Type 을 확인할 수 없다.
+curl -si localhost:8080/api/creators/creator-1/settlements/2025-13 \
   -H 'X-Actor-Id: creator-1' -H 'X-Actor-Role: CREATOR'
-curl -s localhost:8080/api/creators/creator-1/settlements/2025-03   # 헤더 없이
+curl -si localhost:8080/api/creators/creator-1/settlements/2025-03   # 헤더 없이
 ```
 
-**둘 다 `application/problem+json`이고 `type`·`title`·`status`·`detail`·`code`를 가져야 한다.** 하나라도 `code`가 없으면 Task 4.1의 처리기를 거치지 않고 Spring 기본 처리로 샌 것이다.
+**둘 다 `Content-Type: application/problem+json`이고 `type`·`title`·`status`·`detail`·`instance`·`code`를 가져야 한다.** `type`이 응답에 없으면 `setType`을 빠뜨린 것이다 — 기본값 `about:blank`는 직렬화에서 생략된다. 하나라도 `code`가 없으면 Task 4.1의 처리기를 거치지 않고 Spring 기본 처리로 샌 것이다.
 
 ### 8. 커버리지 감사 반영
 

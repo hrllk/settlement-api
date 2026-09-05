@@ -42,8 +42,10 @@ curl -s -X POST localhost:8080/api/sales \
 **RFC 9457 Problem Details를 쓴다.** 커스텀 포맷을 발명하지 않았다는 것 자체가 설명이 된다.
 
 ```json
-{ "type": "about:blank", "title": "Conflict", "status": 409,
+{ "type": "urn:problem-type:refund-amount-exceeded",
+  "title": "Conflict", "status": 409,
   "detail": "sale-3: 원결제 80000, 기존 취소 30000, 요청 60000",
+  "instance": "/api/sales/sale-3/cancellations",
   "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
 
@@ -51,7 +53,7 @@ curl -s -X POST localhost:8080/api/sales \
 
 **모든 실패가 이 한 가지 모양임을 명시한다.** Bean Validation 실패와 액터 헤더 오류도 포함한다. Task 4.1이 세 종류로 갈릴 뻔한 것을 하나로 모았다.
 
-`type`이 `about:blank`인 이유를 한 줄 적는다 — 오류 문서 사이트를 만들지 않았고 RFC가 기본값을 허용한다. 기계가 읽을 판별자는 `code` 확장 멤버가 맡는다.
+`type`이 `urn:problem-type:...` 형태인 이유를 한 줄 적는다 — 오류 문서 사이트가 없어 해석 가능한 URL 대신 URN을 쓴다. RFC가 허용하는 형태다. `code`는 같은 값의 짧은 표기이며 클라이언트 분기용이다.
 
 | `code` (확장 멤버) | status | 언제 |
 | --- | ---: | --- |
@@ -63,6 +65,7 @@ curl -s -X POST localhost:8080/api/sales \
 | `VALIDATION_FAILED` | 400 | 금액 0 이하, 필수 필드 누락 |
 | `MALFORMED_REQUEST` | 400 | 오프셋 없는 시각 |
 | `INVALID_ACTOR_HEADER` | 400 | 액터 헤더 누락·형식 오류 |
+| `MISSING_PARAMETER` | 400 | `from` 또는 `to` 누락 |
 
 **400과 403이 다른 이유를 한 줄 적는다.** 400은 신원을 모르는 것, 403은 신원을 알고 거부하는 것이다. 클라이언트가 재시도할지 포기할지 판단하는 근거가 된다.
 

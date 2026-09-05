@@ -50,7 +50,7 @@
 
    `RefundAmountExceeded`를 400이 아니라 **409로 둔다.** 요청 형식은 올바르고 현재 자원 상태와 충돌하는 것이므로 409가 맞다. 400으로 두면 "금액 필드가 잘못됐다"는 Bean Validation 실패와 구분되지 않는다.
 
-3. **오류 응답 포맷을 여기서 확정한다.** `{ "code": "...", "message": "...", "status": 409 }`. Task 5가 같은 포맷을 쓴다.
+3. **오류 응답 포맷을 여기서 확정한다.** RFC 9457 `application/problem+json` (`type`·`title`·`status`·`detail`·`instance` + `code` 확장 멤버). Task 5가 같은 포맷을 쓴다.
 
 4. **전역 처리기가 `ResponseStatusException`도 잡는다.** Task 1의 `ActorContextArgumentResolver`가 헤더 오류에 이 예외를 던지는데, 그대로 두면 Spring 기본 본문으로 나가 아래 3번의 포맷과 모양이 달라진다. Task 1 코드는 고치지 않고 처리기에서 흡수한다.
 
@@ -117,7 +117,8 @@ POST /api/sales/{saleId}/cancellations
 → 201  { "cancelId": "<UUID>", ... }
 
 오류(전부 같은 모양)
-→ { "code": "REFUND_AMOUNT_EXCEEDED", "message": "...", "status": 409 }
+→ { "type": "urn:problem-type:refund-amount-exceeded", "title": "Conflict",
+    "status": 409, "detail": "...", "instance": "...", "code": "REFUND_AMOUNT_EXCEEDED" }
 ```
 
 Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 쓴다.
@@ -146,7 +147,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | 누적 초과 환불 (30,000 + 60,000 > 80,000) | 409 `RefundAmountExceeded` |
 | 없는 판매에 취소 | 404 `SaleNotFound` |
 | 없는 강의로 판매 등록 | 404 `CourseNotFound` (500 아님) |
-| Bean Validation 실패 | 400, `{code, message, status}` 포맷 |
+| Bean Validation 실패 | 400, `RFC 9457 problem+json` 포맷 |
 | 오프셋 없는 `paidAt` | 400 |
 | CREATOR가 타인 판매 목록 조회 | 403 (엔드포인트를 소유한 Task 4가 단언) |
 | CREATOR가 본인 판매 목록 조회 | 200 |
@@ -161,7 +162,7 @@ Task 3이 소유한 계산 단언은 여기서 반복하지 않는다.
 ## 완료 기준
 
 - 3개 엔드포인트가 동작하고 오류 5종이 정해진 상태 코드로 나온다.
-- 모든 오류 응답이 `{code, message, status}` 한 가지 모양이다. Bean Validation 실패와 액터 헤더 오류도 포함한다.
+- 모든 오류 응답이 `RFC 9457 problem+json` 한 가지 모양이다. Bean Validation 실패와 액터 헤더 오류도 포함한다.
 - `SaleCommandPort`와 어댑터가 있어 등록 경로가 영속화된다.
 - `ActorAccessPolicy`와 도메인 빈이 등록되어 Task 5가 바로 쓸 수 있다.
 - 400과 403이 서로 다른 경로에서 나오는 것이 테스트로 고정된다.
