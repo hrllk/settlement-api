@@ -1,0 +1,88 @@
+package com.liveclass.settlement.adapter.in.web;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.liveclass.settlement.application.actor.ActorContext;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.core.MethodParameter;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+/**
+ * Task 1의 {@code ActorContextArgumentResolver}는 <b>필터가 아니다.</b>
+ * {@code supportsParameter}가 파라미터 타입을 보고 동작하므로, {@link ActorContext}를
+ * 선언하지 않은 핸들러는 해석기를 아예 거치지 않는다. 헤더 검사도, 그 뒤의 인가
+ * 판정도 없다.
+ *
+ * <p>컴파일은 통과한다. 테스트도 통과한다. 응답도 200이다.
+ * <b>아무것도 실패하지 않으면서 엔드포인트 하나가 무방비로 열린다.</b>
+ * 이 프로젝트에서 컴파일러가 잡아주지 않는 유일한 구조적 위험이다.
+ *
+ * <p>이 가드가 검사하지 않는 것은 "선언했지만 유스케이스가 판정을 안 부르는"
+ * 경우다. 리플렉션으로는 알 수 없고 {@code SettlementControllerTest}의 접근 경계
+ * 4건이 그 층을 덮는다. 가드는 <b>해석기를 거치는가</b>, 접근 테스트는 <b>거친 뒤
+ * 판정하는가</b>를 본다.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc   // MockMvc를 안 쓰지만 붙인다. 컨트롤러 테스트와 컨텍스트를 공유해 기동을 한 번 줄인다.
+class ControllerActorGuardTest {
+
+    private static final String APP_PACKAGE = "com.liveclass.settlement";
+
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    RequestMappingHandlerMapping handlerMapping;
+
+    @Test
+    @DisplayName("모든 컨트롤러 핸들러가 ActorContext를 선언한다")
+    void everyHandlerDeclaresActorContext() {
+        // Spring 기본 오류 컨트롤러가 섞이면 항상 실패하므로 우리 패키지만 본다.
+        List<String> missing = handlerMapping.getHandlerMethods().values().stream()
+                .filter(ControllerActorGuardTest::isOurs)
+                .filter(handler -> !declaresActorContext(handler))
+                .map(HandlerMethod::getShortLogMessage)
+                .toList();
+
+        assertThat(missing)
+                .as("ActorContext 파라미터가 없는 핸들러는 헤더 검사도 인가 판정도 없이 열린다")
+                .isEmpty();
+    }
+
+    /**
+     * 위 테스트는 대상이 0개여도 통과한다. 패키지 필터가 어긋나면 아무것도 검사하지
+     * 않으면서 초록불이 된다. 이 테스트가 그 공허한 통과를 막는다.
+     *
+     * <p>정확히 5개가 아니라 하한으로 둔다. 엔드포인트를 제대로 추가한 사람이
+     * 이 테스트 때문에 실패하면 안 된다 — 그 경우는 위 테스트가 이미 검사한다.
+     */
+    @Test
+    @DisplayName("가드가 최소 5개 핸들러를 대상으로 삼는다")
+    void guardIsNotVacuous() {
+        long ours = handlerMapping.getHandlerMethods().values().stream()
+                .filter(ControllerActorGuardTest::isOurs)
+                .count();
+
+        assertThat(ours)
+                .as("Task 4의 3개 + Task 5의 2개. 이보다 적으면 패키지 필터가 어긋난 것이다")
+                .isGreaterThanOrEqualTo(5);
+    }
+
+    private static boolean isOurs(HandlerMethod handler) {
+        return handler.getBeanType().getName().startsWith(APP_PACKAGE);
+    }
+
+    private static boolean declaresActorContext(HandlerMethod handler) {
+        for (MethodParameter parameter : handler.getMethodParameters()) {
+            if (ActorContext.class.equals(parameter.getParameterType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

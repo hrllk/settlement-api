@@ -1,6 +1,6 @@
 # Task 5.6 — 접근 경계 테스트와 opt-in 가드 명세
 
-부모: [`task-5-settlement-query-api-spec.md`](./task-5-settlement-query-api-spec.md) · 의존 5.4 · 20분 · 테스트 5
+부모: [`task-5-settlement-query-api-spec.md`](./task-5-settlement-query-api-spec.md) · 의존 5.4 · 20분 · 테스트 6
 
 ## 접근 경계 테스트
 

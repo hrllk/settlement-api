@@ -2,6 +2,7 @@ package com.liveclass.settlement.config;
 
 import com.liveclass.settlement.domain.settlement.FeePolicy;
 import com.liveclass.settlement.domain.settlement.FixedRateFeePolicy;
+import com.liveclass.settlement.domain.settlement.SettlementCalculator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,5 +18,11 @@ public class DomainConfig {
     @Bean
     FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
         return new FixedRateFeePolicy(basisPoints);
+    }
+
+    /** 쓰는 태스크가 등록한다. Task 5의 두 유스케이스가 {@code SettlementQuery}로 쓴다. */
+    @Bean
+    SettlementCalculator settlementCalculator(FeePolicy feePolicy) {
+        return new SettlementCalculator(feePolicy);
     }
 }

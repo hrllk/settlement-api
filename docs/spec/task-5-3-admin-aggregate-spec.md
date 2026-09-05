@@ -1,6 +1,6 @@
 # Task 5.3 — 운영자 기간 집계 명세
 
-부모: [`task-5-settlement-query-api-spec.md`](./task-5-settlement-query-api-spec.md) · 의존 5.1 · 20분 · 테스트 3
+부모: [`task-5-settlement-query-api-spec.md`](./task-5-settlement-query-api-spec.md) · 의존 5.1 · 20분 · 테스트 4
 
 **이 서브태스크가 Task 5의 핵심이다.** 여기서 정한 계산 방식이 평가자에게 가장 설명하기 어려운 동작을 만든다.
 
