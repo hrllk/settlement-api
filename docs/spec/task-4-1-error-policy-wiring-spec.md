@@ -1,6 +1,6 @@
 # Task 4.1 — 예외·전역 처리기·접근 정책·빈 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 없음 · 25분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 형제 의존 없음. Task 1(액터 타입)과 Task 3(`FeePolicy`, `SettlementCalculator`, `InvalidSettlementPeriod`)이 선행 · 25분
 
 **Task 4에서 가장 먼저 한다.** 뒤 서브태스크 전부와 Task 5가 여기에 의존한다.
 
@@ -46,8 +46,9 @@ Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직은 안 바�
 | 파일 | 조치 |
 | --- | --- |
 | `ActorContextArgumentResolver.java` | `application.actor.ActorContext`, `ActorRole` import 추가 |
-| `WebMvcConfig.java` | import 경로 수정 |
 | `ActorContextArgumentResolverTest.java` | 같은 두 import 추가. 파일은 제자리에 둔다 |
+
+**`WebMvcConfig`는 고치지 않는다.** 실물을 확인했다 — `ActorContextArgumentResolver` 하나만 import하고 `ActorContext`나 `ActorRole`을 직접 참조하지 않는다. 해석기가 `adapter.in.actor`에 남으므로 그 import도 그대로다.
 
 테스트를 옮기지 않는 이유는 그게 해석기를 테스트하기 때문이다. 해석기는 어댑터에 남으므로 테스트도 남는다.
 
@@ -96,7 +97,21 @@ public class GlobalExceptionHandler {
 }
 ```
 
-`code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. `RefundAmountExceeded` → `REFUND_AMOUNT_EXCEEDED`.
+`code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. 프레임워크 예외 넷은 예외 이름이 사용자에게 의미가 없으므로 따로 정한다.
+
+| 예외 | `code` | status |
+| --- | --- | ---: |
+| `SaleNotFound` | `SALE_NOT_FOUND` | 404 |
+| `CourseNotFound` | `COURSE_NOT_FOUND` | 404 |
+| `RefundAmountExceeded` | `REFUND_AMOUNT_EXCEEDED` | 409 |
+| `ActorAccessDenied` | `ACTOR_ACCESS_DENIED` | 403 |
+| `InvalidSettlementPeriod` | `INVALID_SETTLEMENT_PERIOD` | 400 |
+| `MethodArgumentNotValidException` | `VALIDATION_FAILED` | 400 |
+| `ResponseStatusException` | `INVALID_ACTOR_HEADER` | 예외가 든 값 |
+| `HttpMessageNotReadableException` | `MALFORMED_REQUEST` | 400 |
+| `MissingServletRequestParameterException` | `MISSING_PARAMETER` | 400 |
+
+**이 표가 코드값의 단일 원본이다.** 4.5와 4.8이 여기를 참조한다. 흩어지면 테스트가 단언할 문자열을 찾으러 문서를 세 개 뒤져야 한다.
 
 **`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring이 자체 `ProblemDetail` 본문을 내보내 포맷이 갈린다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
 
@@ -122,7 +137,7 @@ public class DomainConfig {
 }
 ```
 
-`application.yml`에 `settlement.fee.basis-points: 2000`을 넣는다.
+`application.yml`에 `settlement.fee.basis-points: 2000`이 **이미 있다** (Task 2에서 추가). 새로 넣지 않는다. `@Value`의 기본값 `:2000`은 설정이 지워졌을 때의 방어일 뿐이다.
 
 **요율 상수를 도메인에서 가져오지 않는다.** `FixedRateFeePolicy`에는 공개 상수가 없다. 실제 구현은 `record FixedRateFeePolicy(int basisPoints)`와 0~10000 범위 검증뿐이고, `2000`이라는 값은 Task 3의 테스트 픽스처에만 package-private으로 있다. 테스트 소스를 프로덕션이 참조할 수 없다.
 
@@ -140,7 +155,6 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
 `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
 `adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
-`config/WebMvcConfig.java` (import 경로만 수정)
 `adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java`
 `config/DomainConfig.java`
 
@@ -149,7 +163,7 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 ## 완료 기준
 
 1. 컴파일되고 컨텍스트가 기동한다.
-2. 예외 8종이 표대로 매핑된다 (도메인 5 + 검증 + 역직렬화 + 파라미터 누락).
+2. 예외 9종이 표대로 매핑된다 (도메인 5 + 검증 + 액터 헤더 + 역직렬화 + 파라미터 누락).
 3. `IllegalArgumentException` / `NullPointerException` 핸들러가 **없다.**
 4. `@ExceptionHandler(Exception.class)`가 없다.
 5. 도메인 예외에 `@ResponseStatus`가 없다.

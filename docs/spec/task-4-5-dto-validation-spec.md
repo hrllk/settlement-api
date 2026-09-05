@@ -47,7 +47,7 @@ Jackson은 `Instant` 필드에 `"2025-03-05T10:00:00"`처럼 오프셋 없는 �
 
 **오프셋 누락은 다른 예외다.** Jackson 역직렬화 단계에서 실패하므로 `HttpMessageNotReadableException`이 난다. 4.1의 처리기가 이것도 잡아 `code: "MALFORMED_REQUEST"`, 400으로 내보내야 한다. 안 잡으면 Spring 기본 본문으로 나가 포맷이 갈린다.
 
-이 항목은 4.1 명세의 처리기 목록에 없었다. **4.1을 구현할 때 함께 넣는다.**
+4.1의 처리기 목록에 이미 들어 있다. 코드값 `MALFORMED_REQUEST`는 4.1의 오류 코드 표를 따른다.
 
 ## 금액 검증을 DTO에서 하는 이유
 

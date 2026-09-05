@@ -1,6 +1,6 @@
 # Task 4.4 — 크리에이터별 기간 판매 목록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1 · 15분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1, **4.2** (`SaleRecord`와 `findSalesForListing`을 4.2가 선언한다) · 15분
 
 ## 유스케이스
 
@@ -13,10 +13,11 @@ public class ListCreatorSalesUseCase {
         accessPolicy.requireSelfOrAdmin(actor, creatorId);
 
         SettlementPeriod period = SettlementPeriod.ofDateRange(from, to);
-        List<SaleRecord> sales = salePort.findSalesForListing(          // SalesQueryPort가 아니다
+        // 포트는 하나다. 판매와 취소를 같은 SalesQueryPort에서 가져온다.
+        List<SaleRecord> sales = queryPort.findSalesForListing(
                 period.fromInclusive(), period.toExclusive(), creatorId);
 
-        List<CancelData> cancels = dataPort.findCancelsBySaleIds(
+        List<CancelData> cancels = queryPort.findCancelsBySaleIds(
                 sales.stream().map(SaleRecord::saleId).toList());
 
         Map<String, List<CancelData>> bySale =
@@ -60,7 +61,7 @@ public record SaleWithRefundStatus(SaleRecord sale, RefundStatus refundStatus) {
 
 4.6 컨트롤러가 이걸 4.5의 `SaleItem`으로 옮긴다. `sale`을 통째로 들고 있어 `saleId`·`courseId`·`amount`·`paidAt`을 다 꺼낼 수 있다.
 
-## `SalesQueryPort`의 목록 전용 메서드를 쓴다
+## `findSales`가 아니라 `findSalesForListing`을 쓴다
 
 응답의 `SaleItem`에는 `courseId`가 들어간다. 그런데 Task 3의 `SaleData`에는 `courseId`가 없다.
 
@@ -70,7 +71,9 @@ public record SaleData(String saleId, String creatorId, long amount, Instant pai
 
 Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 **4.2의 `SalesQueryPort.findSalesForListing`를 쓴다.** 그쪽 `SaleRecord`가 `courseId`를 갖는다. 목록은 애그리게이트를 쓰지 않는다 — N개를 로딩하면 각각 자기 취소를 딸고 와 N+1이 된다.
 
-취소는 여전히 `SalesQueryPort.findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
+취소도 같은 포트의 `findCancelsBySaleIds`를 쓴다. Task 3이 환불 상태 산출을 위해 만든 메서드이고 `CancelData`에 부족한 필드가 없다.
+
+**주입받는 의존은 `SalesQueryPort` 하나와 `ActorAccessPolicy` 둘뿐이다.** 조회 포트를 정산용과 판매용으로 나누지 않은 이유는 `findSales`와 `findSalesForListing`이 인자가 같고 반환 모델만 다르기 때문이다.
 
 ## 환불 상태에 기간 필터를 적용하지 않는다
 
@@ -105,6 +108,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 1. `sale-5`를 1월 구간으로 조회해도 환불 상태가 `FULL`이다.
 2. `findCancelsBySaleIds`를 쓴다. `findCancels`로 환불 상태를 만들지 않는다.
 2-b. 판매 조회는 `SalesQueryPort.findSalesForListing`를 쓴다. `courseId`가 응답에 담긴다. 애그리게이트를 로딩하지 않는다.
+2-d. 조회 포트를 하나만 주입받는다. 판매와 취소를 서로 다른 빈에서 가져오지 않는다.
 2-c. `RefundStatus.of(long, long)` 2인자 오버로드를 쓴다. Task 3에 오버로드를 추가하지 않는다.
 3. `2025-13` 같은 잘못된 값이 `InvalidSettlementPeriod`를 던진다.
 4. CREATOR가 타인 목록을 조회하면 `ActorAccessDenied`가 난다.
