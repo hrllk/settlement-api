@@ -1,0 +1,143 @@
+# Task 4.1 — 예외·전역 처리기·접근 정책·빈 등록 명세
+
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 없음 · 25분
+
+**Task 4에서 가장 먼저 한다.** 뒤 서브태스크 전부와 Task 5가 여기에 의존한다.
+
+## 1. 도메인 예외 3종
+
+```java
+package com.liveclass.settlement.domain.settlement;
+
+public class SaleNotFound extends RuntimeException {
+    public SaleNotFound(String saleId) { super("sale not found: " + saleId); }
+}
+public class CourseNotFound extends RuntimeException { ... }
+public class RefundAmountExceeded extends RuntimeException {
+    public RefundAmountExceeded(String saleId, long saleAmount, long already, long requested) { ... }
+}
+```
+
+`RefundAmountExceeded`는 네 값을 메시지에 담는다. 로그만 보고 왜 거부됐는지 재구성할 수 있어야 한다.
+
+셋 다 `domain.settlement`에 둔다. Task 3의 `InvalidSettlementPeriod`와 같은 자리다. **Spring 애노테이션을 붙이지 않는다** — `@ResponseStatus`를 쓰면 도메인이 HTTP를 알게 되고, 상태 코드가 처리기와 애노테이션 두 곳에 흩어진다.
+
+## 2. 액터 타입을 `application`으로 옮긴다
+
+Task 1은 `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`를 전부 `adapter.in.actor`에 두었다. 그때는 컨트롤러만 쓰는 타입이라 맞았다.
+
+**이제 유스케이스가 `ActorContext`를 받으므로 `application → adapter.in` 의존이 생긴다.** 헥사고날에서 인바운드 어댑터는 application을 봐야 하고 반대는 안 된다. PRD가 명시한 아키텍처 제약이라 채점자가 보는 지점이다.
+
+| 타입 | 이동 후 |
+| --- | --- |
+| `ActorContext`, `ActorRole` | `application.actor` |
+| `ActorAccessDenied`, `ActorAccessPolicy` | `application.actor` |
+| `ActorContextArgumentResolver` | `adapter.in.actor` (그대로) |
+
+"이 요청을 누가 보냈는가"는 유스케이스의 입력이지 HTTP의 개념이 아니다. **헤더에서 꺼내는 해석기만 어댑터다.**
+
+Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직이 안 바뀌므로 기존 테스트 4건이 그대로 돈다. `WebMvcConfig`의 import도 함께 고친다.
+
+## 3. 접근 예외와 정책
+
+```java
+package com.liveclass.settlement.application.actor;
+
+public class ActorAccessDenied extends RuntimeException { ... }
+
+@Component
+public class ActorAccessPolicy {
+    public void requireSelfOrAdmin(ActorContext actor, String creatorId) {
+        if (actor.role() == ActorRole.ADMIN) return;
+        if (!actor.actorId().equals(creatorId)) throw new ActorAccessDenied(...);
+    }
+    public void requireAdmin(ActorContext actor) {
+        if (actor.role() != ActorRole.ADMIN) throw new ActorAccessDenied(...);
+    }
+}
+```
+
+**정책 구현이 Task 4에 있는 이유.** `ActorAccessDenied`의 정의와 403 변환이 여기 있으므로 그 예외를 던지는 코드도 같은 자리에 둔다. Task 5에 두면 Task 4가 Task 5를 호출하는데 Task 5는 Task 4의 전역 처리기를 기다리는 순환이 된다.
+
+**어느 엔드포인트에 무엇이 붙는지는 Task 5가 소유한다.** 이 클래스는 판정만 한다. 배치는 역할 매트릭스가 정한다.
+
+`requireAdmin`은 Task 4의 세 엔드포인트 중 두 곳(등록)이 쓰고, Task 5의 운영자 집계가 쓴다.
+
+## 4. 전역 예외 처리기
+
+```java
+package com.liveclass.settlement.adapter.in.web;
+
+public record ErrorResponse(String code, String message, int status) { }
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    // 404 SaleNotFound, CourseNotFound
+    // 409 RefundAmountExceeded
+    // 403 ActorAccessDenied
+    // 400 InvalidSettlementPeriod
+    // 400 MethodArgumentNotValidException      ← Bean Validation
+    // 400 ResponseStatusException              ← 액터 헤더 (Task 1)
+    // 400 HttpMessageNotReadableException     ← 오프셋 없는 시각 등 역직렬화 실패
+    // 400 MissingServletRequestParameterException ← from/to 누락
+}
+```
+
+`code`는 예외 이름을 `UPPER_SNAKE_CASE`로 바꾼 값이다. `RefundAmountExceeded` → `REFUND_AMOUNT_EXCEEDED`.
+
+**`MethodArgumentNotValidException`을 반드시 잡는다.** 안 잡으면 Spring이 자체 `ProblemDetail` 본문을 내보내 포맷이 갈린다. 여러 필드가 실패하면 첫 번째 위반의 메시지를 쓰고 `code`는 `VALIDATION_FAILED`로 둔다.
+
+**`ResponseStatusException`도 잡는다.** Task 1의 `ActorContextArgumentResolver`가 헤더 오류에 이 예외를 던진다. Task 1 코드는 고치지 않고 여기서 흡수한다. `code`는 `INVALID_ACTOR_HEADER`, `status`는 예외가 들고 있는 값을 그대로 쓴다.
+
+**`MissingServletRequestParameterException`도 잡는다.** `GET /api/creators/{id}/sales`에서 `from`이나 `to`를 빼면 이 예외가 난다. 안 잡으면 "모든 실패가 한 가지 모양"이라는 주장이 거짓이 된다. `code`는 `MISSING_PARAMETER`.
+
+**`Exception`을 잡는 catch-all을 두지 않는다.** `IllegalArgumentException`과 `NullPointerException`은 Task 3의 값 타입 불변식 위반, 즉 우리 코드의 버그다. Spring 기본 500으로 나가게 두어야 스택트레이스가 로그에 남는다. **400으로 싸잡으면 프로그래밍 버그가 사용자 오류로 위장돼 사라진다.** Task 3 명세가 명시적으로 요구한 제약이다.
+
+## 5. 도메인 빈 등록
+
+```java
+package com.liveclass.settlement.config;
+
+@Configuration
+public class DomainConfig {
+    @Bean FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
+        return new FixedRateFeePolicy(basisPoints);
+    }
+    @Bean SettlementCalculator settlementCalculator(FeePolicy feePolicy) {
+        return new SettlementCalculator(feePolicy);
+    }
+}
+```
+
+`application.yml`에 `settlement.fee.basis-points: 2000`을 넣는다.
+
+**요율 상수를 도메인에서 가져오지 않는다.** `FixedRateFeePolicy`에는 공개 상수가 없다. 실제 구현은 `record FixedRateFeePolicy(int basisPoints)`와 0~10000 범위 검증뿐이고, `2000`이라는 값은 Task 3의 테스트 픽스처에만 package-private으로 있다. 테스트 소스를 프로덕션이 참조할 수 없다.
+
+설정 프로퍼티로 두면 Task 3 전제 9의 "변경 가능성을 설계에 반영"이 애노테이션 하나로 완성된다. 요율을 바꾸려면 yml 한 줄만 고치면 되고 재컴파일이 없다.
+
+Task 3이 도메인에 Spring 애노테이션을 넣지 않기로 했으므로 등록은 `config`에서 한다. **Task 5가 아니라 Task 4에서 하는 이유는 순서다.** Task 4가 Spring 배선이 생기는 첫 Task이고, 등록을 Task 5로 미루면 Task 4가 도메인 빈을 하나라도 쓰는 순간 깨진다.
+
+Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서 등록한다 — "안 쓸 거다"는 검증되지 않는 가정이고, Task 5 착수 시점에 배선이 이미 끝나 있는 편이 낫다.
+
+## 파일
+
+`domain/settlement/SaleNotFound.java`, `CourseNotFound.java`, `RefundAmountExceeded.java`
+`application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
+`application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
+`adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
+`config/WebMvcConfig.java` (import 경로만 수정)
+`adapter/in/web/GlobalExceptionHandler.java`, `ErrorResponse.java`
+`config/DomainConfig.java`
+
+테스트는 없다. 4.8이 전부 검증한다.
+
+## 완료 기준
+
+1. 컴파일되고 컨텍스트가 기동한다.
+2. 예외 8종이 표대로 매핑된다 (도메인 5 + 검증 + 역직렬화 + 파라미터 누락).
+3. `IllegalArgumentException` / `NullPointerException` 핸들러가 **없다.**
+4. `@ExceptionHandler(Exception.class)`가 없다.
+5. 도메인 예외에 `@ResponseStatus`가 없다.
+6. `FeePolicy`와 `SettlementCalculator`가 빈으로 등록된다.
+7. `application` 패키지가 `adapter`를 import하지 않는다.
+8. Task 1의 기존 테스트 4건이 패키지 이동 후에도 통과한다.

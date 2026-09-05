@@ -101,7 +101,78 @@
           3
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "판매·취소 엔티티",
+            "description": "long 금액, Instant 시간, String ID 64자. setter·@ManyToOne 없음",
+            "details": "long 금액, Instant 시간, String ID 64자. setter·@ManyToOne 없음",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "크리에이터·강의 엔티티",
+            "description": "creator-3 존재 조회와 판매→크리에이터 경로용",
+            "details": "creator-3 존재 조회와 판매→크리에이터 경로용",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 3,
+            "title": "인덱스 정의",
+            "description": "(course_id, paid_at), (sale_id, cancelled_at) 현행 유지",
+            "details": "(course_id, paid_at), (sale_id, cancelled_at) 현행 유지",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Spring Data 리포지토리 4종",
+            "description": "판매·취소·크리에이터·강의. 반열린 구간, order by 고정",
+            "details": "판매·취소·크리에이터·강의. 반열린 구간, order by 고정",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ]
+          },
+          {
+            "id": 5,
+            "title": "SettlementDataPort JPA 어댑터",
+            "description": "조회 전용 4메서드. 빈 컬렉션 방어, null 반환 금지",
+            "details": "조회 전용 4메서드. 빈 컬렉션 방어, null 반환 금지",
+            "status": "pending",
+            "dependencies": [
+              4
+            ]
+          },
+          {
+            "id": 6,
+            "title": "data.sql 17행",
+            "description": "KST 주석 병기. 취소 시각 10:00 KST 고정",
+            "details": "KST 주석 병기. 취소 시각 10:00 KST 고정",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ]
+          },
+          {
+            "id": 7,
+            "title": "시드 재현성 테스트",
+            "description": "건수·sale-5 Instant 값·KST 귀속월·취소 연결",
+            "details": "건수·sale-5 Instant 값·KST 귀속월·취소 연결",
+            "status": "pending",
+            "dependencies": [
+              5,
+              6
+            ]
+          }
+        ]
       },
       {
         "id": 3,
@@ -128,7 +199,91 @@
           3
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "도메인 예외·전역 처리기·접근 정책·도메인 빈 등록",
+            "description": "예외 8종 매핑, 포맷 통일, 액터 타입을 application으로 이동. 가장 먼저",
+            "details": "예외 8종 매핑, 포맷 통일, 액터 타입을 application으로 이동. 가장 먼저",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "판매 등록 + SalePort + JPA 어댑터",
+            "description": "서버 UUID 생성, CourseNotFound, 판매 목록 읽기 모델",
+            "details": "서버 UUID 생성, CourseNotFound, 판매 목록 읽기 모델",
+            "status": "pending",
+            "dependencies": [
+              1
+            ]
+          },
+          {
+            "id": 3,
+            "title": "취소 등록 + 누적 초과 환불 거부",
+            "description": "기존 합계 + 신규 > 원결제액이면 409. 전액 환불은 통과",
+            "details": "기존 합계 + 신규 > 원결제액이면 409. 전액 환불은 통과",
+            "status": "pending",
+            "dependencies": [
+              2
+            ]
+          },
+          {
+            "id": 4,
+            "title": "크리에이터별 기간 판매 목록",
+            "description": "SalePort로 조회, 환불 상태는 findCancelsBySaleIds로 기간 무관 산출",
+            "details": "SalePort로 조회, 환불 상태는 findCancelsBySaleIds로 기간 무관 산출",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ]
+          },
+          {
+            "id": 5,
+            "title": "DTO와 Bean Validation",
+            "description": "OffsetDateTime으로 오프셋 강제, @Positive, @NotBlank",
+            "details": "OffsetDateTime으로 오프셋 강제, @Positive, @NotBlank",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 6,
+            "title": "SaleController",
+            "description": "3 엔드포인트. 모든 메서드가 ActorContext 선언, 날짜는 String",
+            "details": "3 엔드포인트. 모든 메서드가 ActorContext 선언, 날짜는 String",
+            "status": "pending",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          {
+            "id": 7,
+            "title": "로깅",
+            "description": "application 계층만. 등록 2종 + 조회 성공 + 도메인 실패 5종",
+            "details": "application 계층만. 등록 2종 + 조회 성공 + 도메인 실패 5종",
+            "status": "pending",
+            "dependencies": [
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "id": 8,
+            "title": "API 테스트 11건",
+            "description": "404·409·403·400 구분, 전액 환불 통과, sale-5 FULL",
+            "details": "404·409·403·400 구분, 전액 환불 통과, sale-5 FULL",
+            "status": "pending",
+            "dependencies": [
+              6,
+              7
+            ]
+          }
+        ]
       },
       {
         "id": 5,
@@ -143,7 +298,67 @@
           4
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "역할 매트릭스",
+            "description": "엔드포인트 5개 규칙 확정. 판정 코드는 Task 4의 ActorAccessPolicy",
+            "details": "엔드포인트 5개 규칙 확정. 판정 코드는 Task 4의 ActorAccessPolicy",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "크리에이터 월별 정산 + SettlementQuery",
+            "description": "조회·계산 공유 협력자. 빈 월은 200 + 전항목 0",
+            "details": "조회·계산 공유 협력자. 빈 월은 200 + 전항목 0",
+            "status": "pending",
+            "dependencies": [
+              1
+            ]
+          },
+          {
+            "id": 3,
+            "title": "운영자 기간 집계",
+            "description": "단일 구간 계산. findAllCreatorIds로 실적 0 포함, 정렬 고정",
+            "details": "단일 구간 계산. findAllCreatorIds로 실적 0 포함, 정렬 고정",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ]
+          },
+          {
+            "id": 4,
+            "title": "SettlementController",
+            "description": "연월·일자를 String으로 수신. 두 메서드 다 ActorContext 선언",
+            "details": "연월·일자를 String으로 수신. 두 메서드 다 ActorContext 선언",
+            "status": "pending",
+            "dependencies": [
+              2,
+              3,
+              5
+            ]
+          },
+          {
+            "id": 5,
+            "title": "응답 DTO",
+            "description": "금액 5 + 판매 건수 + 취소 건수. payout은 음수 허용",
+            "details": "금액 5 + 판매 건수 + 취소 건수. payout은 음수 허용",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 6,
+            "title": "접근 경계 테스트 + opt-in 가드",
+            "description": "403 2종, 400 code 단언, 리플렉션 가드",
+            "details": "403 2종, 400 code 단언, 리플렉션 가드",
+            "status": "pending",
+            "dependencies": [
+              4
+            ]
+          }
+        ]
       },
       {
         "id": 6,
@@ -157,7 +372,46 @@
           5
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "시드와 픽스처 분리 확인",
+            "description": "세 상수 집합이 겹치지 않는지 확인. Task 3 픽스처를 import하지 않음",
+            "details": "세 상수 집합이 겹치지 않는지 확인. Task 3 픽스처를 import하지 않음",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "HTTP 통합 1건",
+            "description": "2025-06에 등록 → 취소 → 조회. 금액 7필드 단언",
+            "details": "2025-06에 등록 → 취소 → 조회. 금액 7필드 단언",
+            "status": "pending",
+            "dependencies": [
+              1
+            ]
+          },
+          {
+            "id": 3,
+            "title": "결정성 점검",
+            "description": "now() 금지 검사(자기 파일 제외), 두 번 연속 실행",
+            "details": "now() 금지 검사(자기 파일 제외), 두 번 연속 실행",
+            "status": "pending",
+            "dependencies": [
+              2
+            ]
+          },
+          {
+            "id": 4,
+            "title": "커버리지 감사",
+            "description": "소유권 표 22행을 실제 테스트와 대조. docs/coverage-audit.md",
+            "details": "소유권 표 22행을 실제 테스트와 대조. docs/coverage-audit.md",
+            "status": "pending",
+            "dependencies": [
+              2
+            ]
+          }
+        ]
       },
       {
         "id": 7,
@@ -170,7 +424,85 @@
           6
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "실행·테스트 명령과 요구 환경",
+            "description": "Java 21, gradlew, H2 콘솔 접속 정보",
+            "details": "Java 21, gradlew, H2 콘솔 접속 정보",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "API 명세와 curl 예시",
+            "description": "엔드포인트 5, 액터 헤더 포함 curl, 오류 code 8종",
+            "details": "엔드포인트 5, 액터 헤더 포함 curl, 오류 code 8종",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 3,
+            "title": "데이터 모델·ERD·초기 데이터 표",
+            "description": "시드 17행, 기대 정산 6행, 인덱스 관찰",
+            "details": "시드 17행, 기대 정산 6행, 인덱스 관찰",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 4,
+            "title": "KST 경계와 이중 집계 기준",
+            "description": "반열린 구간, Instant, 환불 상태만 기간 무관",
+            "details": "반열린 구간, Instant, 환불 상태만 기간 무관",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 5,
+            "title": "가정과 이탈 근거 21항",
+            "description": "운영자 집계가 월별 합이 아니라는 점이 최우선",
+            "details": "운영자 집계가 월별 합이 아니라는 점이 최우선",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "id": 6,
+            "title": "미구현 범위와 확장 경로",
+            "description": "제외 7항, 정산 상태 전이 확장 경로",
+            "details": "제외 7항, 정산 상태 전이 확장 경로",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 7,
+            "title": "AI 활용 내역",
+            "description": "교차 검토로 잡은 것, 사람이 뒤집은 것, 한계",
+            "details": "교차 검토로 잡은 것, 사람이 뒤집은 것, 한계",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 8,
+            "title": "제출 전 클린 점검",
+            "description": "클린 클론 테스트, curl 실전 검증, 수치 대조 8항",
+            "details": "클린 클론 테스트, curl 실전 검증, 수치 대조 8항",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          }
+        ]
       }
     ],
     "metadata": {
