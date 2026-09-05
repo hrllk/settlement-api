@@ -27,7 +27,7 @@ public record FixedRateFeePolicy(int basisPoints) implements FeePolicy {
 }
 ```
 
-**요율 값은 도메인이 갖지 않는다.** 도메인이 "현재 플랫폼 요율이 20%"라는 사업 사실을 알 이유가 없다. 값은 `application.yml`의 `settlement.fee.basis-points`에 두고 Task 5가 `@ConfigurationProperties`로 바인딩해 조립한다. 정적 팩토리도 두지 않는다.
+**요율 값은 도메인이 갖지 않는다.** 도메인이 "현재 플랫폼 요율이 20%"라는 사업 사실을 알 이유가 없다. 값은 `application.yml`의 `settlement.fee.basis-points`에 두고 Task 4가 `@ConfigurationProperties`로 바인딩해 조립한다. Task 4가 Spring 배선이 생기는 첫 Task라 도메인 빈을 먼저 필요로 한다. 정적 팩토리도 두지 않는다.
 
 ## 결정
 
@@ -76,5 +76,5 @@ basis point는 `double` 없이 요율을 정수로 표현하려는 것이다. 20
 1. 6건 통과.
 2. 음수 판정이 나눗셈보다 먼저 실행된다.
 3. `double`이나 `BigDecimal`을 쓰지 않는다.
-4. 요율 값이 도메인 코드에 없다. `application.yml`에 있다.
+4. 요율 값이 도메인 코드에 없다. `application.yml`에 있고 Task 4가 주입한다.
 5. 요율 이력이나 시점별 적용을 만들지 않는다.

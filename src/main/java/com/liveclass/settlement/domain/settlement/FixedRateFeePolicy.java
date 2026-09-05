@@ -5,7 +5,7 @@ package com.liveclass.settlement.domain.settlement;
  *
  * <p>요율 값은 이 클래스가 갖지 않는다. 도메인이 "현재 플랫폼 요율이 20%"라는
  * 사업 사실을 알 이유가 없다. 값은 {@code settlement.fee.basis-points} 설정에
- * 있고 Task 5의 조립 지점에서 주입한다.
+ * 있고 Task 4의 조립 지점에서 주입한다.
  *
  * <p>요율을 런타임에 바꿀 수 있게 만들면 시점별 적용이 따라와야 한다. 이력
  * 없이 값만 바뀌면 이미 조회한 과거 정산이 조용히 달라진다. 그 단계는
