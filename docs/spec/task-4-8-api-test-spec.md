@@ -1,6 +1,6 @@
 # Task 4.8 — API 테스트 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.6, 4.7 · 25분 · 테스트 13
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.6, 4.7 · 25분 · 테스트 14
 
 ## 환경
 
@@ -35,6 +35,7 @@
 | 11 | CREATOR가 판매 등록 시도 | creator-1 / CREATOR → `POST /api/sales` | **403** `ACTOR_ACCESS_DENIED` |
 | 12 | 잘못된 연월 | `from=2025-13-01` | 400 `INVALID_SETTLEMENT_PERIOD` |
 | 13 | `to` 파라미터 누락 | `from`만 보냄 | 400 `MISSING_PARAMETER` |
+| 14 | 응답 시각 직렬화 | 판매 등록 응답의 `paidAt` | `"2025-06-10T10:00..."` 문자열. epoch 숫자도 `Z`도 아니다 |
 
 ## 각 케이스가 잡는 것
 
@@ -73,7 +74,7 @@
 
 ## 완료 기준
 
-1. 13건이 통과한다.
+1. 14건이 통과한다.
 2. 2번이 404다. 500이 아니다.
 3. 7번이 400이고 8번이 403이다.
 4. 9번의 `refundStatus`가 `FULL`이다.

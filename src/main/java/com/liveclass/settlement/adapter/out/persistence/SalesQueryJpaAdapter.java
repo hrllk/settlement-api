@@ -1,5 +1,6 @@
 package com.liveclass.settlement.adapter.out.persistence;
 
+import com.liveclass.settlement.application.port.out.SaleRecord;
 import com.liveclass.settlement.application.port.out.SalesQueryPort;
 import com.liveclass.settlement.domain.settlement.CancelData;
 import com.liveclass.settlement.domain.settlement.SaleData;
@@ -31,6 +32,9 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
     private final SaleJpaRepository sales;
     private final CancelJpaRepository cancels;
     private final CreatorJpaRepository creators;
+    // Task 4가 courseExists를 더하면서 네 번째 필드가 됐다. @RequiredArgsConstructor가
+    // 생성자를 다시 만들므로 필드를 빼면 빈 주입이 실패해 컨텍스트가 안 뜬다.
+    private final CourseJpaRepository courses;
 
     @Override
     public List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId) {
@@ -69,6 +73,26 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
                 .stream()
                 .map(CreatorEntity::getId)
                 .toList();
+    }
+
+    @Override
+    public List<SaleRecord> findSalesForListing(Instant fromInclusive, Instant toExclusive,
+                                                String creatorId) {
+        // findSales와 같은 쿼리다. 매핑만 다르다.
+        return sales.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
+                .stream()
+                .map(SalesQueryJpaAdapter::toSaleRecord)
+                .toList();
+    }
+
+    @Override
+    public boolean courseExists(String courseId) {
+        return courses.existsById(courseId);
+    }
+
+    private static SaleRecord toSaleRecord(SaleEntity entity) {
+        return new SaleRecord(entity.getId(), entity.getCourseId(),
+                entity.getAmount(), entity.getPaidAt());
     }
 
     /**

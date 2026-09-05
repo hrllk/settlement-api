@@ -49,4 +49,21 @@ public interface SalesQueryPort {
      * 넣으려면 판매·취소 자료만으로는 존재를 알 수 없다.
      */
     List<String> findAllCreatorIds();
+
+    /**
+     * 판매 목록 조회용. 결과 없으면 빈 리스트. {@code paidAt} 오름차순.
+     *
+     * <p>{@link #findSales}와 인자가 같고 반환 모델만 다르다. 포트를 정산용과
+     * 판매용으로 나누지 않는 이유가 이것이다 -- 나누면 같은 SQL을 감싸는 껍데기가
+     * 둘이 된다. 읽기 모델이 둘인 것은 필요가 실제로 다르기 때문이다.
+     */
+    List<SaleRecord> findSalesForListing(Instant fromInclusive, Instant toExclusive, String creatorId);
+
+    /**
+     * 강의 존재 여부.
+     *
+     * <p>강의는 판매 애그리게이트 밖이지만 이 하나 때문에 포트를 더 만들지 않는다.
+     * 3시간 예산의 판단이며 README에 남긴다.
+     */
+    boolean courseExists(String courseId);
 }

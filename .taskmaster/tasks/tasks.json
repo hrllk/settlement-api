@@ -255,7 +255,7 @@
         "description": "판매 등록, 초과 환불 거부, 취소 등록, 크리에이터별 기간 판매 목록 조회 API를 제공한다.",
         "details": "웹 어댑터는 HTTP 요청만 변환하고 비즈니스 규칙은 application/domain에 둔다. 기존 취소 금액 합계와 새 환불액의 합이 원결제 금액을 초과하면 거부한다. SaleNotFound, CourseNotFound, RefundAmountExceeded, InvalidSettlementPeriod, ActorAccessDenied를 전역 예외 처리기로 상태·코드·메시지 응답으로 변환한다. ActorAccessDenied는 403으로 변환한다. 헤더 형식 오류로 인한 400은 ActorContextArgumentResolver가 이미 처리하므로 인가 실패와 구분한다. 이 예외는 Task 5의 크리에이터 본인 확인과 운영자 전용 조회에서 사용하지만, 전역 예외 처리기를 두 번 열지 않도록 정의는 Task 4에서 함께 끝낸다. Bean Validation 실패와 액터 헤더 오류의 ResponseStatusException도 같은 처리기가 잡아 {code, message, status} 한 가지 포맷으로 통일한다. ActorAccessPolicy와 도메인 빈 등록, 누적 초과 환불 불변식은 domain/sales의 Sale 애그리게이트가 소유한다. 쓰기는 도메인 SaleRepository, 판매 목록 조회는 application의 SalesQueryPort로 가른다. 읽기가 애그리게이트를 쓰지 않는 이유는 목록에서 N+1이 되기 때문이다. RefundAmountExceeded는 domain/sales에 둔다. 세 어댑터를 Task 4가 소유한다. 새 판매 ID는 서버가 UUID로 생성한다. 수수료율은 settlement.fee.basis-points 설정을 @ConfigurationProperties로 바인딩해 FixedRateFeePolicy를 조립하고 SettlementCalculator를 빈으로 등록한다. 도메인은 요율 값을 갖지 않는다. 요율 이력과 시점별 적용은 구현하지 않으며, 이력 없이 요율만 바꾸면 이미 조회한 과거 정산이 달라진다는 점을 README에 남긴다.",
         "testStrategy": "누적 초과 환불과 없는 판매가 적절한 오류 응답으로 거부되는지 확인한다. ActorAccessDenied가 403으로 변환되는지도 확인한다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           3
@@ -267,7 +267,7 @@
             "title": "도메인 예외·전역 처리기·접근 정책·도메인 빈 등록",
             "description": "예외 8종 매핑, 포맷 통일, 액터 타입을 application으로 이동. 가장 먼저",
             "details": "예외 8종 매핑, 포맷 통일, 액터 타입을 application으로 이동. 가장 먼저",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -275,7 +275,7 @@
             "title": "Sale 애그리게이트 + SaleRepository + SalesQueryPort",
             "description": "서버 UUID 생성, CourseNotFound, 판매 목록 읽기 모델",
             "details": "서버 UUID 생성, CourseNotFound, 판매 목록 읽기 모델",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ]
@@ -285,7 +285,7 @@
             "title": "취소 등록 + 누적 초과 환불 거부",
             "description": "기존 합계 + 신규 > 원결제액이면 409. 전액 환불은 통과",
             "details": "기존 합계 + 신규 > 원결제액이면 409. 전액 환불은 통과",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2
             ]
@@ -295,7 +295,7 @@
             "title": "크리에이터별 기간 판매 목록",
             "description": "SalesQueryPort로 조회, 환불 상태는 findCancelsBySaleIds로 기간 무관 산출",
             "details": "SalesQueryPort로 조회, 환불 상태는 findCancelsBySaleIds로 기간 무관 산출",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2
@@ -306,7 +306,7 @@
             "title": "DTO와 Bean Validation",
             "description": "OffsetDateTime으로 오프셋 강제, @Positive, @NotBlank",
             "details": "OffsetDateTime으로 오프셋 강제, @Positive, @NotBlank",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -314,7 +314,7 @@
             "title": "SaleController",
             "description": "3 엔드포인트. 모든 메서드가 ActorContext 선언, 날짜는 String",
             "details": "3 엔드포인트. 모든 메서드가 ActorContext 선언, 날짜는 String",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2,
               3,
@@ -327,7 +327,7 @@
             "title": "로깅",
             "description": "application 계층만. 등록 2종 + 조회 성공 + 도메인 실패 5종",
             "details": "application 계층만. 등록 2종 + 조회 성공 + 도메인 실패 5종",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2,
               3,
@@ -339,7 +339,7 @@
             "title": "API 테스트 11건",
             "description": "404·409·403·400 구분, 전액 환불 통과, sale-5 FULL",
             "details": "404·409·403·400 구분, 전액 환불 통과, sale-5 FULL",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               6,
               7

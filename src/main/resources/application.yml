@@ -11,6 +11,10 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     defer-datasource-initialization: true
+  jackson:
+    # OffsetDateTime을 그대로 두면 Jackson이 UTC로 정규화해 +09:00이 Z가 된다.
+    # 타입만 OffsetDateTime으로 바꿔서는 KST 표기가 유지되지 않는다.
+    time-zone: Asia/Seoul
   h2:
     console:
       enabled: true
