@@ -15,7 +15,7 @@
 
 | ID | 명세 | 의존 | 예상 | 테스트 |
 | --- | --- | --- | ---: | ---: |
-| 4.1 | [예외·전역 처리기·접근 정책·빈 등록](./task-4-1-error-policy-wiring-spec.md) | Task 1·3 | 25분 | 0 |
+| 4.1 | [예외·전역 처리기·접근 정책·정책 빈 등록](./task-4-1-error-policy-wiring-spec.md) | Task 1·3 | 25분 | 0 |
 | 4.2 | [`Sale` 애그리게이트와 판매 등록](./task-4-2-register-sale-spec.md) | 4.1, Task 2·3 | 25분 | 6 |
 | 4.3 | [취소 등록 + 누적 초과 환불 거부](./task-4-3-register-cancel-spec.md) | 4.2 | 10분 | 0 |
 | 4.4 | [크리에이터별 기간 판매 목록](./task-4-4-list-sales-spec.md) | 4.1, 4.2, Task 2·3 | 15분 | 0 |

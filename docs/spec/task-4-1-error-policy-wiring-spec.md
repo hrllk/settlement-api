@@ -121,21 +121,41 @@ public class GlobalExceptionHandler {
 
 **`Exception`을 잡는 catch-all을 두지 않는다.** `IllegalArgumentException`과 `NullPointerException`은 Task 3의 값 타입 불변식 위반, 즉 우리 코드의 버그다. Spring 기본 500으로 나가게 두어야 스택트레이스가 로그에 남는다. **400으로 싸잡으면 프로그래밍 버그가 사용자 오류로 위장돼 사라진다.** Task 3 명세가 명시적으로 요구한 제약이다.
 
-## 5. 도메인 빈 등록
+## 5. 수수료 정책 빈 등록
 
 ```java
 package com.liveclass.settlement.config;
 
 @Configuration
 public class DomainConfig {
-    @Bean FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
+    @Bean
+    FeePolicy feePolicy(@Value("${settlement.fee.basis-points:2000}") int basisPoints) {
         return new FixedRateFeePolicy(basisPoints);
-    }
-    @Bean SettlementCalculator settlementCalculator(FeePolicy feePolicy) {
-        return new SettlementCalculator(feePolicy);
     }
 }
 ```
+
+**`SettlementCalculator`는 여기서 등록하지 않는다. Task 5가 한다.** Task 4는 정산 계산을 하지 않으므로 쓰지 않는 빈을 만들 이유가 없다. 쓰는 태스크가 등록한다.
+
+### 빈 등록이 도메인 순수성을 깨지 않는 이유
+
+도메인 순수성은 **도메인이 Spring을 아느냐**의 문제다. Spring이 도메인을 아는 것은 상관없다.
+
+```java
+// 순수성이 깨지는 방식 -- 하지 않는다
+@Component
+public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring에 묶인다
+
+// 이 명세가 택한 방식
+// domain/settlement/FixedRateFeePolicy.java  -- 애노테이션 0
+// config/DomainConfig.java                   -- 조립만 여기서
+```
+
+`@Bean`을 `config`에 두면 의존 방향이 도메인 바깥에서 안쪽을 향한다. 도메인은 Spring의 존재를 모른다.
+
+증거는 테스트다. Task 3의 계산기 테스트 42건이 **Spring 컨텍스트 없이 돈다.** 도메인에 애노테이션이 하나라도 있으면 그게 성립하지 않는다. 구현 후 `domain` 패키지에 `org.springframework` import가 0건인지 확인한다.
+
+**빈으로 만드는 이유는 조립 지점을 한 곳에 모으기 위해서다.** 빈이 없으면 요율 설정 바인딩이 유스케이스마다 반복되고, 요율을 읽는 곳이 흩어져 하나만 고치면 두 API가 다른 요율로 계산한다.
 
 `application.yml`에 `settlement.fee.basis-points: 2000`이 **이미 있다** (Task 2에서 추가). 새로 넣지 않는다. `@Value`의 기본값 `:2000`은 설정이 지워졌을 때의 방어일 뿐이다.
 
@@ -143,9 +163,7 @@ public class DomainConfig {
 
 설정 프로퍼티로 두면 Task 3 전제 9의 "변경 가능성을 설계에 반영"이 애노테이션 하나로 완성된다. 요율을 바꾸려면 yml 한 줄만 고치면 되고 재컴파일이 없다.
 
-Task 3이 도메인에 Spring 애노테이션을 넣지 않기로 했으므로 등록은 `config`에서 한다. **Task 5가 아니라 Task 4에서 하는 이유는 순서다.** Task 4가 Spring 배선이 생기는 첫 Task이고, 등록을 Task 5로 미루면 Task 4가 도메인 빈을 하나라도 쓰는 순간 깨진다.
-
-Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서 등록한다 — "안 쓸 거다"는 검증되지 않는 가정이고, Task 5 착수 시점에 배선이 이미 끝나 있는 편이 낫다.
+**`FeePolicy`를 Task 4가 등록하는 이유는 설정 바인딩이 여기 있기 때문이다.** Task 4가 Spring 배선이 생기는 첫 Task이고, 요율 프로퍼티를 읽는 지점이 하나여야 한다. `SettlementCalculator`는 그 정책을 주입받을 뿐이므로 쓰는 쪽인 Task 5가 `DomainConfig`에 메서드를 더한다.
 
 ## 파일
 
@@ -167,7 +185,8 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 3. `IllegalArgumentException` / `NullPointerException` 핸들러가 **없다.**
 4. `@ExceptionHandler(Exception.class)`가 없다.
 5. 도메인 예외에 `@ResponseStatus`가 없다.
-6. `FeePolicy`와 `SettlementCalculator`가 빈으로 등록된다.
+6. `FeePolicy`가 빈으로 등록된다. `SettlementCalculator`는 등록하지 않는다 — Task 5 소관이다.
+6-b. `domain` 패키지에 `org.springframework` import가 0건이다.
 7. `application` 패키지가 `adapter`를 import하지 않는다.
 8. Task 1의 기존 테스트 4건이 import 수정 후 통과한다.
 9. `RefundAmountExceeded`가 저장소 전체에 **하나만** 존재한다 (`domain/sales`).

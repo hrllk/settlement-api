@@ -11,7 +11,7 @@
 - 계획: `docs/plan/task-5-settlement-query-api-plan.md`
 - Task 2: `SalesQueryJpaAdapter` (조회 포트 구현)
 - Task 3: `SettlementPeriod`, `SettlementCalculator`, `SettlementSummary`, `FeePolicy`
-- Task 4: 전역 예외 처리기, 오류 포맷, `ActorAccessPolicy`, 도메인 빈 등록
+- Task 4: 전역 예외 처리기, 오류 포맷, `ActorAccessPolicy`, `FeePolicy` 빈
 
 `tasks.json`의 의존성을 `[2,3]`에서 `[2,3,4]`로 고쳤다. Task 5가 던지는 `InvalidSettlementPeriod`를 변환할 처리기가 Task 4에 있기 때문이다. Task 4 없이 먼저 끝내면 `2025-13` 요청이 500 스택트레이스로 나간다.
 
@@ -88,12 +88,24 @@ GET /api/admin/settlements?from=2025-03-01&to=2025-03-31
 | 판정 코드 `ActorAccessPolicy` | Task 4.1 |
 | 기간 구간에서 크리에이터 1명의 요약 산출 | Task 3.4 |
 | 크리에이터 목록 조회, 반복 호출, 목록 조립, 전체 합계 | **5.3** |
-| 예외 정의, 전역 처리기, 오류 포맷, 도메인 빈 등록 | Task 4.1 |
+| 예외 정의, 전역 처리기, 오류 포맷, `FeePolicy` 빈 | Task 4.1 |
+| `SettlementCalculator` 빈 등록 | **Task 5** |
 
 ## 제외 범위
 
 - 계산 규칙, 값 타입 — Task 3
-- 예외 정의, 전역 처리기, `ActorAccessPolicy` 구현, 도메인 빈 등록 — Task 4
+- 예외 정의, 전역 처리기, `ActorAccessPolicy` 구현, `FeePolicy` 빈 — Task 4
+
+**`SettlementCalculator` 빈은 Task 5가 등록한다.** Task 4.1의 `DomainConfig`에 메서드를 하나 더한다.
+
+```java
+@Bean
+SettlementCalculator settlementCalculator(FeePolicy feePolicy) {
+    return new SettlementCalculator(feePolicy);
+}
+```
+
+Task 4는 정산 계산을 하지 않으므로 그 빈이 필요 없다. 쓰는 태스크가 등록한다. 도메인에 `@Component`를 붙이지 않는 이유는 그러면 도메인이 Spring에 묶여 계산기 단위 테스트 42건이 컨텍스트 없이 못 돌기 때문이다.
 - 판매 목록 조회와 그 인가 테스트 — Task 4 (엔드포인트를 소유한 곳이 단언한다)
 - 누적 초과 환불 — Task 4
 - HTTP 통합 흐름 1건 — Task 6
