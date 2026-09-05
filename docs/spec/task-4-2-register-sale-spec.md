@@ -1,56 +1,124 @@
-# Task 4.2 — 판매 등록 + `SalePort` 명세
+# Task 4.2 — `Sale` 애그리게이트와 판매 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1 · 15분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 의존 4.1 · 25분
 
-## 커맨드 포트
+## 왜 애그리게이트인가
+
+이 프로젝트에서 애그리게이트가 필요한 지점은 정확히 하나다. **누적 취소 금액이 원결제 금액을 넘을 수 없다**는 불변식이다. 이건 판매 한 건과 그에 딸린 취소들이 **함께** 지켜야 하는 규칙이라 교과서적인 애그리게이트 경계다.
+
+이 규칙을 application 서비스에 두면 "조회하고, 더하고, 비교하고, 저장한다"가 유스케이스마다 반복되고 누가 빠뜨려도 컴파일이 통과한다. 애그리게이트 안에 두면 `sale.cancel(...)`을 부르는 경로가 규칙을 우회할 방법이 없다.
+
+정산 계산 쪽(Task 3)에는 애그리게이트를 두지 않았다. 거기는 불변식이 없고 전부 값에 대한 순수 함수다. **애그리게이트는 지킬 불변식이 있을 때만 값어치가 있다.**
+
+## 세 갈래 모델
+
+| 방향 | 타입 | 위치 | 소유 |
+| --- | --- | --- | --- |
+| 정산 계산 입력 | `SettlementQueryPort` → `SaleData` / `CancelData` | `application/port/out` | Task 3 선언, Task 2 구현 |
+| 판매 목록 조회 | `SaleQueryPort` → `SaleRecord` | `application/port/out` | **4.2** |
+| 판매 등록·취소 | `SaleRepository` → `Sale` | **`domain/sales`** | **4.2** |
+
+읽기가 애그리게이트를 쓰지 않는 이유는 N+1이다. 판매 목록 응답을 만들려고 애그리게이트를 N개 로딩하면 각각이 자기 취소를 딸고 온다. 목록은 판매 1회 + 취소 1회, 두 쿼리로 끝나야 한다. **두 방향의 필요가 달라 모델이 갈리는 것이지 유행이 아니다.**
+
+## 애그리게이트
 
 ```java
-package com.liveclass.settlement.application.port.out;
+package com.liveclass.settlement.domain.sales;
 
-public interface SalePort {
+/** 판매 한 건과 그에 딸린 취소들. 누적 환불 ≤ 원결제를 스스로 지킨다. */
+public class Sale {
 
-    /** 저장하고 서버가 생성한 판매 ID를 돌려준다. */
-    String saveSale(String courseId, long amount, Instant paidAt);
+    private final String id;
+    private final String courseId;
+    private final long amount;
+    private final Instant paidAt;
+    private final List<Cancel> cancels;      // 방어 복사
 
-    /** 저장하고 서버가 생성한 취소 ID를 돌려준다. */
-    String saveCancel(String saleId, long amount, Instant cancelledAt);
+    /** 신규 등록. */
+    public static Sale register(String id, String courseId, long amount, Instant paidAt);
 
-    /** 없으면 빈 Optional. null을 반환하지 않는다. */
-    Optional<SaleRecord> findSaleById(String saleId);
+    /** 저장소에서 복원. */
+    public static Sale restore(String id, String courseId, long amount, Instant paidAt,
+                               List<Cancel> cancels);
 
-    /** 판매 목록 조회용. 결과 없으면 빈 리스트. paidAt 오름차순. */
-    List<SaleRecord> findSalesByCreator(Instant fromInclusive, Instant toExclusive, String creatorId);
+    /**
+     * 취소를 추가한다. 누적 합계가 원결제 금액을 넘으면 거부한다.
+     *
+     * @throws RefundAmountExceeded 누적 합계 + amount > this.amount
+     */
+    public Cancel cancel(String cancelId, long amount, Instant cancelledAt);
 
-    /** 그 판매에 연결된 모든 취소의 합계. 없으면 0. */
-    long sumCancelledAmount(String saleId);
+    public long cancelledTotal();
+    public RefundStatus refundStatus();      // Task 3의 enum을 그대로 쓴다
+    public List<Cancel> cancels();           // 불변 뷰
+}
 
-    boolean courseExists(String courseId);
+public record Cancel(String id, String amount, Instant cancelledAt) { }   // amount는 long
+```
+
+`cancel(...)` 본문:
+
+```java
+long already = cancelledTotal();
+if (already + amount > this.amount) {
+    throw new RefundAmountExceeded(id, this.amount, already, amount);
+}
+Cancel c = new Cancel(cancelId, amount, cancelledAt);
+cancels.add(c);
+return c;
+```
+
+**`>`이지 `>=`가 아니다.** 합계가 원결제액과 정확히 같은 것은 전액 환불이며 허용해야 한다. `cancel-1`이 그 경우다 — `sale-3`의 80,000원 전액. `>=`로 쓰면 시드가 들어가지 않는다.
+
+**단건 비교가 아니라 누적 비교다.** `amount > this.amount`만 보면 80,000원 판매에 30,000원과 60,000원을 차례로 넣을 때 둘 다 통과해 90,000원이 환불된다.
+
+**ID를 애그리게이트가 만들지 않는다.** `UUID.randomUUID()`를 도메인에 넣으면 테스트가 결과를 단언할 수 없다. Task 3이 "현재 시각을 읽지 않는다"를 규칙으로 잡은 것과 같은 이유로 무작위도 밖에서 주입한다. 유스케이스가 생성해 넘긴다.
+
+**`RefundStatus`는 Task 3 것을 그대로 쓴다.** `domain.settlement.RefundStatus`이며 `of(long saleAmount, long cancelledTotal)` 2인자 오버로드를 부른다. 같은 개념의 enum을 두 벌 만들지 않는다.
+
+`RefundAmountExceeded`는 이 애그리게이트가 던지므로 `domain/sales`에 둔다. 4.1의 파일 목록에서 `domain/settlement`가 아니라 여기로 옮긴다.
+
+## 리포지토리
+
+```java
+package com.liveclass.settlement.domain.sales;
+
+/** 도메인 인터페이스다. 애그리게이트를 통째로 주고받는다. */
+public interface SaleRepository {
+
+    /** 취소까지 함께 적재한다. 없으면 빈 Optional. null을 반환하지 않는다. */
+    Optional<Sale> findById(String saleId);
+
+    /** 신규 판매와 새로 추가된 취소를 반영한다. */
+    void save(Sale sale);
 }
 ```
 
-**Task 2의 `SettlementQueryPort`는 조회 메서드 4개뿐이라 등록 경로를 덮지 못한다.** 커맨드 포트를 Task 4가 소유하는 이유는 포트의 모양이 유스케이스에서 나오기 때문이다. Task 2 시점에는 등록 유스케이스가 없어 시그니처를 추측해야 한다.
+**`domain`에 두는 이유는 애그리게이트를 다루기 때문이다.** 반환 타입이 도메인 타입이고 시그니처에 영속성 어휘가 없다. 구현은 `adapter/out/persistence`에 있고 도메인은 그 존재를 모른다.
 
-**커맨드 포트가 아니라 `SalePort`다.** 등록과 판매 목록 조회를 함께 갖는다. Task 2의 `SettlementQueryPort`는 정산 계산의 입력을 주는 포트이고, 이쪽은 판매 API의 읽기·쓰기 모델이다. 같은 테이블을 보지만 목적이 다르다.
+**`findById`가 취소를 함께 읽는다.** 애그리게이트는 불변식을 지키는 단위이므로 부분만 적재하면 `cancelledTotal()`이 거짓말을 한다. Task 2의 엔티티에 `@OneToMany`가 없으므로 어댑터가 판매 1회 + 취소 1회로 조회해 조립한다. 취소 등록은 단건 경로라 N+1이 아니다.
 
-**`saveCancel`이 취소 ID를 돌려준다.** 4.5의 `CancelResponse`가 `cancelId`를 담고 4.7이 로그에 남긴다. `void`로 두면 둘 다 채울 수 없다.
-
-**`findSaleById`는 `SaleData`가 아니라 전용 타입을 돌려준다.**
+## 조회 포트
 
 ```java
 package com.liveclass.settlement.application.port.out;
+
+public interface SaleQueryPort {
+
+    /** 판매 목록. 결과 없으면 빈 리스트. paidAt 오름차순. */
+    List<SaleRecord> findSalesByCreator(Instant fromInclusive, Instant toExclusive, String creatorId);
+
+    boolean courseExists(String courseId);
+}
 
 public record SaleRecord(String saleId, String courseId, long amount, Instant paidAt) { }
 ```
 
-Task 3의 `SaleData`는 `creatorId`를 필수 필드로 갖고 compact 생성자가 `requireNonNull`을 건다. 그런데 `findSaleById(saleId)`에는 크리에이터를 알 방법이 없다. 채우려면 `sales → courses` 조인을 해야 하는데, **정작 4.3이 쓰는 값은 `amount` 하나다.** 아무도 안 쓰는 필드를 채우려고 조인하는 것은 본말이 전도된다.
-
-`SaleRecord`는 `sales` 테이블 한 번 조회로 채워진다. 애플리케이션 계층이 JPA 엔티티를 보지 않는 것은 동일하다.
-
-**`findSalesByCreator`도 `SaleRecord`를 돌려주는 이유가 여기 있다.** 4.4의 응답 `SaleItem`에는 `courseId`가 들어가는데 Task 3의 `SaleData`에는 그 필드가 없다. Task 3은 계산에 안 쓰는 필드를 의도적으로 뺐고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 자기 읽기 모델을 갖는다. Task 3의 고정된 포트를 건드리지 않는다.
+**`SaleData`를 못 쓰는 이유.** 4.4의 응답 `SaleItem`에 `courseId`가 들어가는데 Task 3의 `SaleData`에는 그 필드가 없다. Task 3은 계산에 안 쓰는 필드를 의도적으로 뺐고 그 결정은 옳다. 판매 목록은 계산이 아니라 조회이므로 자기 읽기 모델을 갖는다. Task 3의 고정된 포트를 건드리지 않는다.
 
 **`paidAt` 오름차순을 계약에 넣는다.** 정렬을 안 정하면 SQL이 돌려주는 순서에 응답이 좌우되어 같은 요청이 다른 순서로 나갈 수 있다.
 
-`sumCancelledAmount`와 `courseExists`는 4.3과 4.2의 판정에 각각 쓰인다. 유스케이스가 판정에 필요한 값만 받고 조회 방법은 모른다.
+**`courseExists`가 여기 있는 것은 타협이다.** 강의는 판매 애그리게이트 밖이지만 이 하나 때문에 포트를 더 만들지 않는다. 3시간 예산의 판단이며 README에 남긴다.
 
 ## 어댑터
 
@@ -58,12 +126,19 @@ Task 3의 `SaleData`는 `creatorId`를 필수 필드로 갖고 compact 생성자
 package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
-public class SaleJpaAdapter implements SalePort {
-    // SaleRepository, CancelRepository, CourseRepository (Task 2.4)를 감싼다
-    // saveSale / saveCancel: UUID.randomUUID().toString()으로 ID 생성 후 반환
-    // findSalesByCreator: Task 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
+public class SaleRepositoryJpaAdapter implements SaleRepository {
+    // findById: SaleRepository(2.4) 1회 + CancelRepository.findBySaleId(2.4) 1회 -> Sale.restore
+    // save: 엔티티로 변환해 저장. 기존 취소는 ID로 걸러 새것만 insert
+}
+
+@Component
+public class SaleQueryJpaAdapter implements SaleQueryPort {
+    // findSalesByCreator: 2.4의 findByCreatorAndPeriod를 SaleRecord로 매핑
+    // courseExists: CourseRepository.existsById
 }
 ```
+
+Task 2.4가 만든 Spring Data 리포지토리 4종을 그대로 감싼다. 새 리포지토리를 만들지 않는다.
 
 **ID는 서버가 UUID로 만든다.** 클라이언트가 정하면 `sale-1`을 보내 시드를 덮어쓸 수 있고, `sale-{n}` 시퀀스는 동시 요청에서 경합한다. Task 2의 컬럼 길이 64자가 UUID 36자를 담는다.
 
@@ -77,10 +152,12 @@ public class RegisterSaleUseCase {
 
     public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
         accessPolicy.requireAdmin(actor);
-        if (!salePort.courseExists(courseId)) throw new CourseNotFound(courseId);
-        String saleId = salePort.saveSale(courseId, amount, paidAt);
+        if (!saleQueryPort.courseExists(courseId)) throw new CourseNotFound(courseId);
+
+        Sale sale = Sale.register(UUID.randomUUID().toString(), courseId, amount, paidAt);
+        saleRepository.save(sale);
         log.info(...);                                   // 4.7
-        return saleId;
+        return sale.id();
     }
 }
 ```
@@ -91,19 +168,33 @@ public class RegisterSaleUseCase {
 
 **금액 부호는 여기서 보지 않는다.** 4.5의 Bean Validation이 `@Positive`로 막는다. 요청 형식의 문제이지 도메인 규칙이 아니다.
 
+## 테스트 — `SaleTest` 5건
+
+애그리게이트는 Spring 없이 단위 테스트로 잠근다. 불변식이 도메인에 있으므로 HTTP까지 안 가도 검증된다.
+
+| # | 케이스 | 기대 |
+| --- | --- | --- |
+| 1 | 취소 없는 판매에 30,000 취소 | 통과. `cancelledTotal()` 30,000, 상태 `PARTIAL` |
+| 2 | 80,000 판매에 30,000 후 60,000 | **`RefundAmountExceeded`.** 누적 판정이 없으면 통과해 버린다 |
+| 3 | 80,000 판매에 80,000 전액 | 통과. 상태 `FULL`. `>=`로 잘못 쓰면 여기서 걸린다 |
+| 4 | 80,000 판매에 30,000 + 50,000 | 통과. 합계가 정확히 원결제액이다 |
+| 5 | `cancels()` 반환값 수정 시도 | `UnsupportedOperationException`. 외부에서 불변식을 우회할 수 없다 |
+
 ## 파일
 
-`application/port/out/SalePort.java`, `SaleRecord.java`
-`adapter/out/persistence/SaleJpaAdapter.java`
+`domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java`
+`application/port/out/SaleQueryPort.java`, `SaleRecord.java`
+`adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SaleQueryJpaAdapter.java`
 `application/sale/RegisterSaleUseCase.java`
-
-테스트는 없다. 4.8이 HTTP 레벨로 검증한다.
+`src/test/java/.../domain/sales/SaleTest.java`
 
 ## 완료 기준
 
 1. 컴파일되고 빈이 등록된다.
-2. 없는 `courseId`가 `CourseNotFound`를 던진다.
-3. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
-4. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다. `saveCancel`도 ID를 돌려준다.
-4-b. `findSalesByCreator`가 `courseId`를 담은 `SaleRecord`를 `paidAt` 오름차순으로 돌려준다.
-5. `findSaleById`가 `null`이 아니라 `Optional`을 돌려준다.
+2. `SaleTest` 5건이 Spring 컨텍스트 없이 통과한다.
+3. `domain/sales`에 Spring 애노테이션과 JPA 애노테이션이 없다.
+4. 없는 `courseId`가 `CourseNotFound`를 던진다.
+5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
+6. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다.
+7. `findById`가 취소까지 적재한다. 부분 적재하지 않는다.
+8. `SaleQueryPort.findSalesByCreator`가 `courseId`를 담아 `paidAt` 오름차순으로 돌려준다.

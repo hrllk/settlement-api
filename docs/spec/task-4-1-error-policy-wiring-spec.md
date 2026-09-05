@@ -121,7 +121,8 @@ Task 4 자체는 `SettlementCalculator`를 쓰지 않는다. 그래도 여기서
 
 ## 파일
 
-`domain/settlement/SaleNotFound.java`, `CourseNotFound.java`, `RefundAmountExceeded.java`
+`domain/settlement/SaleNotFound.java`, `CourseNotFound.java`
+`domain/sales/RefundAmountExceeded.java` (4.2의 `Sale` 애그리게이트가 던진다)
 `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
 `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
 `adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)

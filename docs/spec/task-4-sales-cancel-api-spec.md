@@ -16,7 +16,7 @@
 | ID | 명세 | 의존 | 예상 | 테스트 |
 | --- | --- | --- | ---: | ---: |
 | 4.1 | [예외·전역 처리기·접근 정책·빈 등록](./task-4-1-error-policy-wiring-spec.md) | Task 1·3 | 25분 | 0 |
-| 4.2 | [판매 등록 + `SalePort`](./task-4-2-register-sale-spec.md) | 4.1, Task 2·3 | 15분 | 0 |
+| 4.2 | [`Sale` 애그리게이트와 판매 등록](./task-4-2-register-sale-spec.md) | 4.1, Task 2·3 | 25분 | 5 |
 | 4.3 | [취소 등록 + 누적 초과 환불 거부](./task-4-3-register-cancel-spec.md) | 4.2 | 15분 | 0 |
 | 4.4 | [크리에이터별 기간 판매 목록](./task-4-4-list-sales-spec.md) | 4.1, 4.2, Task 2·3 | 15분 | 0 |
 | 4.5 | [DTO와 Bean Validation](./task-4-5-dto-validation-spec.md) | — | 10분 | 0 |
@@ -120,11 +120,12 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 | `domain/settlement/SaleNotFound.java`, `CourseNotFound.java`, `RefundAmountExceeded.java` | 4.1 |
 | `config/DomainConfig.java` | 4.1 |
 | `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java` | 4.2~4.4 |
-| `application/port/out/SalePort.java`, `SaleRecord.java` | 4.2 |
+| `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java` | 4.2 |
+| `application/port/out/SaleQueryPort.java`, `SaleRecord.java` | 4.2 |
 | `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동) | 4.1 |
 | `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규) | 4.1 |
 | `adapter/in/actor/ActorContextArgumentResolver.java`, `config/WebMvcConfig.java` (import만) | 4.1 |
-| `adapter/out/persistence/SaleJpaAdapter.java` | 4.2 |
+| `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SaleQueryJpaAdapter.java` | 4.2 |
 | `adapter/in/web/dto/*.java` | 4.5 |
 | `adapter/in/web/SaleController.java` | 4.6 |
 
@@ -167,7 +168,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 **Outside Voice 6 + 3 (전부 실물로 검증)**
 1. `FixedRateFeePolicy.PLATFORM_DEFAULT_BP`가 없다. 검수 도중 Task 3 세션이 지웠다. 설정 프로퍼티 주입으로 바꿨다.
 2. `saveCancel`이 `void`인데 `CancelResponse`가 `cancelId`를 요구.
-3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SalePort`의 읽기 모델로 분리했다.
+3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SaleQueryPort`의 읽기 모델로 분리했다.
 4. 우산 파일 목록과 4.1의 `ActorAccessPolicy` 경로 불일치.
 5. Task 3의 `SettlementFixtures`가 package-private이라 Task 6이 import 불가. Task 6은 애초에 그게 필요 없어 분리 확인으로 바꿨다.
 6. 서브태스크 의존성이 교차 Task를 안 적어 DAG가 거짓.

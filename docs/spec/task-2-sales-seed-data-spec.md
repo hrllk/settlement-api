@@ -90,7 +90,8 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | --- | --- |
 | 엔티티, 리포지토리, 조회 포트 어댑터, 시드 | **Task 2** |
 | `SettlementQueryPort` 인터페이스 선언, 값 타입 | Task 3 |
-| 판매 포트 `SalePort`와 그 어댑터 | **Task 4** |
+| 판매 목록 조회 `SaleQueryPort`와 그 어댑터 | **Task 4** |
+| `Sale` 애그리게이트와 도메인 `SaleRepository` | **Task 4** |
 | 초과 환불 거부, 금액 부호 검증 | Task 4 |
 | 정산 계산 | Task 3 |
 
@@ -154,7 +155,7 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 **Outside Voice 6 + 3 (전부 실물로 검증)**
 1. `FixedRateFeePolicy.PLATFORM_DEFAULT_BP`가 없다. 검수 도중 Task 3 세션이 지웠다. 설정 프로퍼티 주입으로 바꿨다.
 2. `saveCancel`이 `void`인데 `CancelResponse`가 `cancelId`를 요구.
-3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SalePort`의 읽기 모델로 분리했다.
+3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SaleQueryPort`의 읽기 모델로 분리했다.
 4. 우산 파일 목록과 4.1의 `ActorAccessPolicy` 경로 불일치.
 5. Task 3의 `SettlementFixtures`가 package-private이라 Task 6이 import 불가. Task 6은 애초에 그게 필요 없어 분리 확인으로 바꿨다.
 6. 서브태스크 의존성이 교차 Task를 안 적어 DAG가 거짓.

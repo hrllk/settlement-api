@@ -94,7 +94,7 @@ AI 활용 내역 (7.7)
 **Outside Voice 6 + 3 (전부 실물로 검증)**
 1. `FixedRateFeePolicy.PLATFORM_DEFAULT_BP`가 없다. 검수 도중 Task 3 세션이 지웠다. 설정 프로퍼티 주입으로 바꿨다.
 2. `saveCancel`이 `void`인데 `CancelResponse`가 `cancelId`를 요구.
-3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SalePort`의 읽기 모델로 분리했다.
+3. Task 3의 `SaleData`에 `courseId`가 없는데 `SaleItem`이 요구. 판매 목록을 `SaleQueryPort`의 읽기 모델로 분리했다.
 4. 우산 파일 목록과 4.1의 `ActorAccessPolicy` 경로 불일치.
 5. Task 3의 `SettlementFixtures`가 package-private이라 Task 6이 import 불가. Task 6은 애초에 그게 필요 없어 분리 확인으로 바꿨다.
 6. 서브태스크 의존성이 교차 Task를 안 적어 DAG가 거짓.
