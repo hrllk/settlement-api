@@ -19,7 +19,7 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | --- | --- | --- |
 | 엔티티 | `SaleEntity`, `CancelEntity`, `CreatorEntity`, `CourseEntity` | — |
 | Spring Data 리포지토리 | 4종 | 재사용 |
-| 정산 조회 | `SalesQueryPort` 어댑터 | — |
+| 정산 조회 | `SalesQueryPort` 어댑터 (`SalesQueryJpaAdapter`) — Task 4가 메서드 둘을 나중에 더한다 | — |
 | 판매 등록·취소 | — | `Sale` 애그리게이트 + 도메인 `SaleRepository` + 어댑터 |
 
 초과 환불 불변식(누적 취소 ≤ 원결제)은 Task 4의 애그리게이트가 강제한다. Task 2는 그 규칙을 알지 않는다. 엔티티에 setter도 검증도 두지 않는 이유가 여기 있다.
@@ -91,8 +91,8 @@ cancels    id(PK)  sale_id  amount(long)  cancelled_at(Instant)
 | 책임 | 소유 |
 | --- | --- |
 | 엔티티, 리포지토리, 조회 포트 어댑터, 시드 | **Task 2** |
-| `SalesQueryPort` 인터페이스 선언, 값 타입 | Task 3 |
-| 판매 목록 조회 `SalesQueryPort`와 그 어댑터 | **Task 4** |
+| `SalesQueryPort` 인터페이스 선언(정산용 4개), `SaleData`·`CancelData` | Task 3 |
+| `SalesQueryPort`에 판매 목록 조회·강의 존재 검사 메서드 추가와 어댑터 확장 | **Task 4** |
 | `Sale` 애그리게이트와 도메인 `SaleRepository` | **Task 4** |
 | 초과 환불 거부, 금액 부호 검증 | Task 4 |
 | 정산 계산 | Task 3 |

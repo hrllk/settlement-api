@@ -18,7 +18,9 @@
 
 `@Import`가 붙고 안 붙고는 **Spring의 컨텍스트 캐시 키를 가른다.** 설정이 다르면 컨텍스트가 둘 생기는데, 둘 다 `application.yml`의 `jdbc:h2:mem:creator-settlement;DB_CLOSE_DELAY=-1`을 본다. `DB_CLOSE_DELAY=-1`이라 JVM이 사는 동안 DB가 안 닫히므로 **서로 같은 인스턴스를 밟는다.**
 
-`ddl-auto=create-drop`이라 두 번째 컨텍스트가 뜨는 순간 첫 번째가 쓰던 테이블을 드롭하고 다시 만든다. 실행 순서에 따라 통과할 수도 있지만 그때부터 **테스트가 순서에 의존한다.** Task 3이 "실행 순서에 의존하지 않는다"를 규칙으로 잡았는데 통합 레벨에서 그게 깨진다.
+`ddl-auto=create-drop`이라 두 번째 컨텍스트가 뜨는 순간 첫 번째가 쓰던 테이블을 드롭하고 다시 만든다. `data.sql`도 컨텍스트마다 다시 실행되므로 드롭 직후 재삽입되어 데이터가 영구히 사라지지는 않는다. 그래도 컨텍스트 기동 시점과 테스트 실행 시점이 엇갈리면 통과 여부가 순서에 달린다. Task 3이 "실행 순서에 의존하지 않는다"를 규칙으로 잡았는데 통합 레벨에서 그게 깨진다.
+
+`@DataJpaTest` 슬라이스가 `data.sql`을 실행한다는 것은 이 프로젝트에서 실제로 확인했다. `DataSourceInitializationAutoConfiguration`과 `dataSourceScriptDatabaseInitializer`가 슬라이스 컨텍스트에 들어온다. 슬라이스 애노테이션의 `.imports` 목록에는 SQL 초기화가 없지만, 그 목록이 "무엇이 켜지는가"의 완전한 답은 아니다.
 
 설정을 같게 두면 컨텍스트가 하나로 합쳐져 문제가 사라진다. Task 1의 `@SpringBootTest`는 어차피 별개 컨텍스트지만 엔티티도 시드도 안 보므로 영향이 없다. Task 4·6이 컨텍스트를 더 만들 때도 같은 규칙을 따른다.
 
