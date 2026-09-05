@@ -109,7 +109,7 @@
         "description": "순수한 정산 기간, 정산 요약, 수수료 정책, 계산기와 조회 아웃바운드 포트를 만든다.",
         "details": "SettlementDataPort는 원본 판매·취소 자료를 반환한다. Asia/Seoul 기준으로 paidAt 판매와 cancelledAt 환불을 서로 다른 기준으로 집계한다. 금액은 원 단위 long을 사용하고, 음수 순 판매액의 수수료는 0원으로 제한한다. 환불 상태는 취소 금액 합계에서 계산한다. 명세: docs/spec/task-3-settlement-domain-spec.md",
         "testStrategy": "계산기는 Spring과 DB 없이 단위 테스트로 검증한다. 음수 순 판매액과 수수료 0원 정책도 포함한다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1
         ],
@@ -163,7 +163,7 @@
             "description": "조회 포트를 선언만 한다. 구현체는 Task 2가 만든다.",
             "details": "findSales(from, to, creatorId), findCancels(from, to, creatorId), findCancelsBySaleIds(Collection<String>), findAllCreatorIds() 4개. creatorId는 항상 필수이며 전체를 한 번에 긁는 경로는 두지 않는다. findAllCreatorIds가 필요한 이유는 판매도 취소도 없는 크리에이터를 운영자 목록에 0원으로 넣기 위해서다. findCancelsBySaleIds는 환불 상태 전용이다. 환불 상태는 기간 필터를 적용하지 않으므로 cancelledAt 창 조회로는 산출할 수 없다. 어떤 메서드도 null을 반환하지 않고 결과가 없으면 빈 리스트다. 명세: docs/spec/task-3-5-settlement-data-port-spec.md",
             "testStrategy": "인터페이스 선언이라 테스트는 없다. Task 2의 구현체와 Task 4·5의 호출부에서 검증한다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2
             ]
