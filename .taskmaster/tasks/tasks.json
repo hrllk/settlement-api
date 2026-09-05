@@ -121,7 +121,7 @@
             "description": "연월과 일자 범위를 하나의 반열린 Instant 구간으로 정규화하고 잘못된 입력을 도메인 예외로 거부한다.",
             "details": "record SettlementPeriod(Instant fromInclusive, Instant toExclusive). ofYearMonth(String)와 ofDateRange(String, String) 팩토리, contains(Instant)는 !at.isBefore(from) && at.isBefore(to). ZoneId Asia/Seoul 상수. record 표준 생성자가 public이라 compact 생성자로 from < to 불변식을 걸어야 팩토리 우회가 막힌다. 역전 검증은 팩토리에서 먼저 해 원본 문자열을 메시지에 담고 compact 생성자는 마지막 방어선으로 둔다. InvalidSettlementPeriod를 같이 정의하고 DateTimeParseException을 밖으로 새게 하지 않는다. 명세: docs/spec/task-3-1-settlement-period-spec.md",
             "testStrategy": "SettlementPeriodTest 11건. 시작 경계 포함, 종료 경계 포함(23:59:59.999), 종료 경계 배제(다음 달 1일 00:00) 세 방향을 전부 단언한다. 생성자 불변식은 표준 생성자 직접 호출로 확인한다.",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
