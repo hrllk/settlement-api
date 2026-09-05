@@ -1,8 +1,10 @@
 # Task 2.5 — `SettlementDataPort` JPA 어댑터 명세
 
-부모: [`task-2-sales-seed-data-spec.md`](./task-2-sales-seed-data-spec.md) · 의존 2.4, Task 3.5 · 15분 · 테스트 5
+부모: [`task-2-sales-seed-data-spec.md`](./task-2-sales-seed-data-spec.md) · 의존 2.4, **2.6**, Task 3.5 · 15분 · 테스트 6
 
 **Task 3의 `SettlementDataPort`가 컴파일된 뒤에만 착수한다.**
+
+**2.6보다 먼저 착수하면 안 된다.** 아래 테스트가 전부 시드 데이터를 단언한다. `data.sql`이 없으면 빈 DB에서 여섯 건이 모두 실패한다.
 
 ## 타입
 
@@ -19,7 +21,7 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
     @Override
     public List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId) {
         return sales.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
-                    .stream().map(SettlementDataJpaAdapter::toSaleData).toList();
+                    .stream().map(e -> toSaleData(e, creatorId)).toList();
     }
 
     @Override
@@ -39,7 +41,8 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
                        .map(CreatorEntity::getId).toList();
     }
 
-    private static SaleData toSaleData(SaleEntity e) { ... }   // creatorId는 강의를 거쳐 채운다
+    /** creatorId는 호출 인자를 그대로 넣는다. 아래 계약 참조. */
+    private static SaleData toSaleData(SaleEntity e, String creatorId) { ... }
 }
 ```
 
@@ -59,7 +62,18 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 
 두 번째를 택한다. 조회 계약이 "항상 크리에이터로 좁힌다"이므로 인자가 곧 정답이다. 이 추론이 성립하는 이유를 코드 주석에 남긴다 — 나중에 전체 조회 경로가 생기면 깨지는 가정이다.
 
-**이 어댑터는 정산 계산의 입력만 담당한다.** 판매 등록과 판매 목록 조회는 Task 4의 `SalePort`와 `SaleJpaAdapter`가 따로 맡는다. 같은 테이블을 보지만 목적이 달라 읽기 모델이 다르다.
+따라서 변환 메서드는 `toSaleData(SaleEntity, String creatorId)`로 인자를 둘 받는다. 엔티티만 받는 시그니처로는 채택안을 구현할 수 없다.
+
+**이 어댑터는 읽기 전용이다.** 쓰기는 Task 4가 `Sale` 애그리게이트와 도메인 `SaleRepository`로 따로 맡는다. 같은 테이블을 보지만 모델이 다르다.
+
+| 방향 | 인터페이스 | 위치 | 돌려주는 것 | 소유 |
+| --- | --- | --- | --- | --- |
+| 읽기 | `SettlementDataPort` | `application/port/out` | `SaleData` / `CancelData` 값 | Task 3 선언, **Task 2 구현** |
+| 쓰기 | `SaleRepository` | `domain/sales` | `Sale` 애그리게이트 | Task 4 |
+
+읽기가 애그리게이트를 쓰지 않는 이유는 정산이 평평한 값의 합산이기 때문이다. 애그리게이트를 로딩하면 취소 목록이 딸려 오는데 집계에는 필요 없고, 크리에이터 한 명의 한 달치를 애그리게이트 N개로 읽으면 그게 곧 N+1이다. 쓰기가 애그리게이트를 쓰는 이유는 누적 환불 ≤ 원결제라는 불변식이 판매와 그 취소들에 함께 걸리기 때문이다. 두 방향의 필요가 달라 모델이 갈린다.
+
+**이 어댑터는 저장 메서드를 갖지 않는다.** 읽기 포트에 쓰기가 섞이면 위 구분이 무너진다.
 
 **`CancelData`에는 `creatorId`가 없다.** Task 3이 의도적으로 뺐다. 취소를 항상 크리에이터로 좁혀 조회하므로 값 자체가 귀속 정보를 들 필요가 없다.
 
@@ -76,6 +90,7 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 | 3 | `findCancelsBySaleIds(["sale-5"])` | `cancel-3` 1건. 기간 조건이 없다 |
 | 4 | `findCancelsBySaleIds([])` | 빈 리스트. 예외 없음 |
 | 5 | `findAllCreatorIds()` | 3건. 실적 없는 크리에이터 포함. `creator-1, 2, 3` 순서 |
+| 6 | `findSales` creator-3, 2025-03 KST 구간 | 빈 리스트. 4번이 방어하는 빈 컬렉션 경로를 실제로 밟는 시나리오다 |
 
 `Instant`는 `OffsetDateTime.parse("2025-03-01T00:00:00+09:00").toInstant()`로 만든다. UTC로 손 변환하지 않는다.
 
@@ -89,5 +104,5 @@ public class SettlementDataJpaAdapter implements SettlementDataPort {
 2. 빈 컬렉션 입력이 쿼리 없이 빈 리스트를 돌려준다.
 3. 어떤 경로도 `null`을 반환하지 않는다.
 3-b. `findAllCreatorIds()`가 `creatorId` 오름차순이다.
-4. 테스트 5건이 통과한다.
+4. 테스트 6건이 통과한다.
 5. `domain`이 이 클래스를 참조하지 않는다.

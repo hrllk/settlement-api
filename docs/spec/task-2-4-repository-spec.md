@@ -11,6 +11,7 @@ public interface SaleRepository extends JpaRepository<SaleEntity, String> {
         select s from SaleEntity s
         where s.courseId in (select c.id from CourseEntity c where c.creatorId = :creatorId)
           and s.paidAt >= :fromInclusive and s.paidAt < :toExclusive
+        order by s.paidAt, s.id
         """)
     List<SaleEntity> findByCreatorAndPeriod(@Param("creatorId") String creatorId,
                                             @Param("fromInclusive") Instant fromInclusive,
@@ -25,6 +26,7 @@ public interface CancelRepository extends JpaRepository<CancelEntity, String> {
               select s.id from SaleEntity s
               where s.courseId in (select c.id from CourseEntity c where c.creatorId = :creatorId))
           and x.cancelledAt >= :fromInclusive and x.cancelledAt < :toExclusive
+        order by x.cancelledAt, x.id
         """)
     List<CancelEntity> findByCreatorAndPeriod(...);
 

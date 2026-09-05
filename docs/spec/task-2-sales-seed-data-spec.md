@@ -11,6 +11,19 @@
 - Task 3에서 오는 것: `SettlementDataPort` 인터페이스, `SaleData`, `CancelData` 값 타입
 - **2.5는 Task 3의 포트가 컴파일된 뒤에만 착수할 수 있다.** 2.1~2.4와 2.6은 먼저 할 수 있다.
 
+## 읽기와 쓰기의 경계
+
+Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**을 만든다.
+
+| | Task 2 | Task 4 |
+| --- | --- | --- |
+| 엔티티 | `SaleEntity`, `CancelEntity`, `CreatorEntity`, `CourseEntity` | — |
+| Spring Data 리포지토리 | 4종 | 재사용 |
+| 정산 조회 | `SettlementDataPort` 어댑터 | — |
+| 판매 등록·취소 | — | `Sale` 애그리게이트 + 도메인 `SaleRepository` + 어댑터 |
+
+초과 환불 불변식(누적 취소 ≤ 원결제)은 Task 4의 애그리게이트가 강제한다. Task 2는 그 규칙을 알지 않는다. 엔티티에 setter도 검증도 두지 않는 이유가 여기 있다.
+
 ## 서브태스크
 
 | ID | 명세 | 의존 | 예상 | 테스트 |
