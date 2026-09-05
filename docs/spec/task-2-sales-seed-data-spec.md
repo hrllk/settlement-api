@@ -32,11 +32,11 @@ Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**�
 | 2.2 | [크리에이터·강의 엔티티](./task-2-2-creator-course-entity-spec.md) | — | 5분 | 0 |
 | 2.3 | [인덱스 정의](./task-2-3-index-spec.md) | 2.1, 2.2 | 5분 | 0 |
 | 2.4 | [Spring Data 리포지토리 4종](./task-2-4-repository-spec.md) | 2.1, 2.2 | 10분 | 0 |
-| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, 2.6, Task 3.5 | 15분 | 6 |
+| 2.5 | [`SalesQueryPort` JPA 어댑터](./task-2-5-query-port-adapter-spec.md) | 2.4, 2.6, Task 3.5 | 15분 | 7 |
 | 2.6 | [`data.sql` 초기 데이터 17행](./task-2-6-seed-data-spec.md) | 2.1, 2.2 | 10분 | 0 |
 | 2.7 | [시드 재현성 테스트](./task-2-7-seed-verification-spec.md) | 2.5, 2.6 | 10분 | 4 |
 
-약 55분, 새 테스트 10건.
+약 55분, 새 테스트 11건.
 
 2.1과 2.2는 서로 독립이다. 2.5가 2.6에 의존하는 이유는 테스트 여섯 건이 전부 시드를 단언하기 때문이다. 착수 순서는 2.1·2.2 → 2.3·2.4·2.6 → 2.5 → 2.7이다.
 
