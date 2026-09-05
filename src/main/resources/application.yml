@@ -15,3 +15,13 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+# 플랫폼 수수료율. basis point이며 2000 = 20%다.
+# 도메인은 이 값을 갖지 않고 주입받기만 한다. Task 4가 바인딩해
+# FixedRateFeePolicy를 조립한다. Task 4가 Spring 배선이 생기는 첫 Task다.
+#
+# 요율을 바꾸면 이미 조회한 과거 정산이 달라진다. 시점별 이력 적용은
+# 구현하지 않았으므로 변경은 배포 시점에만 하고 기록을 남긴다.
+settlement:
+  fee:
+    basis-points: 2000
