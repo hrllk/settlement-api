@@ -141,7 +141,7 @@
             "description": "고정 20%를 인터페이스 뒤에 두고 음수 순 판매액의 수수료를 0원으로 제한한다.",
             "details": "interface FeePolicy { long calculate(long netSales); }와 record FixedRateFeePolicy(int basisPoints). 20%는 2000bp이며 double을 쓰지 않는다. 음수 판정을 나눗셈보다 먼저 한다. 순서가 정책이다. 판정을 나중에 하면 -60,000에서 -12,000이 나와 플랫폼이 수수료를 돌려주는 셈이 된다. 양수 구간에서 long 나눗셈의 절단이 곧 버림 정책이다. basisPoints 범위는 0..10000으로 검증한다. 요율 이력과 시점별 적용은 만들지 않는다. 명세: docs/spec/task-3-3-fee-policy-spec.md",
             "testStrategy": "FixedRateFeePolicyTest 5건. 양수, 0, 음수, 버림(33,333 -> 6,666), 생성자 범위 위반.",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
