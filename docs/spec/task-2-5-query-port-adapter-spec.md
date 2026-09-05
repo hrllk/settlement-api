@@ -12,6 +12,7 @@
 package com.liveclass.settlement.adapter.out.persistence;
 
 @Component
+@RequiredArgsConstructor
 public class SalesQueryJpaAdapter implements SalesQueryPort {
 
     private final SaleJpaRepository sales;
@@ -81,7 +82,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 
 **`CancelData`에는 `creatorId`가 없다.** Task 3이 의도적으로 뺐다. 취소를 항상 크리에이터로 좁혀 조회하므로 값 자체가 귀속 정보를 들 필요가 없다.
 
-**`@Component`를 붙인다.** 어댑터는 `adapter.out`에 있으므로 Spring 애노테이션이 허용된다. Spring 금지는 `domain`과 `application.port.out`에만 적용된다.
+**`@Component`를 붙인다.** 어댑터는 `adapter.out`에 있으므로 Spring 애노테이션이 허용된다. Spring 금지는 `domain`과 `application.port.out`에만 적용된다. Lombok의 `@RequiredArgsConstructor`도 같은 이유로 여기서는 허용된다.
 
 ## 테스트
 

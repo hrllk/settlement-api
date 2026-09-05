@@ -6,6 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 취소 영속성 표현. 규칙은 {@link SaleEntity}와 같다.
@@ -22,6 +25,8 @@ import java.time.Instant;
 @Table(name = "cancels", indexes = {
         @Index(name = "idx_cancels_sale_cancelled", columnList = "sale_id, cancelled_at")
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CancelEntity {
 
     @Id
@@ -37,29 +42,10 @@ public class CancelEntity {
     @Column(name = "cancelled_at", nullable = false)
     private Instant cancelledAt;
 
-    protected CancelEntity() {
-    }
-
     public CancelEntity(String id, String saleId, long amount, Instant cancelledAt) {
         this.id = id;
         this.saleId = saleId;
         this.amount = amount;
         this.cancelledAt = cancelledAt;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getSaleId() {
-        return saleId;
-    }
-
-    public long getAmount() {
-        return amount;
-    }
-
-    public Instant getCancelledAt() {
-        return cancelledAt;
     }
 }

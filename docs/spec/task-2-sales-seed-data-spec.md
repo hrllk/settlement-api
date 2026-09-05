@@ -11,6 +11,12 @@
 - Task 3에서 오는 것: `SalesQueryPort` 인터페이스, `SaleData`, `CancelData` 값 타입
 - **2.5는 Task 3의 포트가 컴파일된 뒤에만 착수할 수 있다.** 2.1~2.4와 2.6은 먼저 할 수 있다.
 
+## Lombok 사용 범위
+
+`adapter/out/persistence`에만 쓴다. 엔티티 넷은 `@Getter` + `@NoArgsConstructor(PROTECTED)`, 어댑터는 `@RequiredArgsConstructor`다. `@Data`·`@EqualsAndHashCode`·`@ToString`·`@Setter`·`@AllArgsConstructor`는 쓰지 않으며 근거는 2.1에 있다.
+
+`domain`과 `application`에는 쓰지 않는다. 전부 `record`라 Lombok이 할 일이 없다.
+
 ## 읽기와 쓰기의 경계
 
 Task 2는 **읽기 쪽 전부와 두 방향이 공유하는 영속성 모델**을 만든다.

@@ -4,6 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 크리에이터. 정산 계산 자체에는 안 쓰이지만 creator-3 때문에 필요하다.
@@ -16,6 +19,8 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "creators")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CreatorEntity {
 
     @Id
@@ -25,19 +30,8 @@ public class CreatorEntity {
     @Column(nullable = false)
     private String name;
 
-    protected CreatorEntity() {
-    }
-
     public CreatorEntity(String id, String name) {
         this.id = id;
         this.name = name;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
     }
 }

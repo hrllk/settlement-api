@@ -6,6 +6,7 @@ import com.liveclass.settlement.domain.settlement.SaleData;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
@@ -24,19 +25,12 @@ import org.springframework.stereotype.Component;
  * {@code domain}과 {@code application.port.out}에만 적용된다.
  */
 @Component
+@RequiredArgsConstructor
 public class SalesQueryJpaAdapter implements SalesQueryPort {
 
     private final SaleJpaRepository sales;
     private final CancelJpaRepository cancels;
     private final CreatorJpaRepository creators;
-
-    public SalesQueryJpaAdapter(SaleJpaRepository sales,
-                                CancelJpaRepository cancels,
-                                CreatorJpaRepository creators) {
-        this.sales = sales;
-        this.cancels = cancels;
-        this.creators = creators;
-    }
 
     @Override
     public List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId) {

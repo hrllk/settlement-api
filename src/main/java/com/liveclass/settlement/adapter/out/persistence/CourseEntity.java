@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 강의. 판매를 크리에이터에 연결하는 유일한 경로다.
@@ -23,6 +26,8 @@ import jakarta.persistence.Table;
 @Table(name = "courses", indexes = {
         @Index(name = "idx_courses_creator", columnList = "creator_id")
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CourseEntity {
 
     @Id
@@ -35,24 +40,9 @@ public class CourseEntity {
     @Column(nullable = false)
     private String title;
 
-    protected CourseEntity() {
-    }
-
     public CourseEntity(String id, String creatorId, String title) {
         this.id = id;
         this.creatorId = creatorId;
         this.title = title;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getCreatorId() {
-        return creatorId;
-    }
-
-    public String getTitle() {
-        return title;
     }
 }

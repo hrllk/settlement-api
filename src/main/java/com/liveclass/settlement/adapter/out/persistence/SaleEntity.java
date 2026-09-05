@@ -6,6 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 판매 영속성 표현. 도메인 모델이 아니다.
@@ -19,11 +22,18 @@ import java.time.Instant;
  * 쿼리를 던지는지 코드만 봐서는 알 수 없게 된다. 필요한 조인은 리포지토리가
  * JPQL로 명시한다. FK 제약도 없으므로 없는 강의 참조는 Task 4가
  * {@code courseExists}로 막는다.
+ *
+ * <p>Lombok은 {@code @Getter}와 {@code @NoArgsConstructor}만 쓴다.
+ * {@code @Data}나 {@code @EqualsAndHashCode}를 붙이면 equals/hashCode가 전체
+ * 필드 기반이 되어 JPA의 식별자 의미론과 어긋나고 프록시에서 깨진다.
+ * {@code @Setter}도 붙이지 않는다 — 등록 후 변경되지 않아야 한다.
  */
 @Entity
 @Table(name = "sales", indexes = {
         @Index(name = "idx_sales_course_paid", columnList = "course_id, paid_at")
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)   // Hibernate 전용
 public class SaleEntity {
 
     @Id
@@ -41,30 +51,10 @@ public class SaleEntity {
     @Column(name = "paid_at", nullable = false)
     private Instant paidAt;
 
-    /** Hibernate 전용. 애플리케이션 코드가 빈 엔티티를 만들지 못하게 protected로 둔다. */
-    protected SaleEntity() {
-    }
-
     public SaleEntity(String id, String courseId, long amount, Instant paidAt) {
         this.id = id;
         this.courseId = courseId;
         this.amount = amount;
         this.paidAt = paidAt;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getCourseId() {
-        return courseId;
-    }
-
-    public long getAmount() {
-        return amount;
-    }
-
-    public Instant getPaidAt() {
-        return paidAt;
     }
 }
