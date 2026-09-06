@@ -1,6 +1,5 @@
 package com.liveclass.settlement.domain.sales;
 
-import com.liveclass.settlement.domain.settlement.RefundStatus;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,6 +19,10 @@ import java.util.Objects;
  *
  * Lombok을 쓰지 않는다. {@code @Getter}는 {@code cancels} 가변 리스트를 그대로
  * 새게 해 불변식을 우회시킨다.
+ *
+ * 환불 상태 접근자를 두지 않는다. 조회 경로는 애그리게이트를 적재하지 않고
+ * (N+1) 읽기 모델에 {@code RefundStatus.of}를 쓴다. 여기 두면 같은 개념에 경로가
+ * 둘이 되고, 그중 하나는 아무도 안 부른다.
  */
 public class Sale {
 
@@ -42,7 +45,14 @@ public class Sale {
         return new Sale(id, courseId, amount, paidAt, List.of());
     }
 
-    /** 저장소에서 복원. 취소를 함께 받아야 불변식이 성립한다. */
+    /**
+     * 저장소에서 복원. 취소를 함께 받아야 불변식이 성립한다.
+     *
+     * <p><b>여기서 불변식을 다시 검사하지 않는다.</b> 저장된 상태가 규칙을 어겼다면
+     * (동시 취소 경합 — README 가정 11) 조회가 500이 되는 것보다 값을 보여주는 편이
+     * 낫다. {@code RefundStatus.of}가 초과 환불을 {@code FULL}로 닫아 처리한다.
+     * 새 취소를 막는 것은 {@link #cancel}이 계속 한다.
+     */
     public static Sale restore(String id, String courseId, long amount, Instant paidAt,
                                List<Cancel> cancels) {
         return new Sale(id, courseId, amount, paidAt, cancels);
@@ -75,11 +85,6 @@ public class Sale {
             total += cancel.amount();
         }
         return total;
-    }
-
-    /** Task 3의 enum을 그대로 쓴다. 같은 개념을 두 벌 만들지 않는다. */
-    public RefundStatus refundStatus() {
-        return RefundStatus.of(amount, cancelledTotal());
     }
 
     /** 불변 뷰. 외부에서 불변식을 우회할 수 없다. */

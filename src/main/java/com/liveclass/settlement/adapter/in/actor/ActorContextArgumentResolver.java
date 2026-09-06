@@ -13,6 +13,13 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * {@code X-Actor-Id}와 {@code X-Actor-Role} 헤더를 {@link ActorContext}로 바꾼다.
  * 헤더가 없거나 형식이 어긋나면 400으로 실패시킨다.
+ *
+ * <p><b>필터가 아니다. 패키지를 {@code filter}로 바꾸지 말 것.</b> 필터는 모든
+ * 요청을 거치지만 이건 {@code HandlerMethodArgumentResolver}라 핸들러가
+ * {@link ActorContext} 파라미터를 선언해야만 동작한다. 그 차이가 이 프로젝트에서
+ * 컴파일러가 잡아주지 않는 유일한 구조적 위험이고, {@code ControllerActorGuardTest}가
+ * 존재하는 이유다. 이름이 {@code filter}면 읽는 사람이 "모든 요청이 검사된다"고
+ * 정반대로 믿는다.
  */
 public class ActorContextArgumentResolver implements HandlerMethodArgumentResolver {
 

@@ -17,23 +17,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 등록 → 취소 → 정산 조회를 한 흐름으로 태운다. <b>어느 Task도 혼자서는 배선
- * 전체를 못 본다.</b>
+ * 등록 → 취소 → 정산 조회를 한 흐름으로 태운다. 어느 Task도 혼자서는 배선 전체를
+ * 못 본다. 액터를 단계마다 바꿔(ADMIN → 본인 CREATOR) 역할 전환도 함께 본다.
  *
- * <p>200 확인으로 끝내지 않고 금액을 단언한다. 상태 코드만 보면 배선이 끊겨 전
- * 항목 0이 나와도 통과한다. {@code fee} 12,000은 특히 의미가 있다 — 계산기가
- * 안 불렸으면 0이고, {@code FeePolicy} 빈이 없으면 컨텍스트가 아예 안 뜬다.
+ * <p>200 확인으로 끝내지 않고 금액을 단언한다. 배선이 끊겨 전 항목 0이 나와도
+ * 상태 코드만 보면 통과한다.
  *
- * <p>액터를 단계마다 바꾼다. 등록은 ADMIN, 조회는 본인 CREATOR다. 같은 헤더로
- * 전부 돌리면 역할 전환이 검증되지 않는다.
- *
- * <p><b>2025-06을 쓴다.</b> 시드는 1~3월만 쓴다. {@code DB_CLOSE_DELAY=-1}이라
- * 인메모리 DB가 JVM 수명 내내 살아 있어서, 롤백이 한 번이라도 새면 creator-1의
- * 3월 기대값 120,000원이 조용히 틀어지고 <b>깨지는 것은 이 파일이 아니라 다른
- * 파일</b>이 된다. 월을 분리하면 롤백이 실패해도 시드 기반 단언은 안 깨진다.
- *
- * <p>{@code SaleControllerTest}도 2025-06에 쓰므로 금액을 100,000으로 달리 잡았다.
- * 거기 롤백이 새면 이 테스트가 150,000을 보고 실패한다 — 그 자체가 신호다.
+ * <p><b>2025-06을 쓰고 {@code @Transactional}도 건다.</b> 시드는 1~3월만 쓴다.
+ * 롤백이 새면 깨지는 것이 이 파일이 아니라 다른 파일의 시드 단언이 된다.
+ * {@code SaleControllerTest}도 2025-06을 쓰므로 금액을 100,000으로 달리 잡았다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
