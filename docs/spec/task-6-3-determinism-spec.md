@@ -1,6 +1,6 @@
 # Task 6.3 — 결정성 점검 명세
 
-부모: [`task-6-core-scenario-tests-spec.md`](./task-6-core-scenario-tests-spec.md) · 의존 6.2 · 10분 · 테스트 1
+부모: [`task-6-core-scenario-tests-spec.md`](./task-6-core-scenario-tests-spec.md) · 의존 6.2 · 10분 · 테스트 2
 
 ## 왜 필요한가
 

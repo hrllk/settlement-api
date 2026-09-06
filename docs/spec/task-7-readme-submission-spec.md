@@ -9,7 +9,7 @@
 ## 현재 상태
 
 - 계획: `docs/plan/task-7-readme-submission-plan.md`
-- Task 1~6 완료. 테스트 93건
+- Task 1~6 완료. 테스트 94건
 - `docs/coverage-audit.md` (Task 6.4)
 - README 없음
 
@@ -104,7 +104,7 @@ AI 활용 내역 (7.7)
 
 **CROSS-MODEL:** Codex가 낸 9건 중 반박한 것은 없다. 전부 실제 코드와 jar를 열어 확인했다. 1번은 제가 처음 읽었을 때 존재했으나 검수 도중 다른 세션이 지운 것이라, 두 번째 확인이 없었으면 놓쳤을 지점이다. 7번은 Boot 4 모듈 분할을 몰랐으면 구현자가 컴파일 오류로 시간을 태웠을 항목이다.
 
-**테스트 93건 예상** — Task 1: 4, Task 2: 11, Task 3: 42, Task 4: 22, Task 5: 12, Task 6: 2. Task 1~5는 실측이고 6은 명세가 약속한 수다.
+**테스트 94건 실측** — Task 1: 4, Task 2: 11, Task 3: 42, Task 4: 22, Task 5: 12, Task 6: 3.
 
 **VERDICT:** CEO + ENG + OUTSIDE VOICE CLEARED — 구현 착수 가능.
 
