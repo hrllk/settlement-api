@@ -18,15 +18,10 @@ public class MonthlySettlementUseCase {
     private final SettlementQuery query;
 
     /**
-     * 산술이 한 줄도 없다. 계산은 Task 3의 계산기가 소유한다.
+     * 연월을 {@code String}으로 받는다. {@code @PathVariable YearMonth}로 바인딩하면
+     * Spring이 먼저 거부해 {@code 2025-13}의 오류 코드가 달라진다.
      *
-     * 연월을 {@code String}으로 받는다. 파싱·검증은 {@link SettlementPeriod}가
-     * 소유한다 — 컨트롤러가 {@code YearMonth}로 바인딩하면 Spring이
-     * {@code MethodArgumentTypeMismatchException}을 먼저 던져 {@code 2025-13}의
-     * 거부가 도메인이 아니라 프레임워크에서 일어난다.
-     *
-     * 판매도 취소도 없는 달은 계산기가 전 항목 0인 요약을 만든다. 404가 아니다.
-     * "정산이 없다"와 "크리에이터가 없다"를 클라이언트가 구분할 수 없게 된다.
+     * <p>판매도 취소도 없는 달은 전 항목 0인 요약이 된다. 404가 아니다.
      */
     @Transactional(readOnly = true)
     public SettlementSummary settle(ActorContext actor, String creatorId, String yearMonth) {

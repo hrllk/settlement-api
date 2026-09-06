@@ -35,7 +35,7 @@ class SaleTest {
         sale.cancel("c1", 30_000, at("11"));
 
         assertThat(sale.cancelledTotal()).isEqualTo(30_000);
-        assertThat(sale.refundStatus()).isEqualTo(RefundStatus.PARTIAL);
+        assertThat(RefundStatus.of(sale.amount(), sale.cancelledTotal())).isEqualTo(RefundStatus.PARTIAL);
     }
 
     /** 단건 비교 구현을 잡는다. amount > this.amount 만 보면 둘 다 통과해 90,000이 환불된다. */
@@ -60,7 +60,7 @@ class SaleTest {
 
         sale.cancel("c1", 80_000, at("11"));
 
-        assertThat(sale.refundStatus()).isEqualTo(RefundStatus.FULL);
+        assertThat(RefundStatus.of(sale.amount(), sale.cancelledTotal())).isEqualTo(RefundStatus.FULL);
     }
 
     @Test
@@ -72,7 +72,7 @@ class SaleTest {
         sale.cancel("c2", 50_000, at("12"));
 
         assertThat(sale.cancelledTotal()).isEqualTo(80_000);
-        assertThat(sale.refundStatus()).isEqualTo(RefundStatus.FULL);
+        assertThat(RefundStatus.of(sale.amount(), sale.cancelledTotal())).isEqualTo(RefundStatus.FULL);
     }
 
     @Test
