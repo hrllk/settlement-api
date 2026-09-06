@@ -481,7 +481,7 @@
         "description": "실행·테스트 명령, API, ERD, KST 규칙, 가정, 제외 범위, AI 활용을 문서화하고 깨끗한 기동을 확인한다.",
         "details": "Docker와 선택 정산 기능은 추가하지 않는다. 취소 초기 데이터 보완 근거, 음수 정산 수수료 정책, 단순 액터 헤더의 한계를 README에 명시한다. 핵심 명령·조회 성공과 도메인 실패 로그의 항목도 설명한다.",
         "testStrategy": "README의 명령만으로 애플리케이션 기동과 테스트 실행이 가능한지 확인한다.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           6
         ],
@@ -492,7 +492,7 @@
             "title": "실행·테스트 명령과 요구 환경",
             "description": "Java 21, gradlew, H2 콘솔 접속 정보",
             "details": "Java 21, gradlew, H2 콘솔 접속 정보",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -500,7 +500,7 @@
             "title": "API 명세와 curl 예시",
             "description": "엔드포인트 5, 액터 헤더 포함 curl, 오류 code 8종",
             "details": "엔드포인트 5, 액터 헤더 포함 curl, 오류 code 8종",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -508,7 +508,7 @@
             "title": "데이터 모델·ERD·초기 데이터 표",
             "description": "시드 17행, 기대 정산 6행, 인덱스 관찰",
             "details": "시드 17행, 기대 정산 6행, 인덱스 관찰",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -516,7 +516,7 @@
             "title": "KST 경계와 이중 집계 기준",
             "description": "반열린 구간, Instant, 환불 상태만 기간 무관",
             "details": "반열린 구간, Instant, 환불 상태만 기간 무관",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -524,7 +524,7 @@
             "title": "가정과 이탈 근거 21항",
             "description": "운영자 집계가 월별 합이 아니라는 점이 최우선",
             "details": "운영자 집계가 월별 합이 아니라는 점이 최우선",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2,
@@ -537,7 +537,7 @@
             "title": "미구현 범위와 확장 경로",
             "description": "제외 7항, 정산 상태 전이 확장 경로",
             "details": "제외 7항, 정산 상태 전이 확장 경로",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -545,7 +545,7 @@
             "title": "AI 활용 내역",
             "description": "교차 검토로 잡은 것, 사람이 뒤집은 것, 한계",
             "details": "교차 검토로 잡은 것, 사람이 뒤집은 것, 한계",
-            "status": "pending",
+            "status": "done",
             "dependencies": []
           },
           {
@@ -553,7 +553,7 @@
             "title": "제출 전 클린 점검",
             "description": "클린 클론 테스트, curl 실전 검증, 수치 대조 8항",
             "details": "클린 클론 테스트, curl 실전 검증, 수치 대조 8항",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2,
