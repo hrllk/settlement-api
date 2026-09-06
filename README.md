@@ -2,7 +2,7 @@
 
 온라인 강의 플랫폼의 크리에이터 정산 시스템입니다. 판매와 취소를 기록하고 기간별 정산을 계산합니다.
 
-Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 108건.**
+Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 109건.**
 
 > ### 먼저 읽어 주세요
 >
@@ -27,7 +27,7 @@ Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테
 
 ```bash
 ./gradlew bootRun     # http://localhost:8080
-./gradlew test        # 108건
+./gradlew test        # 109건
 ```
 
 `build.gradle`의 toolchain이 21로 고정돼 있습니다. Java 17에서 돌리면 Gradle이 툴체인을
@@ -72,7 +72,7 @@ curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
 | 운영자 기간 집계 | `GET /api/admin/settlements?from=&to=` | [01](docs/01-정산-규칙과-KST-경계.md) |
 | DB 스키마 / ERD | | [02](docs/02-데이터-모델과-영속성.md) |
 | 인증 (헤더 방식) | `X-Actor-Id` · `X-Actor-Role` | [05](docs/05-가정과-미구현-범위.md) 가정 8 |
-| 테스트 코드 | `./gradlew test` 108건 | [04](docs/04-테스트-전략.md) |
+| 테스트 코드 | `./gradlew test` 109건 | [04](docs/04-테스트-전략.md) |
 
 ## 진행 과정과 AI 활용
 

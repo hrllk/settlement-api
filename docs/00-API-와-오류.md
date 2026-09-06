@@ -7,20 +7,25 @@
 1. [엔드포인트](#엔드포인트)
 2. [시각과 기간 규칙](#시각과-기간-규칙)
 3. [조회](#조회)
+   - [크리에이터 월별 정산 조회 API](#크리에이터-월별-정산-조회-api)
+   - [운영자 기간 정산 집계 API](#운영자-기간-정산-집계-api)
+   - [크리에이터 판매 목록 조회 API](#크리에이터-판매-목록-조회-api)
 4. [등록](#등록)
+   - [판매 등록 API](#판매-등록-api)
+   - [취소 등록 API](#취소-등록-api)
 5. [오류](#오류)
 
 ## 엔드포인트
 
 액터는 헤더 두 개로 표기합니다. `X-Actor-Id`, `X-Actor-Role`(`ADMIN` 또는 `CREATOR`).
 
-| 메서드 | 경로 | ADMIN | CREATOR |
-| --- | --- | --- | --- |
-| POST | `/api/sales` | O | 403 |
-| POST | `/api/sales/{saleId}/cancellations` | O | 403 |
-| GET | `/api/creators/{creatorId}/sales?from=&to=` | 전부 | 본인만 |
-| GET | `/api/creators/{creatorId}/settlements/{yearMonth}` | 전부 | 본인만 |
-| GET | `/api/admin/settlements?from=&to=` | O | 403 |
+| API명 | 메서드 | 경로 | ADMIN | CREATOR |
+| --- | --- | --- | --- | --- |
+| [판매 등록](#판매-등록-api) | POST | `/api/sales` | O | 403 |
+| [취소 등록](#취소-등록-api) | POST | `/api/sales/{saleId}/cancellations` | O | 403 |
+| [크리에이터 판매 목록 조회](#크리에이터-판매-목록-조회-api) | GET | `/api/creators/{creatorId}/sales?from=&to=` | 전부 | 본인만 |
+| [크리에이터 월별 정산 조회](#크리에이터-월별-정산-조회-api) | GET | `/api/creators/{creatorId}/settlements/{yearMonth}` | 전부 | 본인만 |
+| [운영자 기간 정산 집계](#운영자-기간-정산-집계-api) | GET | `/api/admin/settlements?from=&to=` | O | 403 |
 
 ## 시각과 기간 규칙
 
@@ -33,6 +38,12 @@
 
 ## 조회
 
+### 크리에이터 월별 정산 조회 API
+
+`GET /api/creators/{creatorId}/settlements/{yearMonth}` · 본인 CREATOR 또는 ADMIN
+
+한 달치 정산 요약을 돌려줍니다. 판매도 취소도 없는 달은 404가 아니라 200에 전 항목 0입니다.
+
 ```bash
 # creator-1의 2025-03 정산
 curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
@@ -42,6 +53,13 @@ curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
 {"creatorId":"creator-1","yearMonth":"2025-03","grossSales":260000,"saleCount":4,
  "refunds":110000,"cancelCount":2,"netSales":150000,"fee":30000,"payout":120000}
 ```
+
+### 운영자 기간 정산 집계 API
+
+`GET /api/admin/settlements?from=&to=` · ADMIN 전용
+
+기간 내 전체 크리에이터의 정산을 한 번에 돌려줍니다. **기간 전체를 단일 구간으로 계산하므로
+월별 조회의 합과 다릅니다** — 근거는 [정산 규칙](01-정산-규칙과-KST-경계.md)에 있습니다.
 
 ```bash
 # 운영자 기간 집계
@@ -62,6 +80,12 @@ curl -s 'localhost:8080/api/admin/settlements?from=2025-03-01&to=2025-03-31' \
 실적 없는 creator-3도 0원으로 들어갑니다. 판매·취소 자료만 훑으면 그 존재를 알 방법이 없어
 목록에서 통째로 빠집니다.
 
+### 크리에이터 판매 목록 조회 API
+
+`GET /api/creators/{creatorId}/sales?from=&to=` · 본인 CREATOR 또는 ADMIN
+
+기간 내 판매를 환불 상태와 함께 돌려줍니다.
+
 ```bash
 # 판매 목록 — sale-5를 1월 구간으로 조회
 curl -s 'localhost:8080/api/creators/creator-2/sales?from=2025-01-01&to=2025-01-31' \
@@ -69,7 +93,7 @@ curl -s 'localhost:8080/api/creators/creator-2/sales?from=2025-01-01&to=2025-01-
 ```
 ```json
 {"creatorId":"creator-2","sales":[
-  {"saleId":"sale-5","courseId":"course-3","amount":60000,
+  {"saleId":"sale-5","courseId":"course-3","studentId":"student-5","amount":60000,
    "paidAt":"2025-01-31T23:30:00+09:00","refundStatus":"FULL"}]}
 ```
 
@@ -78,17 +102,31 @@ curl -s 'localhost:8080/api/creators/creator-2/sales?from=2025-01-01&to=2025-01-
 
 ## 등록
 
+### 판매 등록 API
+
+`POST /api/sales` · ADMIN 전용
+
+결제가 완료되면 호출됩니다. 없는 강의는 404입니다. 구매 주체는 본문의 `studentId`이고,
+호출 주체는 결제 시스템을 대신하는 운영자입니다.
+
 ```bash
 curl -s -X POST localhost:8080/api/sales \
   -H 'X-Actor-Id: admin-1' -H 'X-Actor-Role: ADMIN' -H 'Content-Type: application/json' \
-  -d '{"courseId":"course-1","amount":50000,"paidAt":"2025-06-10T10:00:00+09:00"}'
+  -d '{"courseId":"course-1","studentId":"student-1","amount":50000,"paidAt":"2025-06-10T10:00:00+09:00"}'
 ```
 ```json
-{"saleId":"250970b2-5529-489f-95de-47bd09d2c4ff","courseId":"course-1",
+{"saleId":"250970b2-5529-489f-95de-47bd09d2c4ff","courseId":"course-1","studentId":"student-1",
  "amount":50000,"paidAt":"2025-06-10T10:00:00+09:00"}
 ```
 
 `saleId`는 서버가 만드는 UUID입니다. 시드의 `sale-1` 형태는 형식 제약이 아닙니다.
+
+### 취소 등록 API
+
+`POST /api/sales/{saleId}/cancellations` · ADMIN 전용
+
+환불이 발생하면 호출됩니다. 누적 취소액이 원결제를 넘으면 409, 결제보다 이른 취소도 409입니다.
+취소에는 조회 엔드포인트가 없어 `Location` 헤더를 붙이지 않습니다.
 
 ```bash
 # 취소 등록

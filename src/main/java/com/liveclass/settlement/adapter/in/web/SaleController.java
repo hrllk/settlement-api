@@ -45,11 +45,11 @@ public class SaleController {
     @PostMapping("/sales")
     ResponseEntity<SaleResponse> register(@Valid @RequestBody RegisterSaleRequest request,
                                           ActorContext actor) {
-        String saleId = registerSaleUseCase.register(
-                actor, request.courseId(), request.amount(), request.paidAt().toInstant());
+        String saleId = registerSaleUseCase.register(actor, request.courseId(),
+                request.studentId(), request.amount(), request.paidAt().toInstant());
 
         return ResponseEntity.created(URI.create("/api/sales/" + saleId))
-                .body(new SaleResponse(saleId, request.courseId(),
+                .body(new SaleResponse(saleId, request.courseId(), request.studentId(),
                         request.amount(), request.paidAt()));
     }
 
@@ -84,7 +84,8 @@ public class SaleController {
 
         List<SaleItem> items = found.stream()
                 .map(s -> new SaleItem(
-                        s.sale().saleId(), s.sale().courseId(), s.sale().amount(),
+                        s.sale().saleId(), s.sale().courseId(), s.sale().studentId(),
+                        s.sale().amount(),
                         OffsetDateTime.ofInstant(s.sale().paidAt(), KST), s.refundStatus()))
                 .toList();
 

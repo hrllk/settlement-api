@@ -33,7 +33,7 @@ class SaleControllerTest {
     // JSON 리터럴을 직접 쓴다. 직렬화기를 테스트가 알 필요가 없다.
     private static String saleBody(String courseId, long amount, String paidAt) {
         return """
-                {"courseId":"%s","amount":%d,"paidAt":"%s"}
+                {"courseId":"%s","studentId":"student-1","amount":%d,"paidAt":"%s"}
                 """.formatted(courseId, amount, paidAt);
     }
 
@@ -78,7 +78,23 @@ class SaleControllerTest {
                     .andExpect(status().isCreated())
                     .andExpect(header().exists("Location"))
                     .andExpect(jsonPath("$.saleId").isNotEmpty())
-                    .andExpect(jsonPath("$.courseId").value("course-1"));
+                    .andExpect(jsonPath("$.courseId").value("course-1"))
+                    .andExpect(jsonPath("$.studentId").value("student-1"));
+        }
+
+        /** 과제가 명시한 필드다. 빠지면 판매 내역에 누가 샀는지가 남지 않는다. */
+        @Test
+        @DisplayName("수강생 ID 가 없으면 400이다")
+        void studentIdRequired() throws Exception {
+            mvc.perform(post("/api/sales")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"courseId":"course-1","amount":50000,
+                                     "paidAt":"2025-06-10T10:00:00+09:00"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }
 
         /** 응답 시각이 epoch 숫자가 아니라 오프셋 포함 문자열이어야 한다. */
@@ -125,7 +141,8 @@ class SaleControllerTest {
                             .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"courseId":"course-1","amount":99999.99,
+                                    {"courseId":"course-1","studentId":"student-1",
+                                     "amount":99999.99,
                                      "paidAt":"2025-06-10T10:00:00+09:00"}
                                     """))
                     .andExpect(status().isBadRequest())
@@ -316,6 +333,7 @@ class SaleControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.sales[0].saleId").value("sale-5"))
                     .andExpect(jsonPath("$.sales[0].courseId").value("course-3"))
+                    .andExpect(jsonPath("$.sales[0].studentId").value("student-5"))
                     .andExpect(jsonPath("$.sales[0].refundStatus").value("FULL"));
         }
 

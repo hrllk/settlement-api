@@ -35,7 +35,8 @@ class SettlementE2ETest {
                         .header("X-Actor-Id", ADMIN).header("X-Actor-Role", "ADMIN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"courseId":"course-1","amount":100000,
+                                {"courseId":"course-1","studentId":"student-9",
+                                 "amount":100000,
                                  "paidAt":"2025-06-10T10:00:00+09:00"}
                                 """))
                 .andExpect(status().isCreated())
