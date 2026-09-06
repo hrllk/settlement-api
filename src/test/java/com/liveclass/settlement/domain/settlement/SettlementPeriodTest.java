@@ -109,6 +109,31 @@ class SettlementPeriodTest {
                     .isInstanceOf(InvalidSettlementPeriod.class);
         }
 
+        /**
+         * QA 회귀: 파서는 {@code +999999999-12}를 통과시킨다. 상한을 여는 +1 산술이
+         * {@code LocalDate} 지원 범위를 넘으면 {@code DateTimeException}이 전역
+         * 처리기를 지나쳐 500이 됐다. 실제로 확인했다.
+         *
+         * <p>발견: /qa · 2026-09-05
+         */
+        @Test
+        @DisplayName("연월 상한을 넘으면 500이 아니라 400으로 거부한다")
+        void yearMonthUpperBoundDoesNotOverflow() {
+            assertThatThrownBy(() -> SettlementPeriod.ofYearMonth("+999999999-12"))
+                    .isInstanceOf(InvalidSettlementPeriod.class)
+                    .hasMessageContaining("+999999999-12");
+        }
+
+        /** QA 회귀: 종료일 +1일도 같은 경로다. 발견: /qa · 2026-09-05 */
+        @Test
+        @DisplayName("종료일 상한을 넘으면 500이 아니라 400으로 거부한다")
+        void endDateUpperBoundDoesNotOverflow() {
+            assertThatThrownBy(
+                    () -> SettlementPeriod.ofDateRange("2025-01-01", "+999999999-12-31"))
+                    .isInstanceOf(InvalidSettlementPeriod.class)
+                    .hasMessageContaining("+999999999-12-31");
+        }
+
         @ParameterizedTest(name = "형식 불일치: \"{0}\"")
         @ValueSource(strings = {"2025/03", "202503", "2025-3"})
         void malformed(String yearMonth) {

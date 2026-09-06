@@ -20,6 +20,10 @@ spring:
     # OffsetDateTime을 그대로 두면 Jackson이 UTC로 정규화해 +09:00이 Z가 된다.
     # 타입만 OffsetDateTime으로 바꿔서는 KST 표기가 유지되지 않는다.
     time-zone: Asia/Seoul
+    deserialization:
+      # 금액은 long이다. 끄지 않으면 amount: 1.5 가 조용히 1로 잘려 201이 나간다.
+      # 99999.99 원을 보낸 요청이 99999 원으로 저장되고 아무도 모른다.
+      accept-float-as-int: false
   h2:
     console:
       enabled: true
