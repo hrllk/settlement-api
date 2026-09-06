@@ -138,6 +138,28 @@ class SaleControllerTest {
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }
 
+        /**
+         * QA 회귀: {@code amount: 1.5}가 201로 통과하며 <b>1로 잘려 저장됐다.</b>
+         * Jackson의 {@code ACCEPT_FLOAT_AS_INT}가 기본 켜짐이라 소수를 long으로
+         * 조용히 버린다. 99,999.99원을 보낸 요청이 99,999원이 되고 아무도 모른다.
+         * 금액을 다루는 API에서 조용한 절단은 400보다 나쁘다.
+         *
+         * <p>발견: /qa · 2026-09-05 · 실제로 저장값이 1인 것을 확인했다.
+         */
+        @Test
+        @DisplayName("소수 금액은 조용히 잘리지 않고 400이다")
+        void fractionalAmountRejected() throws Exception {
+            mvc.perform(post("/api/sales")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"courseId":"course-1","amount":99999.99,
+                                     "paidAt":"2025-06-10T10:00:00+09:00"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+        }
+
         /** Jackson이 Instant에 오프셋 없는 값을 UTC로 조용히 파싱하는 함정을 막는다. */
         @Test
         @DisplayName("오프셋 없는 paidAt은 400이다")

@@ -1,5 +1,6 @@
 package com.liveclass.settlement.domain.settlement;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -30,7 +31,8 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
     /** {@code yyyy-MM} 한 달. */
     public static SettlementPeriod ofYearMonth(String yearMonth) {
         YearMonth ym = parseYearMonth(requireText(yearMonth, "yearMonth"));
-        return new SettlementPeriod(startOfDay(ym.atDay(1)), startOfDay(ym.plusMonths(1).atDay(1)));
+        return new SettlementPeriod(startOfDay(ym.atDay(1)),
+                startOfDay(nextMonthStart(ym, yearMonth)));
     }
 
     /** {@code yyyy-MM-dd} 시작일부터 종료일까지. 같은 날은 하루짜리 구간이다. */
@@ -43,7 +45,28 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
             throw new InvalidSettlementPeriod(
                     "endDate must not precede startDate: " + startDate + " ~ " + endDate);
         }
-        return new SettlementPeriod(startOfDay(start), startOfDay(end.plusDays(1)));
+        return new SettlementPeriod(startOfDay(start), startOfDay(nextDay(end, endDate)));
+    }
+
+    /**
+     * 상한을 여는 +1 산술이 지원 범위를 넘으면 여기서 400으로 막는다. 파서는
+     * {@code +999999999-12-31}을 통과시키므로, 이 산술을 감싸지 않으면
+     * {@link DateTimeException}이 전역 처리기를 그대로 지나쳐 500이 된다.
+     */
+    private static LocalDate nextDay(LocalDate date, String raw) {
+        try {
+            return date.plusDays(1);
+        } catch (DateTimeException e) {
+            throw new InvalidSettlementPeriod("endDate is out of supported range: " + raw);
+        }
+    }
+
+    private static LocalDate nextMonthStart(YearMonth month, String raw) {
+        try {
+            return month.plusMonths(1).atDay(1);
+        } catch (DateTimeException e) {
+            throw new InvalidSettlementPeriod("yearMonth is out of supported range: " + raw);
+        }
     }
 
     public boolean contains(Instant at) {

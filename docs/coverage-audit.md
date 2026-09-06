@@ -4,7 +4,7 @@
 
 자동화하지 않았다. 리플렉션이나 정적 분석으로 "이 시나리오가 검증됐는가"를 판정하는 도구를 만들 수 있지만 3시간 예산에서 과하고, 그 도구 자체가 검증되지 않는다. 표를 보며 손으로 대조하고 결과를 남긴다.
 
-측정 시점: **94건 통과 / 실패 0**.
+측정 시점: **97건 통과 / 실패 0**.
 
 ## 시나리오 대조
 
@@ -38,8 +38,10 @@
 | 20 | 빈 `IN` 절 방어 | Task 2 | `SalesQueryJpaAdapterTest` | `findCancelsBySaleIdsEmpty` |
 | 21 | HTTP 통합 흐름 | Task 6 | `SettlementE2ETest` | `registerCancelThenSettle` |
 | 22 | `now()` 미사용 | Task 6 | `NoCurrentTimeUsageTest` | `noCurrentTimeCalls` |
+| 23 | 날짜 상한 오버플로가 400 (QA-001) | Task 3 | `SettlementPeriodTest` | `yearMonthUpperBoundDoesNotOverflow`, `endDateUpperBoundDoesNotOverflow` |
+| 24 | 소수 금액이 조용히 잘리지 않음 (QA-002) | Task 4 | `SaleControllerTest` | `fractionalAmountRejected` |
 
-**빈 행 없음.** 28행 전부 실제 테스트가 대응된다.
+**빈 행 없음.** 30행 전부 실제 테스트가 대응된다.
 
 **15번이 이 표에서 가장 중요하다.** 월별 합산으로 잘못 구현해도 14번(2025-03)은 정답이 나온다 — 3월에는 음수 월이 없기 때문이다. 15번이 없으면 그 버그가 통과한다.
 
@@ -55,11 +57,11 @@
 | --- | --- | ---: |
 | Task 1 | `SettlementApplicationContextTest`, `ActorContextArgumentResolverTest` | 4 |
 | Task 2 | `SalesQueryJpaAdapterTest`, `SeedDataTest` | 11 |
-| Task 3 | `SettlementCalculatorTest`, `SettlementPeriodTest`, `RefundStatusTest`, `FixedRateFeePolicyTest`, `SettlementSummaryTest` | 42 |
-| Task 4 | `SaleControllerTest`, `SaleTest` | 22 |
+| Task 3 | `SettlementCalculatorTest`, `SettlementPeriodTest`, `RefundStatusTest`, `FixedRateFeePolicyTest`, `SettlementSummaryTest` | 44 |
+| Task 4 | `SaleControllerTest`, `SaleTest` | 23 |
 | Task 5 | `SettlementControllerTest`, `ControllerActorGuardTest` | 12 |
 | Task 6 | `SettlementE2ETest`, `NoCurrentTimeUsageTest` | 3 |
-| **합계** | | **94** |
+| **합계** | | **97** |
 
 Task 3이 42건으로 가장 크다. 계산 규칙 전부를 Spring도 H2도 없이 잠근다 — 그래서 나머지 Task가 같은 숫자를 다시 단언하지 않아도 된다.
 
@@ -93,7 +95,7 @@ Task 3의 추가 케이스(수수료 버림 33,333원, 동일 판매 다수 부�
 | 검사 | 방법 | 결과 |
 | --- | --- | --- |
 | `now()` 호출 | `NoCurrentTimeUsageTest` (자동) | 0건 |
-| 두 번 연속 실행 | `./gradlew cleanTest test` × 2 | 94건 / 94건, 동일 |
+| 두 번 연속 실행 | `./gradlew cleanTest test` × 2 | 94건 / 94건, 동일 (QA 수정 전) |
 | 실행 순서 의존 | `src/test`의 `@TestMethodOrder`·`@Order` | 0건 |
 | 외부 서비스 | HTTP 클라이언트·브로커·외부 API | 없음. H2 인메모리뿐 |
 
