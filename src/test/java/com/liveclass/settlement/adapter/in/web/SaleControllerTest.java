@@ -18,7 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 실제 스택으로 돌린다. 롤백을 걸고, 시드와 안 겹치게 등록 테스트는 2025-06 을 쓴다. */
+/** 실제 스택으로 돌린다. 롤백을 걸고, 초기 데이터와 안 겹치게 등록 테스트는 2025-06 을 쓴다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -53,7 +53,7 @@ class SaleControllerTest {
         return m.group(1);
     }
 
-    /** 2025-06 판매를 하나 만들고 그 ID를 돌려준다. 시드 월과 겹치지 않는다. */
+    /** 2025-06 판매를 하나 만들고 그 ID를 돌려준다. 초기 데이터 월과 겹치지 않는다. */
     private String registerJuneSale(long amount) throws Exception {
         String body = mvc.perform(post("/api/sales")
                         .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
@@ -268,7 +268,7 @@ class SaleControllerTest {
                     .andExpect(jsonPath("$.code").value("REFUND_AMOUNT_EXCEEDED"));
         }
 
-        /** 판정이 {@code >=}면 전액 환불이 거부된다. 시드는 API 를 안 거쳐 여기서만 잡힌다. */
+        /** 판정이 {@code >=}면 전액 환불이 거부된다. 초기 데이터는 API 를 안 거쳐 여기서만 잡힌다. */
         /** 취소도 ADMIN 전용이다. 이 단언이 없으면 requireAdmin을 지워도 초록불이다. */
         @Test
         @DisplayName("CREATOR가 취소하면 403이다")

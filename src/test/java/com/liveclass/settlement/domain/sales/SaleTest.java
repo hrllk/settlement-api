@@ -51,7 +51,7 @@ class SaleTest {
                 .hasMessageContaining("60000");
     }
 
-    /** >= 로 잘못 쓰면 여기서 걸린다. 시드의 cancel-1이 정확히 이 경우다. */
+    /** >= 로 잘못 쓰면 여기서 걸린다. 초기 데이터의 cancel-1이 정확히 이 경우다. */
     @Test
     @DisplayName("합계가 원결제와 같은 전액 환불은 통과한다")
     void allowsExactFullRefund() {

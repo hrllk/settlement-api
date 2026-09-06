@@ -23,7 +23,7 @@ public interface SaleJpaRepository extends JpaRepository<SaleEntity, String> {
     List<CreatorScopedSale> findAllByPeriodWithCreator(@Param("fromInclusive") Instant fromInclusive,
                                                        @Param("toExclusive") Instant toExclusive);
 
-    /** 반열린 구간이라 {@code between}을 쓰지 않는다. 정렬은 응답 순서 고정용이다. */
+    /** 끝을 미만으로 잘라야 해서 {@code between}을 쓰지 않는다. 정렬은 응답 순서 고정용이다. */
     @Query("""
             select s from SaleEntity s
             where s.courseId in (select c.id from CourseEntity c where c.creatorId = :creatorId)

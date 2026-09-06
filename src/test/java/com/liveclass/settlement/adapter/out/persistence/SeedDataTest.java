@@ -12,7 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 
-/** 시드 값만 본다. 계산 결과는 Task 3 소유다. 애노테이션은 어댑터 테스트와 같아야 한다. */
+/** 초기 데이터 값만 본다. 계산 결과는 Task 3 소유다. 애노테이션은 어댑터 테스트와 같아야 한다. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import(SalesQueryJpaAdapter.class)
@@ -55,7 +55,7 @@ class SeedDataTest {
     void saleFiveBelongsToJanuaryInKst() {
         Instant paidAt = sales.findById("sale-5").orElseThrow().getPaidAt();
 
-        // 구간을 손으로 계산한다. SettlementPeriod 를 쓰면 그쪽 버그가 시드 버그를 가린다.
+        // 구간을 손으로 계산한다. SettlementPeriod 를 쓰면 그쪽 버그가 초기 데이터 버그를 가린다.
         Instant januaryFrom = kst("2025-01-01T00:00:00+09:00");   // 2024-12-31T15:00Z
         Instant februaryFrom = kst("2025-02-01T00:00:00+09:00");  // 2025-01-31T15:00Z
         Instant marchFrom = kst("2025-03-01T00:00:00+09:00");

@@ -16,7 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 배선 전체를 한 흐름으로 본다. 시드와 안 겹치게 2025-06 을 쓰고 롤백도 건다. */
+/** 배선 전체를 한 흐름으로 본다. 초기 데이터와 안 겹치게 2025-06 을 쓰고 롤백도 건다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
