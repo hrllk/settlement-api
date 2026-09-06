@@ -2,7 +2,7 @@
 
 온라인 강의 플랫폼의 크리에이터 정산 시스템입니다. 판매와 취소를 기록하고 기간별 정산을 계산합니다.
 
-Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 109건.**
+Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 112건.**
 
 > ### 먼저 읽어 주세요
 >
@@ -27,39 +27,50 @@ Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테
 
 ```bash
 ./gradlew bootRun     # http://localhost:8080
-./gradlew test        # 109건
+./gradlew test        # 112건
 ```
 
-`build.gradle`의 toolchain이 21로 고정돼 있습니다. Java 17에서 돌리면 Gradle이 툴체인을
-내려받으려다 실패하는데, 실패 메시지에 원인이 드러나지 않습니다.
-
-**H2 콘솔** — http://localhost:8080/h2-console · JDBC URL `jdbc:h2:mem:creator-settlement` ·
-User `sa` · Password 없음. URL을 넣지 않으면 콘솔 기본값으로 접속해 빈 DB를 보게 됩니다.
-인메모리라 재시작하면 초기 데이터로 돌아갑니다.
+**H2 콘솔** — http://localhost:8080/h2-console · JDBC URL `jdbc:h2:mem:creator-settlement` · User `sa` · Password 없음. 그리고 재시작하면 초기 데이터로 돌아갑니다.
 
 ```bash
-# 가장 빠른 확인 — creator-1의 2025-03 정산
 curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
   -H 'X-Actor-Id: creator-1' -H 'X-Actor-Role: CREATOR'
 ```
 ```json
-{"creatorId":"creator-1","yearMonth":"2025-03","grossSales":260000,"saleCount":4,
- "refunds":110000,"cancelCount":2,"netSales":150000,"fee":30000,"payout":120000}
+{
+  "creatorId": "creator-1",
+  "yearMonth": "2025-03",
+  "grossSales": 260000,
+  "saleCount": 4,
+  "refunds": 110000,
+  "cancelCount": 2,
+  "netSales": 150000,
+  "fee": 30000,
+  "payout": 120000
+}
 ```
 
 ## 문서
 
+### 먼저 읽으세요 — 이 시스템이 무엇을 하는가
+
 | | 답하는 질문 |
 | --- | --- |
 | [00. API와 오류](docs/00-API-와-오류.md) | 어떻게 부르고, 실패하면 무엇이 오는가 |
-| [01. 정산 규칙과 KST 경계](docs/01-정산-규칙과-KST-경계.md) | 금액이 맞는가, 어느 달에 넣는가 |
+| [01. 정산 규칙과 KST 경계](docs/01-정산-규칙과-KST-경계.md) | **금액이 맞는가, 어느 달에 넣는가** |
+
+이 둘이 도메인 전부입니다. 위 curl을 돌려 보시고 이 둘만 읽으셔도 시스템을 이해하실 수 있습니다.
+
+### 설계 근거 — 왜 그렇게 했는가
+
+| | 답하는 질문 |
+| --- | --- |
 | [02. 데이터 모델과 영속성](docs/02-데이터-모델과-영속성.md) | 데이터가 어떻게 생겼는가 |
 | [03. 아키텍처와 요청 흐름](docs/03-아키텍처와-요청-흐름.md) | 코드가 어떻게 생겼고 어떻게 흐르는가 |
 | [04. 테스트 전략](docs/04-테스트-전략.md) | 무엇으로 검증했는가 |
 | [05. 가정과 미구현 범위](docs/05-가정과-미구현-범위.md) | 무엇을 판단했고 무엇을 하지 않았는가 |
 
-5분만 있다면 위 curl을 돌려 보시고 [00](docs/00-API-와-오류.md)과
-[01](docs/01-정산-규칙과-KST-경계.md)만 읽으시면 됩니다. 나머지는 "왜 그렇게 했는가"에 답합니다.
+판단의 근거를 확인하실 때 보시면 됩니다. 읽는 순서는 상관없습니다.
 
 ## 요구사항 대응
 
@@ -72,7 +83,7 @@ curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
 | 운영자 기간 집계 | `GET /api/admin/settlements?from=&to=` | [01](docs/01-정산-규칙과-KST-경계.md) |
 | DB 스키마 / ERD | | [02](docs/02-데이터-모델과-영속성.md) |
 | 인증 (헤더 방식) | `X-Actor-Id` · `X-Actor-Role` | [05](docs/05-가정과-미구현-범위.md) 가정 8 |
-| 테스트 코드 | `./gradlew test` 109건 | [04](docs/04-테스트-전략.md) |
+| 테스트 코드 | `./gradlew test` 112건 | [04](docs/04-테스트-전략.md) |
 
 ## 진행 과정과 AI 활용
 
