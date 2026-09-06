@@ -50,13 +50,7 @@ class SettlementPeriodTest {
         }
     }
 
-    /**
-     * 세 방향이 각각 다른 구현 오류를 잡는다.
-     * 시작 포함  -> 하한을 연 구현 (at > from)
-     * 종료 포함  -> 원본 과제 문구를 그대로 옮긴 구현 (at <= 말일 23:59:59)
-     * 종료 배제  -> 상한을 닫은 구현 (at <= to)
-     * 앞의 둘만으로는 상한을 나노초까지 닫은 구현이 통과한다.
-     */
+    /** 세 방향이 각각 다른 구현 오류를 잡는다. 둘만으로는 상한을 닫은 구현이 통과한다. */
     @Nested
     @DisplayName("반열린 구간 경계")
     class Boundary {
@@ -109,13 +103,7 @@ class SettlementPeriodTest {
                     .isInstanceOf(InvalidSettlementPeriodException.class);
         }
 
-        /**
-         * QA 회귀: 파서는 {@code +999999999-12}를 통과시킨다. 상한을 여는 +1 산술이
-         * {@code LocalDate} 지원 범위를 넘으면 {@code DateTimeException}이 전역
-         * 처리기를 지나쳐 500이 됐다. 실제로 확인했다.
-         *
-         * <p>발견: /qa · 2026-09-05
-         */
+        /** QA 회귀: 파서를 통과한 값이 상한 +1 산술에서 터져 500 이 됐다. */
         @Test
         @DisplayName("연월 상한을 넘으면 500이 아니라 400으로 거부한다")
         void yearMonthUpperBoundDoesNotOverflow() {
@@ -141,11 +129,7 @@ class SettlementPeriodTest {
                     .isInstanceOf(InvalidSettlementPeriodException.class);
         }
 
-        /**
-         * YearMonth.parse(null)은 DateTimeParseException이 아니라 진입부
-         * requireNonNull의 NPE를 던진다. 파싱 예외만 잡으면 NPE가 그대로
-         * 500으로 나가므로 가드가 파싱보다 먼저여야 한다.
-         */
+        /** {@code parse(null)}은 파싱 예외가 아니라 NPE 다. 가드가 파싱보다 먼저여야 한다. */
         @ParameterizedTest(name = "빈 값: \"{0}\"")
         @NullAndEmptySource
         @ValueSource(strings = {"   "})

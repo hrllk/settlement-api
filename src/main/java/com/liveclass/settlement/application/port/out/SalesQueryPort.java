@@ -6,11 +6,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * 정산 계산과 판매 목록에 필요한 원본 자료를 읽는다. 집계는 하지 않는다.
- *
- * 어떤 메서드도 null을 반환하지 않는다. 결과가 없으면 빈 리스트다.
- */
+/** 원본 자료만 읽는다. 집계는 하지 않고, null 대신 빈 리스트를 돌려준다. */
 public interface SalesQueryPort {
 
     /** 기간 내 결제된 판매. creatorId 필수. */

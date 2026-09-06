@@ -3,13 +3,7 @@ package com.liveclass.settlement.domain.settlement;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * 판매와 취소를 서로 다른 기준으로 집계해 정산 요약을 만든다 —
- * 판매는 {@code paidAt}, 취소는 {@code cancelledAt}.
- *
- * 기간 필터를 여기서 다시 거는 것은 의도적이다. (기간, 판매, 취소)의 순수
- * 함수여야 포트 없이 단위 테스트가 성립한다. 입력은 한 크리에이터의 것으로 가정한다.
- */
+/** 판매는 {@code paidAt}, 취소는 {@code cancelledAt}으로 집계한다. 포트를 모르는 순수 함수다. */
 public final class SettlementCalculator {
 
     private final FeePolicy feePolicy;

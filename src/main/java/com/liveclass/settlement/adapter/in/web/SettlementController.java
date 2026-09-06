@@ -15,14 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 두 메서드 모두 {@link ActorContext}를 선언한다. 해석기는 필터가 아니라 파라미터
- * 타입 기반 opt-in이라 빠뜨리면 헤더 검사도 인가 판정도 없이 열린다.
- * {@code ControllerActorGuardTest}가 그걸 검사한다.
- *
- * <p>연월과 일자를 {@code String}으로 받는다. 타입 바인딩하면 Spring이 먼저
- * 거부해 {@code 2025-13}의 오류 코드가 달라진다.
- */
+/** 두 메서드 모두 {@link ActorContext}를 선언한다. 빠뜨리면 검사 없이 열린다. */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -31,6 +24,11 @@ public class SettlementController {
     private final MonthlySettlementUseCase monthlySettlementUseCase;
     private final AdminSettlementUseCase adminSettlementUseCase;
 
+    /**
+     * 크리에이터 월별 정산 조회 API
+     * 한 달치 정산 요약을 돌려준다. 본인 또는 운영자만 볼 수 있다.
+     * 판매도 취소도 없는 달은 404가 아니라 200에 전 항목 0이다.
+     */
     @GetMapping("/creators/{creatorId}/settlements/{yearMonth}")
     MonthlySettlementResponse monthly(@PathVariable String creatorId,
                                       @PathVariable String yearMonth,
@@ -39,6 +37,11 @@ public class SettlementController {
                 monthlySettlementUseCase.settle(actor, creatorId, yearMonth));
     }
 
+    /**
+     * 운영자 기간 정산 집계 API
+     * 기간 내 전체 크리에이터의 정산을 한 번에 돌려준다. 운영자 전용이다.
+     * 기간 전체를 단일 구간으로 계산하므로 월별 조회의 합과 다르다 — 근거는 README.
+     */
     @GetMapping("/admin/settlements")
     AdminSettlementResponse admin(@RequestParam String from,
                                   @RequestParam String to,

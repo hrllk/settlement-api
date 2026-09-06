@@ -25,20 +25,14 @@ class FixedRateFeePolicyTest {
         assertThat(policy.calculate(0)).isZero();
     }
 
-    /**
-     * 음수 판정이 나눗셈보다 먼저라야 한다. 순서를 바꾸면 -12,000이 나와
-     * 플랫폼이 크리에이터에게 수수료를 돌려주는 셈이 된다.
-     */
+    /** 음수 판정이 나눗셈보다 먼저여야 한다. 순서를 바꾸면 수수료를 돌려주는 꼴이 된다. */
     @Test
     @DisplayName("순 판매액이 음수면 수수료를 0으로 막는다")
     void negativeClampsToZero() {
         assertThat(policy.calculate(-60_000)).isZero();
     }
 
-    /**
-     * 샘플 데이터 금액이 전부 5의 배수라 20%가 정수로 떨어진다.
-     * 제공 시나리오만으로는 버림 정책이 검증되지 않아 케이스를 추가했다.
-     */
+    /** 샘플 금액이 전부 5의 배수라 제공 시나리오만으로는 버림이 검증되지 않는다. */
     @Test
     @DisplayName("나누어떨어지지 않으면 원 단위로 버린다")
     void truncates() {

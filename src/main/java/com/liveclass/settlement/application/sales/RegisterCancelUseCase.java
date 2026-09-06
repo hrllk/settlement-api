@@ -21,12 +21,7 @@ public class RegisterCancelUseCase {
     private final ActorAccessPolicy actorAccessPolicy;
     private final SaleRepository saleRepository;
 
-    /**
-     * 여기에 금액 비교문을 두지 않는다. 초과 환불 거부는 {@code sale.cancel(...)}
-     * 안에 있다. {@code findById}가 취소까지 적재하는 것이 그 판정의 전제다.
-     *
-     * 동시성은 보장하지 않는다 — {@code @Version} 없음. README 가정으로 남긴다.
-     */
+    /** 금액 비교문을 두지 않는다. 초과 환불 거부는 {@code sale.cancel(...)} 안에 있다. */
     @Transactional
     public String register(ActorContext actor, String saleId, long amount, Instant cancelledAt) {
         actorAccessPolicy.requireAdmin(actor);

@@ -2,11 +2,7 @@ package com.liveclass.settlement.application.access;
 
 import org.springframework.stereotype.Component;
 
-/**
- * 접근 판정만 한다. 컨트롤러가 아니라 유스케이스가 부른다.
- *
- * 과제용 신원 표기라 실제 인증이 아니다 — {@code X-Actor-Role}은 누구나 바꿀 수 있다.
- */
+/** 접근 판정만 한다. 컨트롤러가 아니라 유스케이스가 부른다. */
 @Component
 public class ActorAccessPolicy {
 

@@ -7,20 +7,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * 원본 과제 샘플 데이터. 판매 7건은 과제가 준 값이고, 취소 3건은 과제에
- * 없어 직접 정의했다(금액과 귀속 월은 tasks.json이 확정, 시각은 10:00 KST로 고정 — Task 2 시드와 같은 값이다).
- *
- * KST 문자열을 그대로 쓰고 UTC로 손 변환하지 않는다. sale-5를
- * 2025-01-31T14:30:00Z로 옮겨 적다 한 자리만 틀리면 1월 판매가 2월로
- * 넘어가고 기대값 3행이 동시에 깨진다.
- */
+/** 원본 과제 샘플. 취소 3건은 과제에 없어 직접 정의했다. KST 문자열을 그대로 쓴다. */
 final class SettlementFixtures {
 
-    /**
-     * 기대값 계산에 쓰는 요율 20%. 운영 코드는 이 값을 갖지 않고
-     * settlement.fee.basis-points 설정에서 주입받는다(Task 5).
-     */
+    /** 기대값 계산용 요율. 운영 코드는 이 값을 갖지 않고 설정에서 주입받는다. */
     static final int PLATFORM_FEE_BP = 2_000;
 
     static final String CREATOR_1 = "creator-1";

@@ -16,17 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 등록 → 취소 → 정산 조회를 한 흐름으로 태운다. 어느 Task도 혼자서는 배선 전체를
- * 못 본다. 액터를 단계마다 바꿔(ADMIN → 본인 CREATOR) 역할 전환도 함께 본다.
- *
- * <p>200 확인으로 끝내지 않고 금액을 단언한다. 배선이 끊겨 전 항목 0이 나와도
- * 상태 코드만 보면 통과한다.
- *
- * <p><b>2025-06을 쓰고 {@code @Transactional}도 건다.</b> 시드는 1~3월만 쓴다.
- * 롤백이 새면 깨지는 것이 이 파일이 아니라 다른 파일의 시드 단언이 된다.
- * {@code SaleControllerTest}도 2025-06을 쓰므로 금액을 100,000으로 달리 잡았다.
- */
+/** 배선 전체를 한 흐름으로 본다. 시드와 안 겹치게 2025-06 을 쓰고 롤백도 건다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

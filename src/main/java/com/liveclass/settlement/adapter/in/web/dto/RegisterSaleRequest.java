@@ -6,14 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.OffsetDateTime;
 
-/**
- * {@code Instant}가 아니라 {@code OffsetDateTime}인 이유는 오프셋 강제다.
- * {@code Instant}는 오프셋 없는 값을 UTC로 가정해 조용히 9시간 어긋난다.
- *
- * 금액 상한이 있어야 한다. {@code @Positive}만 두면 {@code Long.MAX_VALUE}가
- * 들어오고, 그러면 수수료의 {@code netSales * basisPoints}와 기간 합계의 누적이
- * 예외 없이 래핑해 음수 정산이 나간다.
- */
+/** {@code OffsetDateTime}이라야 오프셋이 강제된다. 금액 상한도 필요하다 — 누적이 래핑한다. */
 public record RegisterSaleRequest(
         @NotBlank String courseId,
         @Positive @Max(MAX_AMOUNT) long amount,

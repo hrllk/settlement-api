@@ -22,15 +22,7 @@ public class RegisterSaleUseCase {
     private final SalesQueryPort salesQueryPort;
     private final SaleRepository saleRepository;
 
-    /**
-     * 등록을 ADMIN으로 제한한 것은 판단이다 — 크리에이터가 직접 등록하면 정산을
-     * 스스로 부풀릴 수 있다. 과제 명세에는 없다.
-     *
-     * {@code courseExists} 검사는 필수다. FK 제약이 없어 없는 courseId로도 행이
-     * 들어가고, 그 판매는 정산 조회에서 영원히 안 보인다.
-     *
-     * 식별자는 도메인이 아니라 여기서 만든다. 도메인이 만들면 테스트가 단언할 수 없다.
-     */
+    /** ADMIN 제한은 판단이다. {@code courseExists}는 필수 — FK가 없어 유령 행이 남는다. */
     @Transactional
     public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
         actorAccessPolicy.requireAdmin(actor);

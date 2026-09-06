@@ -9,10 +9,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 강의. 판매를 크리에이터에 연결하는 유일한 경로다 —
- * {@code sales → courses → creator_id}.
- */
+/** 강의. 판매를 크리에이터에 잇는 유일한 경로다 — sales → courses → creator_id. */
 @Entity
 @Table(name = "courses", indexes = {
         @Index(name = "idx_courses_creator", columnList = "creator_id")

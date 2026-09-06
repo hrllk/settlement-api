@@ -30,10 +30,7 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
         });
     }
 
-    /**
-     * 판매 행과 아직 저장되지 않은 취소만 반영한다. 취소는 등록 후 불변이라
-     * ID 존재 여부만으로 신규를 가린다.
-     */
+    /** 취소는 등록 후 불변이라 ID 존재 여부만으로 신규를 가린다. */
     @Override
     public void save(Sale sale) {
         saleJpaRepository.save(new SaleEntity(

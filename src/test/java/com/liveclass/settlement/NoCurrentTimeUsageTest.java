@@ -12,15 +12,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 기대값이 전부 2025년 데이터에 고정돼 있다. 어떤 코드가 현재 시각을 읽으면
- * 실행 시점에 따라 결과가 달라진다. <b>제출 후 평가자가 돌릴 때 처음 깨지는</b>
- * 종류의 문제라 자동으로 막는다.
- *
- * <p>프로덕션 코드도 검사한다. 정산 조회에 "이번 달" 기본값 같은 편의 기능을
- * 넣고 싶은 유혹이 있는데, 넣는 순간 응답이 실행 시점에 따라 달라진다. 이
- * 과제에서 시각은 전부 요청이 준다.
- */
+/** 현재 시각을 읽으면 실행 시점에 따라 결과가 달라진다. 프로덕션 코드도 검사한다. */
 class NoCurrentTimeUsageTest {
 
     private static final List<String> FORBIDDEN = List.of(
@@ -28,11 +20,7 @@ class NoCurrentTimeUsageTest {
             "ZonedDateTime.now(", "OffsetDateTime.now(",
             "System.currentTimeMillis(", "new Date(");
 
-    /**
-     * 이 파일에는 금지 문자열이 리터럴로 들어 있다. 빼지 않으면 자기를 잡아
-     * <b>항상 실패한다.</b> 문자열을 쪼개 숨기는 방법도 있지만 다음 사람이 왜
-     * 그렇게 썼는지 모른다.
-     */
+    /** 이 파일엔 금지 문자열이 리터럴로 있다. 빼지 않으면 자기를 잡아 항상 실패한다. */
     private static final String SELF = "NoCurrentTimeUsageTest.java";
 
     @Test

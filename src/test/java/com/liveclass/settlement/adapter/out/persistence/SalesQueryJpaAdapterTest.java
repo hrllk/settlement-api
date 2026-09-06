@@ -15,12 +15,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 
-/**
- * 애노테이션 세 줄은 {@code SeedDataTest}와 동일해야 한다. 다르면 Spring
- * 컨텍스트 캐시 키가 갈려 컨텍스트가 둘 생기고, 둘 다 DB_CLOSE_DELAY=-1인
- * 같은 H2 인스턴스를 ddl-auto=create-drop으로 밟는다. 나중에 뜬 쪽이 먼저
- * 쪽 테이블을 드롭한다.
- */
+/** 애노테이션은 {@code SeedDataTest}와 같아야 한다. 다르면 컨텍스트가 둘 생겨 서로 드롭한다. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import(SalesQueryJpaAdapter.class)
@@ -50,10 +45,7 @@ class SalesQueryJpaAdapterTest {
         assertThat(found.stream().mapToLong(SaleData::amount).sum()).isEqualTo(260_000L);
     }
 
-    /**
-     * 3단 서브쿼리(cancels → sales → courses)를 결과 2건으로 확인한다.
-     * 이 쿼리가 원본 과제의 대표 숫자인 환불 110,000원을 만든다.
-     */
+    /** 3단 서브쿼리를 확인한다. 이 쿼리가 대표 숫자인 환불 110,000원을 만든다. */
     @Test
     @DisplayName("creator-1의 2025-03 취소는 2건 합 110,000원이고 시각 순이다")
     void findCancelsForCreatorOne() {

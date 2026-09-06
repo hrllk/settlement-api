@@ -41,11 +41,7 @@ class RefundStatusTest {
         assertThat(RefundStatus.of(80_000, 90_000)).isEqualTo(RefundStatus.FULL);
     }
 
-    /**
-     * 이 태스크의 최우선 회귀 방지 테스트.
-     * sale-5는 1월 판매, cancel-3은 2월 취소다. 월이 달라도 FULL이어야 한다.
-     * 여기가 깨지면 어딘가에서 기간 필터가 환불 상태에 끼어든 것이다.
-     */
+    /** sale-5 는 1월 판매, cancel-3 은 2월 취소다. 월이 달라도 FULL 이어야 한다. */
     @Test
     @DisplayName("판매와 취소의 월이 달라도 기간을 보지 않는다")
     void ignoresPeriod() {
