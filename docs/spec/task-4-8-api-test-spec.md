@@ -55,7 +55,7 @@
 
 **11번** — `requireAdmin` 실패 경로를 덮는다. 8번은 `requireSelfOrAdmin`만 검증한다. 두 메서드는 다른 분기이고, 등록 엔드포인트가 무방비면 크리에이터가 자기 정산을 부풀릴 수 있다.
 
-**12번** — 4.4가 "`2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다"고 정하고 검증을 여기 위임했다. 이 케이스가 없으면 컨트롤러가 `@RequestParam LocalDate`로 바인딩해도 아무도 못 잡는다. 그러면 Spring의 `MethodArgumentTypeMismatchException`이 먼저 나 `InvalidSettlementPeriod`가 영영 안 걸리고, 오류 코드가 조용히 달라진다.
+**12번** — 4.4가 "`2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다"고 정하고 검증을 여기 위임했다. 이 케이스가 없으면 컨트롤러가 `@RequestParam LocalDate`로 바인딩해도 아무도 못 잡는다. 그러면 Spring의 `MethodArgumentTypeMismatchException`이 먼저 나 `InvalidSettlementPeriodException`가 영영 안 걸리고, 오류 코드가 조용히 달라진다.
 
 **13번** — 4.1이 "안 잡으면 '모든 실패가 한 가지 모양'이라는 주장이 거짓이 된다"고 강조한 항목이다. 강조해 놓고 테스트가 없으면 핸들러를 지워도 아무도 모른다.
 

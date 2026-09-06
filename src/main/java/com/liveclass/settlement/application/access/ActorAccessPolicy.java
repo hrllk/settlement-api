@@ -1,4 +1,4 @@
-package com.liveclass.settlement.application.actor;
+package com.liveclass.settlement.application.access;
 
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ public class ActorAccessPolicy {
             return;
         }
         if (!actor.actorId().equals(creatorId)) {
-            throw new ActorAccessDenied(
+            throw new ActorAccessDeniedException(
                     "creator " + actor.actorId() + " cannot access creator " + creatorId);
         }
     }
@@ -24,7 +24,7 @@ public class ActorAccessPolicy {
     /** 운영자 전용. 등록과 운영자 집계에 붙는다. */
     public void requireAdmin(ActorContext actor) {
         if (actor.role() != ActorRole.ADMIN) {
-            throw new ActorAccessDenied("actor " + actor.actorId() + " is not an admin");
+            throw new ActorAccessDeniedException("actor " + actor.actorId() + " is not an admin");
         }
     }
 }

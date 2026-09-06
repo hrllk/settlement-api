@@ -6,7 +6,7 @@
 
 ## 선행 조건
 
-`tasks.json`의 의존성을 `[2,3]`에서 `[2,3,4]`로 고쳤다. Task 5가 던지는 `InvalidSettlementPeriod`를 변환할 전역 예외 처리기가 Task 4에 있기 때문이다. Task 4 없이 Task 5를 먼저 끝내면 `2025-13` 요청이 500 스택트레이스로 나간다.
+`tasks.json`의 의존성을 `[2,3]`에서 `[2,3,4]`로 고쳤다. Task 5가 던지는 `InvalidSettlementPeriodException`를 변환할 전역 예외 처리기가 Task 4에 있기 때문이다. Task 4 없이 Task 5를 먼저 끝내면 `2025-13` 요청이 500 스택트레이스로 나간다.
 
 ## 포함 범위
 
@@ -47,11 +47,11 @@
    | `GET /api/admin/settlements?from=&to=` | 허용 | 거부 |
    | `GET /api/creators/{creatorId}/sales` (Task 4) | 전부 허용 | `X-Actor-Id == creatorId`일 때만 |
 
-   위반은 `ActorAccessDenied` → 403.
+   위반은 `ActorAccessDeniedException` → 403.
 
    **이 표(어느 엔드포인트에 어떤 규칙이 붙는가)는 Task 5가 소유한다. 판정 코드 `ActorAccessPolicy`는 Task 4가 소유한다.** Task 5는 `requireSelfOrAdmin` / `requireAdmin`을 호출만 한다. 정책 구현을 Task 5에 두면 Task 4가 Task 5를 호출하는데 Task 5는 Task 4의 전역 처리기를 기다리는 순환이 된다.
 
-5. **연월과 일자를 `String`으로 수신한다.** `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriod`가 걸리지 않는다. `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다.
+5. **연월과 일자를 `String`으로 수신한다.** `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriodException`가 걸리지 않는다. `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다.
 
 6. **도메인 빈은 Task 4가 이미 등록해 두었다.** `FeePolicy`, `FixedRateFeePolicy(2000bp)`, `SettlementCalculator`를 Task 5에서 다시 등록하지 않는다. 등록은 `config`에서 하되 그 시점이 Task 4다. Task 4가 Spring 배선이 생기는 첫 Task이기 때문이다.
 

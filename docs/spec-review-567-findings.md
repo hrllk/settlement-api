@@ -39,7 +39,7 @@ PATCH /api/sales  →  405  application/problem+json
 
 **2-c. 6.3의 `@Order` 검사가 오탐을 낸다.** `GlobalExceptionHandler`에 `@Order(Ordered.HIGHEST_PRECEDENCE)`가 붙었다. 어드바이스 우선순위이지 테스트 순서가 아니다. 검사 범위를 `src/test`로 한정했다.
 
-**2-d. 예외 두 개가 패키지를 옮겼다.** `SaleNotFound`·`CourseNotFound`가 `domain.settlement` → `domain.sales`. 5.x가 참조하지 않아 영향 없음. 4.1·4 부모는 반영 완료.
+**2-d. 예외 두 개가 패키지를 옮겼다.** `SaleNotFoundException`·`CourseNotFoundException`가 `domain.settlement` → `domain.sales`. 5.x가 참조하지 않아 영향 없음. 4.1·4 부모는 반영 완료.
 
 **2-e. `@Transactional`은 Spring 컨텍스트를 늘리지 않는다.** 4.8 명세가 "애노테이션 세 줄을 다르게 쓰면 컨텍스트가 또 하나 늘어난다"고 썼는데 사실이 아니다. 세 줄짜리와 두 줄짜리를 나란히 띄워 `ApplicationContext` 식별자를 찍었다.
 

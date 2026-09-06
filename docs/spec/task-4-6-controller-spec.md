@@ -36,7 +36,7 @@ public class SaleController {
 
 ## 날짜를 `@RequestParam String`으로 받는다
 
-`LocalDate`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던진다. 그러면 `2025-13`의 거부가 도메인이 아니라 프레임워크에서 일어나고, `InvalidSettlementPeriod`가 영영 안 걸린다. 전역 처리기가 그 예외도 잡으면 되긴 하지만, 잘못된 연월 판정은 도메인 규칙이므로 도메인이 하게 둔다.
+`LocalDate`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던진다. 그러면 `2025-13`의 거부가 도메인이 아니라 프레임워크에서 일어나고, `InvalidSettlementPeriodException`가 영영 안 걸린다. 전역 처리기가 그 예외도 잡으면 되긴 하지만, 잘못된 연월 판정은 도메인 규칙이므로 도메인이 하게 둔다.
 
 컨트롤러는 문자열을 그대로 유스케이스에 넘긴다. 파싱은 `SettlementPeriod.ofDateRange`가 한다.
 

@@ -64,12 +64,15 @@ curl -s -X POST localhost:8080/api/sales \
 | `SALE_NOT_FOUND` | 404 | 없는 판매에 취소 |
 | `COURSE_NOT_FOUND` | 404 | 없는 강의로 판매 등록 |
 | `REFUND_AMOUNT_EXCEEDED` | 409 | 누적 환불이 원결제액 초과 |
+| `CANCEL_BEFORE_PAYMENT` | 409 | 취소 시각이 결제 시각보다 이름 |
 | `ACTOR_ACCESS_DENIED` | 403 | 타인 자원 또는 운영자 전용 |
-| `INVALID_SETTLEMENT_PERIOD` | 400 | `2025-13`, 종료일 < 시작일 |
-| `VALIDATION_FAILED` | 400 | 금액 0 이하, 필수 필드 누락 |
+| `INVALID_SETTLEMENT_PERIOD` | 400 | `2025-13`, 종료일 < 시작일, 지원 범위 밖 날짜 |
+| `VALIDATION_FAILED` | 400 | 금액 0 이하 또는 10억 원 초과, 필수 필드 누락 |
 | `MALFORMED_REQUEST` | 400 | 오프셋 없는 시각 |
 | `INVALID_ACTOR_HEADER` | 400 | 액터 헤더 누락·형식 오류 |
 | `MISSING_PARAMETER` | 400 | `from` 또는 `to` 누락 |
+
+**없는 크리에이터를 조회하면 404가 아니라 200 + 빈 배열이다.** 없는 강의로 판매를 등록하면 404 `COURSE_NOT_FOUND`인데 목록 조회는 그렇지 않다 — 등록은 참조 무결성을 지켜야 하고 조회는 "해당 기간에 판매가 없다"와 "그런 크리에이터가 없다"를 굳이 구분하지 않았다. 한 줄로 적는다.
 
 **400과 403이 다른 이유를 한 줄 적는다.** 400은 신원을 모르는 것, 403은 신원을 알고 거부하는 것이다. 클라이언트가 재시도할지 포기할지 판단하는 근거가 된다.
 

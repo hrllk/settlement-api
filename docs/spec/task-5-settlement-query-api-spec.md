@@ -13,7 +13,7 @@
 - Task 3: `SettlementPeriod`, `SettlementCalculator`, `SettlementSummary`, `FeePolicy`
 - Task 4: 전역 예외 처리기, 오류 포맷, `ActorAccessPolicy`, `FeePolicy` 빈
 
-`tasks.json`의 의존성을 `[2,3]`에서 `[2,3,4]`로 고쳤다. Task 5가 던지는 `InvalidSettlementPeriod`를 변환할 처리기가 Task 4에 있기 때문이다. Task 4 없이 먼저 끝내면 `2025-13` 요청이 500 스택트레이스로 나간다.
+`tasks.json`의 의존성을 `[2,3]`에서 `[2,3,4]`로 고쳤다. Task 5가 던지는 `InvalidSettlementPeriodException`를 변환할 처리기가 Task 4에 있기 때문이다. Task 4 없이 먼저 끝내면 `2025-13` 요청이 500 스택트레이스로 나간다.
 
 ## 서브태스크
 
@@ -151,7 +151,7 @@ Task 4는 정산 계산을 하지 않으므로 그 빈이 필요 없다. 쓰는 
 **세트 검수 결과.** 38건을 한 세트로 봤다. 따로 봤으면 안 잡혔을 것이 대부분이다.
 
 **엔지니어링 검수 4건**
-1. 헥사고날 방향 역전. 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.actor`로 옮기고 해석기만 어댑터에 남겼다.
+1. 헥사고날 방향 역전. 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.access`로 옮기고 해석기만 어댑터에 남겼다.
 2. 판매 단건 조회가 `SaleData`를 돌려주면 `creatorId`를 채울 방법이 없어 NPE. 단건 경로는 `Sale` 애그리게이트로, 목록 경로는 전용 `SaleRecord`로 갈랐다.
 3. 5.2와 5.3이 조회·계산 세 줄을 복제. `SettlementQuery`로 뺐다.
 4. 테스트 공백 2건(전액 환불 경계, CREATOR 등록 403)과 `NoCurrentTimeUsageTest` 자기 매칭 버그.

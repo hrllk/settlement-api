@@ -4,7 +4,7 @@
 
 자동화하지 않았다. 리플렉션이나 정적 분석으로 "이 시나리오가 검증됐는가"를 판정하는 도구를 만들 수 있지만 3시간 예산에서 과하고, 그 도구 자체가 검증되지 않는다. 표를 보며 손으로 대조하고 결과를 남긴다.
 
-측정 시점: **97건 통과 / 실패 0**.
+측정 시점: **108건 통과 / 실패 0**.
 
 ## 시나리오 대조
 
@@ -26,7 +26,13 @@
 | 12-c | 프레임워크 실패(405)도 problem+json | Task 4 | `SaleControllerTest` | `frameworkFailureIsProblemJson` |
 | 12-d | 오버플로 취소 거부 (`Long.MAX_VALUE`) | Task 4 | `SaleTest` | `rejectsOverflowingAmount` |
 | 12-e | 응답 시각이 `+09:00` 문자열 | Task 4 | `SaleControllerTest` | `serializesDateAsIsoString` |
+| 12-f | 결제 이전 취소 409 `CANCEL_BEFORE_PAYMENT` | Task 4 | `SaleControllerTest`, `SaleTest` | `cancelBeforePaymentRejected` |
+| 12-g | 금액 상한 초과 400 (수수료·합계 오버플로 차단) | Task 4 | `SaleControllerTest` | `amountAboveCapRejected` |
+| 12-h | 지원 범위 밖 종료일 400 (500 아님) | Task 4 | `SaleControllerTest` | `endDateOutOfRangeIsBadRequest` |
+| 12-i | 취소도 ADMIN 전용 403 | Task 4 | `SaleControllerTest` | `creatorCannotCancel` |
+| 12-j | 인가 판정 네 갈래 (허용 2 + 거부 2) | Task 4 | `ActorAccessPolicyTest` | 4건 전부 |
 | 13 | `sale-5` 1월 조회 → `FULL` | Task 4 | `SaleControllerTest` | `refundStatusIgnoresPeriod` |
+| 13-b | ADMIN이 타인 판매 목록 조회 200 | Task 4 | `SaleControllerTest` | `adminListsOtherCreator` |
 | 14 | 운영자 2025-03 → 168,000 | Task 5 | `SettlementControllerTest` | `march` |
 | 15 | 운영자 2025-01~03 → **264,000** | Task 5 | `SettlementControllerTest` | `quarterIsNotSumOfMonths` |
 | 16 | 실적 0 크리에이터 목록 포함 | Task 5 | `SettlementControllerTest` | `zeroCreatorIncluded` |
@@ -41,7 +47,7 @@
 | 23 | 날짜 상한 오버플로가 400 (QA-001) | Task 3 | `SettlementPeriodTest` | `yearMonthUpperBoundDoesNotOverflow`, `endDateUpperBoundDoesNotOverflow` |
 | 24 | 소수 금액이 조용히 잘리지 않음 (QA-002) | Task 4 | `SaleControllerTest` | `fractionalAmountRejected` |
 
-**빈 행 없음.** 30행 전부 실제 테스트가 대응된다.
+**빈 행 없음.** 34행 전부 실제 테스트가 대응된다.
 
 **15번이 이 표에서 가장 중요하다.** 월별 합산으로 잘못 구현해도 14번(2025-03)은 정답이 나온다 — 3월에는 음수 월이 없기 때문이다. 15번이 없으면 그 버그가 통과한다.
 
@@ -58,10 +64,10 @@
 | Task 1 | `SettlementApplicationContextTest`, `ActorContextArgumentResolverTest` | 4 |
 | Task 2 | `SalesQueryJpaAdapterTest`, `SeedDataTest` | 11 |
 | Task 3 | `SettlementCalculatorTest`, `SettlementPeriodTest`, `RefundStatusTest`, `FixedRateFeePolicyTest`, `SettlementSummaryTest` | 44 |
-| Task 4 | `SaleControllerTest`, `SaleTest` | 23 |
+| Task 4 | `SaleControllerTest`, `SaleTest`, `ActorAccessPolicyTest` | 34 |
 | Task 5 | `SettlementControllerTest`, `ControllerActorGuardTest` | 12 |
 | Task 6 | `SettlementE2ETest`, `NoCurrentTimeUsageTest` | 3 |
-| **합계** | | **97** |
+| **합계** | | **108** |
 
 Task 3이 42건으로 가장 크다. 계산 규칙 전부를 Spring도 H2도 없이 잠근다 — 그래서 나머지 Task가 같은 숫자를 다시 단언하지 않아도 된다.
 
@@ -95,7 +101,7 @@ Task 3의 추가 케이스(수수료 버림 33,333원, 동일 판매 다수 부�
 | 검사 | 방법 | 결과 |
 | --- | --- | --- |
 | `now()` 호출 | `NoCurrentTimeUsageTest` (자동) | 0건 |
-| 두 번 연속 실행 | `./gradlew cleanTest test` × 2 | 94건 / 94건, 동일 (QA 수정 전) |
+| 두 번 연속 실행 | `./gradlew cleanTest test` × 2 | 108건 / 108건, 동일 |
 | 실행 순서 의존 | `src/test`의 `@TestMethodOrder`·`@Order` | 0건 |
 | 외부 서비스 | HTTP 클라이언트·브로커·외부 API | 없음. H2 인메모리뿐 |
 
@@ -115,14 +121,14 @@ Task 3의 추가 케이스(수수료 버림 33,333원, 동일 판매 다수 부�
 
 | # | 항목 | 결과 |
 | ---: | --- | --- |
-| 1 | 클린 클론에서 `./gradlew clean test` | **94건 / 실패 0** |
+| 1 | 클린 클론에서 `./gradlew clean test` | **108건 / 실패 0** |
 | 2 | `gradlew` 100755, wrapper jar 추적 | `100755 gradlew`, `100644 gradle-wrapper.jar` |
 | 3 | `bootRun` 기동, 예외 없음, 시드 적재 | `Started SettlementApplication in 2.43 seconds`. ERROR·Exception 0건 |
 | 4 | README curl 전부 실행, 응답 일치 | 9개 예시 전부 일치. 실패 0 |
 | 5 | `git status` 비어 있음, 산출물 미추적 | `build`·`.gradle`·`.claude` 추적 0건 |
 | 6 | README 수치 = 테스트 기대값 | 아래 대조표 |
 | 7 | 오류 포맷 | 우리 예외는 6필드 + `code`, 프레임워크 실패는 `code` 없이 problem+json |
-| 8 | 커버리지 감사 빈 행 없음 | 28행 전부 채움 |
+| 8 | 커버리지 감사 빈 행 없음 | 34행 전부 채움 |
 
 ## 1. 클린 클론
 
@@ -130,7 +136,7 @@ Task 3의 추가 케이스(수수료 버림 33,333원, 동일 판매 다수 부�
 
 ```
 git clone <repo> && ./gradlew clean test
-→ BUILD SUCCESSFUL, 94건 / 실패 0
+→ BUILD SUCCESSFUL, 108건 / 실패 0
 ```
 
 그 클론에서 `bootRun`도 띄워 README의 curl 아홉 개를 다시 대조했다. 전부 일치.
@@ -157,7 +163,27 @@ git clone <repo> && ./gradlew clean test
 | 월별 합산 → 252,000 | README 가정 1 (대조군) | OK |
 | creator-2 2025-02 → −60,000 | README 기대 정산표, `creator2February` | OK |
 | 시드 17행 | README 초기 데이터 표, `data.sql`, `rowCounts` | OK |
-| 테스트 94건 | README 실행 절, 감사표 합계 | OK |
+| 테스트 108건 | README 실행 절, 감사표 합계 | OK |
+
+## 병합 후 재검증
+
+`/review`에서 나온 결함 셋을 고친 뒤 위 점검을 다시 돌렸다. 오류 계약이 바뀌었으므로
+숫자만 고치지 않고 실제로 실행했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 클린 클론 `./gradlew clean test` | 108건 / 실패 0 |
+| `bootRun` 기동 | `Started SettlementApplication in 2.364 seconds`, ERROR·Exception 0건 |
+| 월별 정산 creator-1 2025-03 | `payout` 120,000 |
+| 운영자 2025-03 / 2025-01~03 | `totalPayout` 168,000 / **264,000** |
+| 판매 목록 `sale-5` 1월 | `refundStatus` `FULL` |
+| 타인 정산 403 | 6필드 + `code` |
+| 405 프레임워크 실패 | `code`·`type` 없이 problem+json |
+| 금액 상한 초과 | 400 `VALIDATION_FAILED` |
+| 결제 이전 취소 | 409 `CANCEL_BEFORE_PAYMENT` |
+| 지원 범위 밖 종료일 | 400 `INVALID_SETTLEMENT_PERIOD` (500 아님) |
+
+포트 8080이 점유돼 있어 `SERVER_PORT=18080`으로 띄웠다. 나머지는 동일하다.
 
 ## 결함이 나오면
 

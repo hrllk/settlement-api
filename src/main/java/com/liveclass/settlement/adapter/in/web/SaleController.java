@@ -6,11 +6,11 @@ import com.liveclass.settlement.adapter.in.web.dto.RegisterCancelRequest;
 import com.liveclass.settlement.adapter.in.web.dto.RegisterSaleRequest;
 import com.liveclass.settlement.adapter.in.web.dto.SaleItem;
 import com.liveclass.settlement.adapter.in.web.dto.SaleResponse;
-import com.liveclass.settlement.application.actor.ActorContext;
-import com.liveclass.settlement.application.sale.ListCreatorSalesUseCase;
-import com.liveclass.settlement.application.sale.RegisterCancelUseCase;
-import com.liveclass.settlement.application.sale.RegisterSaleUseCase;
-import com.liveclass.settlement.application.sale.SaleWithRefundStatus;
+import com.liveclass.settlement.application.access.ActorContext;
+import com.liveclass.settlement.application.sales.ListCreatorSalesUseCase;
+import com.liveclass.settlement.application.sales.RegisterCancelUseCase;
+import com.liveclass.settlement.application.sales.RegisterSaleUseCase;
+import com.liveclass.settlement.application.sales.SaleWithRefundStatus;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.OffsetDateTime;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 모든 메서드가 {@link ActorContext} 파라미터를 선언해야 한다. 해석기는
  * 필터가 아니라 파라미터 타입 기반 opt-in이라, 빠뜨린 메서드는 헤더 검사 없이
- * 조용히 열린다. 컴파일러가 못 잡으므로 가드 테스트가 검사한다.
+ * 조용히 열린다. 컴파일러도 테스트도 아직 이걸 잡지 못한다 — 메서드를 더할 때 직접 확인해야 한다.
  *
  * 컨트롤러는 DTO 변환과 상태 코드만 한다. 접근 판정은 유스케이스가 한다.
  */
@@ -40,14 +40,14 @@ public class SaleController {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private final RegisterSaleUseCase registerSale;
-    private final RegisterCancelUseCase registerCancel;
-    private final ListCreatorSalesUseCase listSales;
+    private final RegisterSaleUseCase registerSaleUseCase;
+    private final RegisterCancelUseCase registerCancelUseCase;
+    private final ListCreatorSalesUseCase listCreatorSalesUseCase;
 
     @PostMapping("/sales")
     ResponseEntity<SaleResponse> register(@Valid @RequestBody RegisterSaleRequest request,
                                           ActorContext actor) {
-        String saleId = registerSale.register(
+        String saleId = registerSaleUseCase.register(
                 actor, request.courseId(), request.amount(), request.paidAt().toInstant());
 
         return ResponseEntity.created(URI.create("/api/sales/" + saleId))
@@ -60,7 +60,7 @@ public class SaleController {
     ResponseEntity<CancelResponse> cancel(@PathVariable String saleId,
                                           @Valid @RequestBody RegisterCancelRequest request,
                                           ActorContext actor) {
-        String cancelId = registerCancel.register(
+        String cancelId = registerCancelUseCase.register(
                 actor, saleId, request.amount(), request.cancelledAt().toInstant());
 
         return ResponseEntity.status(201)
@@ -74,7 +74,7 @@ public class SaleController {
                               @RequestParam String from,
                               @RequestParam String to,
                               ActorContext actor) {
-        List<SaleWithRefundStatus> found = listSales.list(actor, creatorId, from, to);
+        List<SaleWithRefundStatus> found = listCreatorSalesUseCase.list(actor, creatorId, from, to);
 
         List<SaleItem> items = found.stream()
                 .map(s -> new SaleItem(

@@ -59,7 +59,7 @@ public interface CourseJpaRepository extends JpaRepository<CourseEntity, String>
 
 `findBySaleIdIn`(복수)과 `findBySaleId`(단수)가 둘 다 필요한 이유는 호출 형태가 다르기 때문이다. 전자는 판매 목록의 환불 상태를 한 번에 구하고, 후자는 단건 애그리게이트를 적재한다. 전자를 단건에 쓰면 컬렉션 포장이 붙고, 후자를 목록에 쓰면 N+1이 된다.
 
-**`CreatorJpaRepository`와 `CourseJpaRepository`는 비어 있다.** `findAll`과 `existsById`가 `JpaRepository`에서 온다. 전자는 `findAllCreatorIds()`가, 후자는 Task 4의 `CourseNotFound` 판정이 쓴다. **강의 리포지토리가 없으면 Task 4가 없는 강의를 걸러낼 수 없어 FK 부재와 맞물려 판매가 그냥 등록된다.**
+**`CreatorJpaRepository`와 `CourseJpaRepository`는 비어 있다.** `findAll`과 `existsById`가 `JpaRepository`에서 온다. 전자는 `findAllCreatorIds()`가, 후자는 Task 4의 `CourseNotFoundException` 판정이 쓴다. **강의 리포지토리가 없으면 Task 4가 없는 강의를 걸러낼 수 없어 FK 부재와 맞물려 판매가 그냥 등록된다.**
 
 ## 파일
 

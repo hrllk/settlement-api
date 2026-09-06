@@ -1,15 +1,15 @@
-package com.liveclass.settlement.adapter.in.actor;
+package com.liveclass.settlement.adapter.in.web;
 
-import static com.liveclass.settlement.adapter.in.actor.ActorContextArgumentResolver.ACTOR_ID_HEADER;
-import static com.liveclass.settlement.adapter.in.actor.ActorContextArgumentResolver.ACTOR_ROLE_HEADER;
+import static com.liveclass.settlement.adapter.in.web.ActorContextArgumentResolver.ACTOR_ID_HEADER;
+import static com.liveclass.settlement.adapter.in.web.ActorContextArgumentResolver.ACTOR_ROLE_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import com.liveclass.settlement.application.actor.ActorContext;
-import com.liveclass.settlement.application.actor.ActorRole;
+import com.liveclass.settlement.application.access.ActorContext;
+import com.liveclass.settlement.application.access.ActorRole;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;

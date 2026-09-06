@@ -1,7 +1,7 @@
-package com.liveclass.settlement.adapter.in.actor;
+package com.liveclass.settlement.adapter.in.web;
 
-import com.liveclass.settlement.application.actor.ActorContext;
-import com.liveclass.settlement.application.actor.ActorRole;
+import com.liveclass.settlement.application.access.ActorContext;
+import com.liveclass.settlement.application.access.ActorRole;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.support.WebDataBinderFactory;

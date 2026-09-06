@@ -5,9 +5,9 @@ package com.liveclass.settlement.domain.sales;
  *
  * FK 제약이 없으므로 등록 시점에 막지 않으면 유령 판매 행이 남는다.
  */
-public class CourseNotFound extends RuntimeException {
+public class CourseNotFoundException extends RuntimeException {
 
-    public CourseNotFound(String courseId) {
+    public CourseNotFoundException(String courseId) {
         super("course not found: " + courseId);
     }
 }

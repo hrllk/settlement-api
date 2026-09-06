@@ -97,7 +97,7 @@ class SettlementPeriodTest {
         @DisplayName("종료일이 시작일보다 이르면 원본 문자열을 담아 거부한다")
         void reversedRange() {
             assertThatThrownBy(() -> SettlementPeriod.ofDateRange("2025-03-31", "2025-03-01"))
-                    .isInstanceOf(InvalidSettlementPeriod.class)
+                    .isInstanceOf(InvalidSettlementPeriodException.class)
                     .hasMessageContaining("2025-03-31")
                     .hasMessageContaining("2025-03-01");
         }
@@ -106,7 +106,7 @@ class SettlementPeriodTest {
         @DisplayName("월 범위를 넘으면 거부한다")
         void monthOutOfRange() {
             assertThatThrownBy(() -> SettlementPeriod.ofYearMonth("2025-13"))
-                    .isInstanceOf(InvalidSettlementPeriod.class);
+                    .isInstanceOf(InvalidSettlementPeriodException.class);
         }
 
         /**
@@ -120,7 +120,7 @@ class SettlementPeriodTest {
         @DisplayName("연월 상한을 넘으면 500이 아니라 400으로 거부한다")
         void yearMonthUpperBoundDoesNotOverflow() {
             assertThatThrownBy(() -> SettlementPeriod.ofYearMonth("+999999999-12"))
-                    .isInstanceOf(InvalidSettlementPeriod.class)
+                    .isInstanceOf(InvalidSettlementPeriodException.class)
                     .hasMessageContaining("+999999999-12");
         }
 
@@ -130,7 +130,7 @@ class SettlementPeriodTest {
         void endDateUpperBoundDoesNotOverflow() {
             assertThatThrownBy(
                     () -> SettlementPeriod.ofDateRange("2025-01-01", "+999999999-12-31"))
-                    .isInstanceOf(InvalidSettlementPeriod.class)
+                    .isInstanceOf(InvalidSettlementPeriodException.class)
                     .hasMessageContaining("+999999999-12-31");
         }
 
@@ -138,7 +138,7 @@ class SettlementPeriodTest {
         @ValueSource(strings = {"2025/03", "202503", "2025-3"})
         void malformed(String yearMonth) {
             assertThatThrownBy(() -> SettlementPeriod.ofYearMonth(yearMonth))
-                    .isInstanceOf(InvalidSettlementPeriod.class);
+                    .isInstanceOf(InvalidSettlementPeriodException.class);
         }
 
         /**
@@ -151,7 +151,7 @@ class SettlementPeriodTest {
         @ValueSource(strings = {"   "})
         void blank(String yearMonth) {
             assertThatThrownBy(() -> SettlementPeriod.ofYearMonth(yearMonth))
-                    .isInstanceOf(InvalidSettlementPeriod.class);
+                    .isInstanceOf(InvalidSettlementPeriodException.class);
         }
 
         @Test
@@ -161,7 +161,7 @@ class SettlementPeriodTest {
             Instant earlier = kst("2025-03-01T00:00:00+09:00");
 
             assertThatThrownBy(() -> new SettlementPeriod(later, earlier))
-                    .isInstanceOf(InvalidSettlementPeriod.class);
+                    .isInstanceOf(InvalidSettlementPeriodException.class);
         }
     }
 }

@@ -102,11 +102,11 @@ com.liveclass.settlement
 | `.gitignore` | `build/`, `.gradle/` 무시. Wrapper 파일은 추적 유지 |
 | `src/main/resources/application.yml` | H2와 JPA 설정 |
 | `src/main/java/com/liveclass/settlement/SettlementApplication.java` | Spring Boot 진입점 |
-| `src/main/java/com/liveclass/settlement/adapter/in/actor/*` | 액터 역할·컨텍스트·해석기 |
+| `src/main/java/com/liveclass/settlement/adapter/in/web/*` | 액터 역할·컨텍스트·해석기 |
 | `src/main/java/com/liveclass/settlement/config/WebMvcConfig.java` | MVC 해석기 등록 |
 | `src/main/java/com/liveclass/settlement/{application,domain,adapter/out}/.gitkeep` | 빈 계층 디렉터리 유지 |
 | `src/test/java/com/liveclass/settlement/SettlementApplicationContextTest.java` | 컨텍스트 기동 테스트 |
-| `src/test/java/com/liveclass/settlement/adapter/in/actor/ActorContextArgumentResolverTest.java` | 액터 헤더 해석 단위 테스트 |
+| `src/test/java/com/liveclass/settlement/adapter/in/web/ActorContextArgumentResolverTest.java` | 액터 헤더 해석 단위 테스트 |
 
 ## 롤백
 

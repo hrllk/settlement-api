@@ -9,7 +9,7 @@
 - 계획: `docs/plan/task-4-sales-cancel-api-plan.md`
 - Task 1: `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`, `WebMvcConfig`
 - Task 2: 엔티티 4종(Lombok `@Getter`), Spring Data 리포지토리 4종(`SaleJpaRepository`, `CancelJpaRepository`, `CourseJpaRepository`, `CreatorJpaRepository`), `SalesQueryJpaAdapter`(`@RequiredArgsConstructor`, 리포지토리 3개 주입), `data.sql` 17행
-- Task 3: `SettlementPeriod`, `RefundStatus`, `InvalidSettlementPeriod`, `FeePolicy`, `SettlementCalculator`, `SaleData` / `CancelData`
+- Task 3: `SettlementPeriod`, `RefundStatus`, `InvalidSettlementPeriodException`, `FeePolicy`, `SettlementCalculator`, `SaleData` / `CancelData`
 
 ## 서브태스크
 
@@ -26,7 +26,7 @@
 
 약 130분, 새 테스트 22건 (4.2의 6건 + 4.8의 16건).
 
-**표의 의존은 부모 Task 의존(`[2,3]`)에 더해지는 것이다.** 4.1은 Task 1의 액터 타입을 옮기고 Task 3의 `FeePolicy`·`SettlementCalculator`·`InvalidSettlementPeriod`를 참조하므로 둘 다 있어야 한다. 4.4는 Task 2의 리포지토리와 Task 3의 `SettlementPeriod`·`RefundStatus`·`findCancelsBySaleIds`를 쓴다.
+**표의 의존은 부모 Task 의존(`[2,3]`)에 더해지는 것이다.** 4.1은 Task 1의 액터 타입을 옮기고 Task 3의 `FeePolicy`·`SettlementCalculator`·`InvalidSettlementPeriodException`를 참조하므로 둘 다 있어야 한다. 4.4는 Task 2의 리포지토리와 Task 3의 `SettlementPeriod`·`RefundStatus`·`findCancelsBySaleIds`를 쓴다.
 
 **4.1을 반드시 먼저 한다.** 전역 처리기가 없으면 나머지 서브태스크의 실패 경로가 전부 500 스택트레이스로 나가고, 나중에 넣으면 이미 쓴 코드를 다시 손대야 한다.
 
@@ -47,11 +47,11 @@ Boot 4가 테스트 자동설정을 모듈별로 쪼갰다. **Boot 3 임포트�
 
 | 예외 | 정의 | HTTP | 사용자가 유발 가능 |
 | --- | --- | --- | --- |
-| `SaleNotFound` | 4.1 | 404 | O |
-| `CourseNotFound` | 4.1 | 404 | O |
-| `RefundAmountExceeded` | 4.1 | 409 | O |
-| `ActorAccessDenied` | 4.1 | 403 | O |
-| `InvalidSettlementPeriod` | Task 3.1 | 400 | O |
+| `SaleNotFoundException` | 4.1 | 404 | O |
+| `CourseNotFoundException` | 4.1 | 404 | O |
+| `RefundAmountExceededException` | 4.1 | 409 | O |
+| `ActorAccessDeniedException` | 4.1 | 403 | O |
+| `InvalidSettlementPeriodException` | Task 3.1 | 400 | O |
 | `MethodArgumentNotValidException` | Spring | 400 | O |
 | `ResponseStatusException` (액터 헤더) | Task 1 | 400 | O |
 | `IllegalArgumentException` | Task 3.2, 3.3 | **500** | X |
@@ -118,21 +118,21 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 
 ## 동시성을 보장하지 않는다
 
-같은 판매에 취소 두 건이 동시에 들어오면 누적 합계 검사를 둘 다 통과해 원결제액을 넘길 수 있다. 3시간 예산에서 비관적 락이나 버전 컬럼을 넣지 않는다. **README에 가정으로 명시한다.** 실무라면 판매 행에 `@Version`을 두거나 `SELECT ... FOR UPDATE`로 막을 지점이라는 설명을 붙인다.
+같은 판매에 취소 두 건이 동시에 들어오면 누적 합계 검사를 둘 다 통과해 원결제액을 넘길 수 있다. 3시간 예산에서 비관적 락이나 버전 컬럼을 넣지 않는다. **README에 가정으로 명시한다.** 실무라면 `SELECT ... FOR UPDATE`로 판매 행을 잠글 지점이라는 설명을 붙인다. `@Version`은 듣지 않는다 — 충돌 쓰기가 취소 행 INSERT라 판매 행 버전이 오르지 않는다.
 
 ## 파일
 
 | 경로 | 서브태스크 |
 | --- | --- |
 | `adapter/in/web/GlobalExceptionHandler.java` | 4.1 |
-| `domain/sales/SaleNotFound.java`, `CourseNotFound.java` | 4.1 |
+| `domain/sales/SaleNotFoundException.java`, `CourseNotFoundException.java` | 4.1 |
 | `config/DomainConfig.java` | 4.1 |
-| `application/sale/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java` | 4.2~4.4 |
-| `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java` | 4.2 |
+| `application/sales/RegisterSaleUseCase.java`, `RegisterCancelUseCase.java`, `ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java` | 4.2~4.4 |
+| `domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceededException.java` | 4.2 |
 | `application/port/out/SalesQueryPort.java`, `SaleRecord.java` | 4.2 |
-| `application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동) | 4.1 |
-| `application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규) | 4.1 |
-| `adapter/in/actor/ActorContextArgumentResolver.java`, `config/WebMvcConfig.java` (import만) | 4.1 |
+| `application/access/ActorContext.java`, `ActorRole.java` (Task 1에서 이동) | 4.1 |
+| `application/access/ActorAccessDeniedException.java`, `ActorAccessPolicy.java` (신규) | 4.1 |
+| `adapter/in/web/ActorContextArgumentResolver.java`, `config/WebMvcConfig.java` (import만) | 4.1 |
 | `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SalesQueryJpaAdapter.java` | 4.2 |
 | `adapter/in/web/dto/*.java` | 4.5 |
 | `adapter/in/web/SaleController.java` | 4.6 |
@@ -144,7 +144,7 @@ Task 6 통합 테스트와 Task 7 README curl 예시가 이 계약을 그대로 
 1. `./gradlew test`가 통과한다.
 2. 3개 엔드포인트가 동작한다.
 3. 사용자 유발 오류 9종이 정해진 상태 코드로 나오고, 응답이 전부 RFC 9457 `application/problem+json`이며 `code` 확장 멤버를 갖는다.
-3-b. `RefundAmountExceeded`가 저장소 전체에 하나만 존재한다 (`domain/sales`).
+3-b. `RefundAmountExceededException`가 저장소 전체에 하나만 존재한다 (`domain/sales`).
 4. `IllegalArgumentException` / `NullPointerException`이 400으로 매핑되지 않는다.
 5. 누적 초과 환불이 409로 거부된다.
 6. 없는 강의로 판매 등록이 404로 거부된다. 500이 아니다.

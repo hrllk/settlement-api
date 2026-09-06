@@ -62,7 +62,7 @@ public class Sale {
     /**
      * 취소를 추가한다. 누적 합계가 원결제 금액을 넘으면 거부한다.
      *
-     * @throws RefundAmountExceeded 누적 합계 + amount > this.amount
+     * @throws RefundAmountExceededException 누적 합계 + amount > this.amount
      */
     public Cancel cancel(String cancelId, long amount, Instant cancelledAt);
 
@@ -85,7 +85,7 @@ public record Cancel(String id, long amount, Instant cancelledAt) { }
 ```java
 long already = cancelledTotal();
 if (amount > this.amount - already) {          // 덧셈이 아니라 뺄셈이다
-    throw new RefundAmountExceeded(id, this.amount, already, amount);
+    throw new RefundAmountExceededException(id, this.amount, already, amount);
 }
 Cancel c = new Cancel(cancelId, amount, cancelledAt);
 cancels.add(c);
@@ -104,7 +104,7 @@ return c;
 
 **`RefundStatus`는 Task 3 것을 그대로 쓴다.** `domain.settlement.RefundStatus`이며 `of(long saleAmount, long cancelledTotal)` 2인자 오버로드를 부른다. 같은 개념의 enum을 두 벌 만들지 않는다.
 
-`RefundAmountExceeded`는 이 애그리게이트가 던지므로 `domain/sales`에 둔다. 4.1의 파일 목록에서 `domain/settlement`가 아니라 여기로 옮긴다.
+`RefundAmountExceededException`는 이 애그리게이트가 던지므로 `domain/sales`에 둔다. 4.1의 파일 목록에서 `domain/settlement`가 아니라 여기로 옮긴다.
 
 ## 리포지토리
 
@@ -222,7 +222,7 @@ Task 2.4가 만든 Spring Data 리포지토리 4종을 그대로 감싼다. 새 
 ## 유스케이스
 
 ```java
-package com.liveclass.settlement.application.sale;
+package com.liveclass.settlement.application.sales;
 
 @Service
 public class RegisterSaleUseCase {
@@ -230,7 +230,7 @@ public class RegisterSaleUseCase {
     @Transactional
     public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
         accessPolicy.requireAdmin(actor);
-        if (!saleQueryPort.courseExists(courseId)) throw new CourseNotFound(courseId);
+        if (!saleQueryPort.courseExists(courseId)) throw new CourseNotFoundException(courseId);
 
         Sale sale = Sale.register(UUID.randomUUID().toString(), courseId, amount, paidAt);
         saleRepository.save(sale);
@@ -257,19 +257,19 @@ public class RegisterSaleUseCase {
 | # | 케이스 | 기대 |
 | --- | --- | --- |
 | 1 | 취소 없는 판매에 30,000 취소 | 통과. `cancelledTotal()` 30,000, 상태 `PARTIAL` |
-| 2 | 80,000 판매에 30,000 후 60,000 | **`RefundAmountExceeded`.** 누적 판정이 없으면 통과해 버린다 |
+| 2 | 80,000 판매에 30,000 후 60,000 | **`RefundAmountExceededException`.** 누적 판정이 없으면 통과해 버린다 |
 | 3 | 80,000 판매에 80,000 전액 | 통과. 상태 `FULL`. `>=`로 잘못 쓰면 여기서 걸린다 |
 | 4 | 80,000 판매에 30,000 + 50,000 | 통과. 합계가 정확히 원결제액이다 |
 | 5 | `cancels()` 반환값 수정 시도 | `UnsupportedOperationException`. 외부에서 불변식을 우회할 수 없다 |
-| 6 | 30,000 취소가 있는 80,000 판매에 `Long.MAX_VALUE` | **`RefundAmountExceeded`.** 덧셈으로 쓰면 오버플로로 통과한다 |
+| 6 | 30,000 취소가 있는 80,000 판매에 `Long.MAX_VALUE` | **`RefundAmountExceededException`.** 덧셈으로 쓰면 오버플로로 통과한다 |
 
 ## 파일
 
-`domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceeded.java`
-  (`RefundAmountExceeded`는 **여기에만** 만든다. 4.1은 만들지 않는다)
+`domain/sales/Sale.java`, `Cancel.java`, `SaleRepository.java`, `RefundAmountExceededException.java`
+  (`RefundAmountExceededException`는 **여기에만** 만든다. 4.1은 만들지 않는다)
 `application/port/out/SalesQueryPort.java`, `SaleRecord.java`
 `adapter/out/persistence/SaleRepositoryJpaAdapter.java`, `SalesQueryJpaAdapter.java`
-`application/sale/RegisterSaleUseCase.java`
+`application/sales/RegisterSaleUseCase.java`
 `src/test/java/.../domain/sales/SaleTest.java`
 
 ## 완료 기준
@@ -281,8 +281,8 @@ public class RegisterSaleUseCase {
 3. `domain/sales`에 Spring 애노테이션, JPA 애노테이션, Lombok이 없다.
 3-b. `adapter/out/persistence`의 새 클래스가 Task 2와 같이 `@RequiredArgsConstructor`를 쓴다.
 3-c. `SalesQueryJpaAdapter`에 `CourseJpaRepository` 필드가 추가됐다.
-4. 없는 `courseId`가 `CourseNotFound`를 던진다.
-5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
+4. 없는 `courseId`가 `CourseNotFoundException`를 던진다.
+5. CREATOR가 호출하면 `ActorAccessDeniedException`가 난다.
 6. 반환된 ID가 UUID 형식이고 시드 ID와 충돌하지 않는다.
 7. `findById`가 취소까지 적재한다. 부분 적재하지 않는다.
 7-b. 등록·취소 유스케이스에 `@Transactional`이 있다.

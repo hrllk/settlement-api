@@ -2,7 +2,7 @@ package com.liveclass.settlement.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorContext;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,7 @@
 package com.liveclass.settlement.application.settlement;
 
-import com.liveclass.settlement.application.actor.ActorAccessPolicy;
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorAccessPolicy;
+import com.liveclass.settlement.application.access.ActorContext;
 import com.liveclass.settlement.domain.settlement.SettlementPeriod;
 import com.liveclass.settlement.domain.settlement.SettlementSummary;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class MonthlySettlementUseCase {
 
-    private final ActorAccessPolicy accessPolicy;
-    private final SettlementQuery query;
+    private final ActorAccessPolicy actorAccessPolicy;
+    private final SettlementQuery settlementQuery;
 
     /**
      * 연월을 {@code String}으로 받는다. {@code @PathVariable YearMonth}로 바인딩하면
@@ -25,10 +25,10 @@ public class MonthlySettlementUseCase {
      */
     @Transactional(readOnly = true)
     public SettlementSummary settle(ActorContext actor, String creatorId, String yearMonth) {
-        accessPolicy.requireSelfOrAdmin(actor, creatorId);
+        actorAccessPolicy.requireSelfOrAdmin(actor, creatorId);
 
         SettlementPeriod period = SettlementPeriod.ofYearMonth(yearMonth);
-        SettlementSummary summary = query.summarize(period, creatorId);
+        SettlementSummary summary = settlementQuery.summarize(period, creatorId);
 
         log.info("monthly settlement: creatorId={}, yearMonth={}, payout={}, actorId={}",
                 creatorId, yearMonth, summary.payout(), actor.actorId());

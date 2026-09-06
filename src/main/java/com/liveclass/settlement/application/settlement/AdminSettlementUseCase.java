@@ -1,7 +1,7 @@
 package com.liveclass.settlement.application.settlement;
 
-import com.liveclass.settlement.application.actor.ActorAccessPolicy;
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorAccessPolicy;
+import com.liveclass.settlement.application.access.ActorContext;
 import com.liveclass.settlement.application.port.out.SalesQueryPort;
 import com.liveclass.settlement.domain.settlement.SettlementPeriod;
 import com.liveclass.settlement.domain.settlement.SettlementSummary;
@@ -17,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AdminSettlementUseCase {
 
-    private final ActorAccessPolicy accessPolicy;
-    private final SalesQueryPort queryPort;
-    private final SettlementQuery query;
+    private final ActorAccessPolicy actorAccessPolicy;
+    private final SalesQueryPort salesQueryPort;
+    private final SettlementQuery settlementQuery;
 
     /**
      * <b>기간 전체를 단일 구간으로 계산한다. 월별로 계산해 더하지 않는다.</b>
@@ -34,14 +34,14 @@ public class AdminSettlementUseCase {
      */
     @Transactional(readOnly = true)
     public AdminSettlement aggregate(ActorContext actor, String from, String to) {
-        accessPolicy.requireAdmin(actor);
+        actorAccessPolicy.requireAdmin(actor);
 
         SettlementPeriod period = SettlementPeriod.ofDateRange(from, to);
 
         List<CreatorPayout> creators = new ArrayList<>();
         long totalPayout = 0;
-        for (String creatorId : queryPort.findAllCreatorIds()) {   // id 오름차순
-            SettlementSummary summary = query.summarize(period, creatorId);
+        for (String creatorId : salesQueryPort.findAllCreatorIds()) {   // id 오름차순
+            SettlementSummary summary = settlementQuery.summarize(period, creatorId);
             creators.add(new CreatorPayout(creatorId, summary));
             totalPayout += summary.payout();
         }

@@ -33,7 +33,7 @@ public class CourseEntity {
 
 **`courses`는 판매를 크리에이터에 연결하는 유일한 경로다.** 판매는 `course_id`만 갖는다. `findSales(from, to, creatorId)`는 `sales → courses`를 조인해 `creator_id`로 좁힌다. `findCancels`는 `cancels → sales → courses`로 한 단계 더 간다.
 
-Task 4의 `CourseNotFound` 판정도 이 테이블을 읽는다. 없는 강의로 판매를 등록하는 요청을 404로 거부하려면 존재 여부를 조회할 수 있어야 한다.
+Task 4의 `CourseNotFoundException` 판정도 이 테이블을 읽는다. 없는 강의로 판매를 등록하는 요청을 404로 거부하려면 존재 여부를 조회할 수 있어야 한다.
 
 ## 판매에 `creator_id`를 비정규화하지 않는 이유
 

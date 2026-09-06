@@ -10,7 +10,7 @@
 요구 환경: **Java 21**. Gradle은 설치하지 않아도 된다 (Wrapper 포함).
 
     ./gradlew bootRun     # http://localhost:8080
-    ./gradlew test        # 테스트 97건
+    ./gradlew test        # 테스트 108건
 
 H2 콘솔: http://localhost:8080/h2-console
   JDBC URL  jdbc:h2:mem:creator-settlement

@@ -4,6 +4,7 @@ import com.liveclass.settlement.application.port.out.SalesQueryPort;
 import com.liveclass.settlement.domain.settlement.SettlementCalculator;
 import com.liveclass.settlement.domain.settlement.SettlementPeriod;
 import com.liveclass.settlement.domain.settlement.SettlementSummary;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,13 +20,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SettlementQuery {
 
-    private final SalesQueryPort queryPort;
-    private final SettlementCalculator calculator;
+    private final SalesQueryPort salesQueryPort;
+    private final SettlementCalculator settlementCalculator;
 
     public SettlementSummary summarize(SettlementPeriod period, String creatorId) {
-        return calculator.calculate(
+        Instant from = period.fromInclusive();
+        Instant to = period.toExclusive();
+        return settlementCalculator.calculate(
                 period,
-                queryPort.findSales(period.fromInclusive(), period.toExclusive(), creatorId),
-                queryPort.findCancels(period.fromInclusive(), period.toExclusive(), creatorId));
+                salesQueryPort.findSales(from, to, creatorId),
+                salesQueryPort.findCancels(from, to, creatorId));
     }
 }

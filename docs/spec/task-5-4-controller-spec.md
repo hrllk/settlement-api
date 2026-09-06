@@ -25,7 +25,7 @@ public class SettlementController {
 
 ## 연월과 일자를 `String`으로 받는다
 
-**`@PathVariable YearMonth`를 쓰면 안 된다.** Spring이 바인딩 단계에서 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriod`가 영영 안 걸린다.
+**`@PathVariable YearMonth`를 쓰면 안 된다.** Spring이 바인딩 단계에서 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriodException`가 영영 안 걸린다.
 
 `2025-13`의 거부는 도메인 규칙이다. Task 3의 `SettlementPeriod`가 판정을 소유하고, 그래야 오류 응답이 다른 도메인 실패와 같은 모양으로 나간다. 프레임워크가 먼저 거부하면 `{code: "INVALID_SETTLEMENT_PERIOD"}` 대신 Spring 기본 본문이 나가거나, 전역 처리기에 예외 하나를 더 등록해야 한다.
 

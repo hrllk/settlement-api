@@ -2,7 +2,7 @@
 
 온라인 강의 플랫폼의 크리에이터 정산 시스템. 판매·취소를 기록하고 기간별 정산을 계산한다.
 
-Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 97건.**
+Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테스트 108건.**
 
 > **먼저 읽을 것이 하나 있다.** 운영자 기간 집계는 **월별 정산의 합이 아니다.** creator-2의 1~3월이 운영자 조회에서 48,000원, 월별 조회 세 번의 합으로는 36,000원이다. 버그가 아니라 의도한 계산 방식이다. 근거는 [가정 1](#1-운영자-기간-집계는-월별-정산의-합이-아니다)에 있다.
 
@@ -14,7 +14,7 @@ Spring Boot 4.1.1 / Java 21 / H2 인메모리 / 헥사고날 아키텍처. **테
 
 ```bash
 ./gradlew bootRun     # http://localhost:8080
-./gradlew test        # 97건
+./gradlew test        # 108건
 ```
 
 `build.gradle`의 toolchain이 21로 고정돼 있다. Java 17에서 돌리면 Gradle이 툴체인을 내려받으려다 실패하고, 실패 메시지에 원인이 안 드러난다.
@@ -147,9 +147,10 @@ curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
 | `SALE_NOT_FOUND` | 404 | 없는 판매에 취소 |
 | `COURSE_NOT_FOUND` | 404 | 없는 강의로 판매 등록 |
 | `REFUND_AMOUNT_EXCEEDED` | 409 | 누적 환불이 원결제액 초과 |
+| `CANCEL_BEFORE_PAYMENT` | 409 | 취소 시각이 결제 시각보다 이름 |
 | `ACTOR_ACCESS_DENIED` | 403 | 타인 자원 또는 운영자 전용 |
-| `INVALID_SETTLEMENT_PERIOD` | 400 | `2025-13`, 종료일 < 시작일 |
-| `VALIDATION_FAILED` | 400 | 금액 0 이하, 필수 필드 누락 |
+| `INVALID_SETTLEMENT_PERIOD` | 400 | `2025-13`, 종료일 < 시작일, 지원 범위 밖 날짜 |
+| `VALIDATION_FAILED` | 400 | 금액 0 이하 또는 10억 원 초과, 필수 필드 누락 |
 | `MALFORMED_REQUEST` | 400 | 오프셋 없는 시각 |
 | `INVALID_ACTOR_HEADER` | 400 | 액터 헤더 누락·형식 오류 |
 | `MISSING_PARAMETER` | 400 | `from` 또는 `to` 누락 |
@@ -169,23 +170,60 @@ curl -s localhost:8080/api/creators/creator-1/settlements/2025-03 \
 
 ## 데이터 모델
 
+엔드포인트 5개의 호출 흐름은 [`docs/sequences.md`](docs/sequences.md)에 시퀀스 다이어그램으로 있다.
+
 설계 결정 10건과 근거는 [`docs/persistence-decisions.md`](docs/persistence-decisions.md)에 있다. 여기서는 데이터 모델만 추린다.
 
-```text
-creators (id, name)
-    ▲ creator_id
-courses  (id, creator_id, title)
-    ▲ course_id
-sales    (id, course_id, amount, paid_at)      idx (course_id, paid_at)
-    ▲ sale_id
-cancels  (id, sale_id, amount, cancelled_at)   idx (sale_id, cancelled_at)
+```mermaid
+erDiagram
+    creators ||--o{ courses : "소유"
+    courses  ||--o{ sales   : "판매"
+    sales    ||--o{ cancels : "취소"
+
+    creators {
+        string id PK
+        string name
+    }
+    courses {
+        string id PK
+        string creator_id "idx_courses_creator"
+        string title
+    }
+    sales {
+        string id PK
+        string course_id "idx (course_id, paid_at)"
+        long amount
+        instant paid_at
+    }
+    cancels {
+        string id PK
+        string sale_id "idx (sale_id, cancelled_at)"
+        long amount
+        instant cancelled_at
+    }
 ```
 
 **판매는 크리에이터를 직접 갖지 않는다.** 강의를 거쳐 안다. 비정규화하면 조인이 사라지지만 강의 소유자가 바뀔 때 판매 행 전부를 같이 고쳐야 하고, 안 고치면 **과거 정산이 조용히 틀어진다.** 7건 규모에서 조인 비용이 0이라 정규화를 택했다.
 
 **환불 상태 컬럼이 없다.** 취소 합계에서 매번 계산한다. 저장하면 취소가 하나 더 들어올 때 갱신을 빠뜨리는 경로가 생긴다.
 
-**FK 제약을 걸지 않았다.** 없는 강의로 판매를 등록하는 것은 애플리케이션이 `CourseNotFound` 404로 막는다. DB 제약에 맡기면 `DataIntegrityViolationException`이 500으로 새어 나간다.
+**FK 제약을 걸지 않았다.** 없는 강의로 판매를 등록하는 것은 애플리케이션이 `CourseNotFoundException` 404로 막는다. DB 제약에 맡기면 `DataIntegrityViolationException`이 500으로 새어 나간다.
+
+### 조회 경로
+
+어느 조회가 어느 테이블을 거쳐 어느 시간 컬럼으로 좁히는지.
+
+| 조회 | 경로 | 기간 필터 컬럼 |
+| --- | --- | --- |
+| 기간 내 판매 (정산·목록) | `sales → courses` | `paid_at` |
+| 기간 내 취소 (정산) | `cancels → sales → courses` | `cancelled_at` |
+| 판매별 전체 취소 (환불 상태) | `cancels` | **없음** |
+| 크리에이터 전체 (실적 0 포함) | `creators` | 없음 |
+| 강의 존재 확인 (등록 검증) | `courses` | 없음 |
+
+**세 번째 행의 "없음"이 핵심이다.** 환불 상태는 기간의 속성이 아니라 판매의 속성이라 시간 조건을 걸지 않는다. 여기에 조건을 넣으면 `sale-5`를 1월로 조회할 때 `FULL`이 아니라 `NONE`이 나온다.
+
+위 두 행은 기준 컬럼이 서로 다르다. 이중 집계 기준이 쿼리 층에서 어떻게 생겼는지가 이 표다.
 
 ### 초기 데이터 17행
 
@@ -254,6 +292,24 @@ cancels  (id, sale_id, amount, cancelled_at)   idx (sale_id, cancelled_at)
 ```
 
 응답의 `to`는 요청 문자열을 그대로 되돌려준 것이지 내부의 `toExclusive`가 아니다.
+
+### 월 경계 타임라인
+
+시드에서 KST와 UTC의 날짜가 갈리는 레코드는 `sale-5` 하나뿐이다.
+
+```text
+          KST 2025-01                    │          KST 2025-02
+├─────────────────────────────────────────)├────────────────────────────
+2024-12-31T15:00Z            2025-01-31T15:00Z            2025-02-28T15:00Z
+                                    ▲
+                    sale-5   2025-01-31T14:30Z  (KST 01-31 23:30)
+                    경계 30분 전  →  1월 귀속
+                                                  ▲
+                                cancel-3   2025-02-03T01:00Z  (KST 02-03 10:00)
+                                                  →  2월 귀속
+```
+
+**같은 거래인데 판매는 1월, 환불은 2월이다.** `)` 기호가 상한 배제다. 1월 구간의 끝과 2월 구간의 시작이 같은 순간이고, 그 순간은 2월에만 속한다.
 
 ### 저장은 `Instant`, 해석은 KST
 
@@ -333,13 +389,13 @@ DB에는 UTC 순간을 저장한다. KST 연월·일자를 `Instant` 구간으�
 
 **9. 판매·취소 등록을 ADMIN으로 제한했다.** 원본에 명시가 없다. 크리에이터가 자기 강의의 판매를 임의로 등록할 수 있으면 **정산을 스스로 부풀릴 수 있다.** 등록은 결제 시스템이 하는 일이라고 봤다.
 
-**10. 오류 포맷은 RFC 9457이고 `RefundAmountExceeded`는 409다.** 포맷을 발명하지 않고 Spring 내장 `ProblemDetail`을 쓴다. 409를 고른 것은 요청 형식이 아니라 **자원 상태와의 충돌**이기 때문이다 — 400으로 두면 Bean Validation 실패와 구분되지 않는다.
+**10. 오류 포맷은 RFC 9457이고 `RefundAmountExceededException`는 409다.** 포맷을 발명하지 않고 Spring 내장 `ProblemDetail`을 쓴다. 409를 고른 것은 요청 형식이 아니라 **자원 상태와의 충돌**이기 때문이다 — 400으로 두면 Bean Validation 실패와 구분되지 않는다.
 
 ### 검증하지 않는 것 (11~14)
 
-**11. 취소 동시성을 보장하지 않는다.** 같은 판매에 취소 두 건이 동시에 오면 각자 같은 상태를 읽고 각자 합계 검사를 통과할 수 있다. 잔여 50,000원에 40,000원짜리 두 건이 동시에 오면 합계 80,000원이 원결제를 넘긴다. **규칙이 도메인에 있다는 것과 원자적으로 적용된다는 것은 다른 문제다.** 실무라면 판매 행에 `@Version`을 두거나 `SELECT ... FOR UPDATE`로 막을 지점이다.
+**11. 취소 동시성을 보장하지 않는다.** 같은 판매에 취소 두 건이 동시에 오면 각자 같은 상태를 읽고 각자 합계 검사를 통과할 수 있다. 잔여 50,000원에 40,000원짜리 두 건이 동시에 오면 합계 80,000원이 원결제를 넘긴다. **규칙이 도메인에 있다는 것과 원자적으로 적용된다는 것은 다른 문제다.** **실측으로 재현했다** — 80,000원 판매(기존 취소 30,000원)에 40,000원 취소를 동시에 두 건 넣으면 둘 다 201이고 누적 110,000원이 된다. 막으려면 판매 행을 `SELECT ... FOR UPDATE`로 잠가야 한다. **`@Version` 낙관적 락은 이 구조에서 듣지 않는다** — 충돌하는 쓰기가 `sales` UPDATE가 아니라 `cancels` INSERT라 부모 행 버전이 오르지 않고, 어댑터가 로드한 엔티티 대신 같은 값의 새 엔티티를 merge해 dirty check도 UPDATE를 내지 않는다.
 
-**12. 취소 시각이 결제 시각보다 이른 경우를 검증하지 않는다.** 과거로 소급된 취소가 들어갈 수 있다.
+**12. 미래 시각을 막지 않는다.** `paidAt`·`cancelledAt`이 현재보다 뒤여도 받는다. 결제 이전 취소는 409 `CANCEL_BEFORE_PAYMENT`로 거부하지만, 미래 방향에는 기준 시각이 없어 열어 뒀다.
 
 **13. ADMIN이 임의의 `paidAt`으로 과거 판매를 등록할 수 있다.** 시드 재현에 필요하지만, 이미 마감된 달의 정산을 사후에 바꿀 수 있다는 뜻이다.
 
@@ -441,7 +497,7 @@ DB에는 UTC 순간을 저장한다. KST 연월·일자를 `Instant` 구간으�
 
 - **쓰기 어댑터 부재.** Task 2가 만드는 포트는 조회 4개뿐인데 Task 4는 저장과 ID 조회가 필요했다. 11개 섹션 검수가 놓친 구현 블로커였다.
 - **순환 의존.** Task 4가 Task 5의 접근 정책을 호출하는데 Task 5는 Task 4의 전역 예외 처리기를 의존했다.
-- **헥사고날 방향 역전.** 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.actor`로 옮기고 해석기만 어댑터에 남겼다.
+- **헥사고날 방향 역전.** 유스케이스가 `ActorContext`를 받으면서 `application → adapter.in` 의존이 생겼다. 액터 타입을 `application.access`로 옮기고 해석기만 어댑터에 남겼다.
 - **테스트 소유권 중복.** 같은 시나리오를 두 Task가 각자 단언하고 있었다.
 - **Boot 4 모듈 분할.** `@DataJpaTest`·`@AutoConfigureMockMvc`가 `spring-boot-test-autoconfigure` jar에 없다. jar를 열어 확인했다. 모르고 갔으면 컴파일 오류로 시간을 태웠을 항목이다.
 

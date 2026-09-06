@@ -1,4 +1,4 @@
-package com.liveclass.settlement.application.actor;
+package com.liveclass.settlement.application.access;
 
 import java.util.Optional;
 

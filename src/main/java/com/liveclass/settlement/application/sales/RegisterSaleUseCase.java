@@ -1,9 +1,9 @@
-package com.liveclass.settlement.application.sale;
+package com.liveclass.settlement.application.sales;
 
-import com.liveclass.settlement.application.actor.ActorAccessPolicy;
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorAccessPolicy;
+import com.liveclass.settlement.application.access.ActorContext;
 import com.liveclass.settlement.application.port.out.SalesQueryPort;
-import com.liveclass.settlement.domain.sales.CourseNotFound;
+import com.liveclass.settlement.domain.sales.CourseNotFoundException;
 import com.liveclass.settlement.domain.sales.Sale;
 import com.liveclass.settlement.domain.sales.SaleRepository;
 import java.time.Instant;
@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class RegisterSaleUseCase {
 
-    private final ActorAccessPolicy accessPolicy;
-    private final SalesQueryPort queryPort;
+    private final ActorAccessPolicy actorAccessPolicy;
+    private final SalesQueryPort salesQueryPort;
     private final SaleRepository saleRepository;
 
     /**
@@ -33,9 +33,9 @@ public class RegisterSaleUseCase {
      */
     @Transactional
     public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
-        accessPolicy.requireAdmin(actor);
-        if (!queryPort.courseExists(courseId)) {
-            throw new CourseNotFound(courseId);
+        actorAccessPolicy.requireAdmin(actor);
+        if (!salesQueryPort.courseExists(courseId)) {
+            throw new CourseNotFoundException(courseId);
         }
 
         Sale sale = Sale.register(UUID.randomUUID().toString(), courseId, amount, paidAt);

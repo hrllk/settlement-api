@@ -108,7 +108,7 @@ Task 3 기준표를 그대로 옮긴다. `application.yml`의 `defer-datasource-
 | 2.1 | 판매·취소 엔티티 | `SaleEntity`, `CancelEntity`. `long` 금액, `Instant` 시간, `String` ID |
 | 2.2 | 크리에이터·강의 엔티티 | `CreatorEntity`, `CourseEntity`. creator-3을 운영자 목록에 0원으로 넣으려면 존재 자체가 조회돼야 한다 |
 | 2.3 | 인덱스 정의 | `(course_id, paid_at)`, `(sale_id, cancelled_at)` — 현행 유지 |
-| 2.4 | Spring Data 리포지토리 | 판매·취소·크리에이터·**강의** 4종. 반열린 구간 쿼리 메서드. 강의 리포지토리는 Task 4의 `CourseNotFound` 판정에 필요하다 |
+| 2.4 | Spring Data 리포지토리 | 판매·취소·크리에이터·**강의** 4종. 반열린 구간 쿼리 메서드. 강의 리포지토리는 Task 4의 `CourseNotFoundException` 판정에 필요하다 |
 | 2.5 | `SalesQueryPort` JPA 어댑터 | 4개 메서드 구현. 엔티티 → 값 타입 변환. `null` 반환 금지, 빈 컬렉션 입력 방어. **Task 3 포트 확정 후 착수** |
 | 2.6 | `data.sql` 17행 | KST 주석 병기 |
 | 2.7 | 시드 재현성 테스트 | 건수, 취소↔판매 연결, `sale-5` 귀속월 단언 |
@@ -150,7 +150,7 @@ Task 3 기준표를 그대로 옮긴다. `application.yml`의 `defer-datasource-
 | 1 | 사전 | 2.3이 인덱스를 뒤집으라고 하나 Task 3이 철회한 처방 | 현행 `(course_id, paid_at)`, `(sale_id, cancelled_at)` 유지. `findCancelsBySaleIds`는 시간 조건이 없어 `sale_id` 선행이 필요 |
 | 2 | CEO §2 | `findCancelsBySaleIds(emptyList())` → `IN ()` | 어댑터가 쿼리 없이 빈 리스트 반환 |
 | 3 | CEO §6 | 시드 `sale-1` 형태가 형식 제약으로 읽힘 | 고정값일 뿐이며 신규 판매는 서버 생성 UUID임을 명시 |
-| 4 | OV | 리포지토리 3종으로는 `CourseNotFound` 판정 불가 | 강의 리포지토리 추가, 4종 |
+| 4 | OV | 리포지토리 3종으로는 `CourseNotFoundException` 판정 불가 | 강의 리포지토리 추가, 4종 |
 | 5 | OV | 쓰기 어댑터 소유자 부재 | 커맨드 포트와 어댑터는 Task 4. Task 2는 리포지토리까지 |
 
 시드 17행이 Task 3 기준표를 재현하는지 계산으로 검산했고 Codex가 독립 재검산했다. 월별 6행, 운영자 2행 전부 일치.

@@ -42,7 +42,7 @@ public class MonthlySettlementUseCase {
 
 ## 연월을 `String`으로 받는다
 
-`SettlementPeriod.ofYearMonth(String)`가 파싱과 검증을 소유한다. `2025-13`, `2025/03`, 빈 값이 `InvalidSettlementPeriod`가 되고 Task 4의 처리기가 400으로 바꾼다.
+`SettlementPeriod.ofYearMonth(String)`가 파싱과 검증을 소유한다. `2025-13`, `2025/03`, 빈 값이 `InvalidSettlementPeriodException`가 되고 Task 4의 처리기가 400으로 바꾼다.
 
 컨트롤러가 `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 도메인 판정이 영영 안 걸린다.
 
