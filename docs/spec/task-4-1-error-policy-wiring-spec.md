@@ -1,6 +1,6 @@
 # Task 4.1 — 예외·전역 처리기·접근 정책·빈 등록 명세
 
-부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 형제 의존 없음. Task 1(액터 타입)과 Task 3(`FeePolicy`, `SettlementCalculator`, `InvalidSettlementPeriod`)이 선행 · 25분
+부모: [`task-4-sales-cancel-api-spec.md`](./task-4-sales-cancel-api-spec.md) · 형제 의존 없음. Task 1(액터 타입)과 Task 3(`FeePolicy`, `SettlementCalculator`, `InvalidSettlementPeriodException`)이 선행 · 25분
 
 **Task 4에서 가장 먼저 한다.** 뒤 서브태스크 전부와 Task 5가 여기에 의존한다.
 
@@ -9,37 +9,37 @@
 ```java
 package com.liveclass.settlement.domain.settlement;
 
-public class SaleNotFound extends RuntimeException {
-    public SaleNotFound(String saleId) { super("sale not found: " + saleId); }
+public class SaleNotFoundException extends RuntimeException {
+    public SaleNotFoundException(String saleId) { super("sale not found: " + saleId); }
 }
-public class CourseNotFound extends RuntimeException { ... }
+public class CourseNotFoundException extends RuntimeException { ... }
 ```
 
-**`RefundAmountExceeded`는 여기서 만들지 않는다.** 4.2가 `domain/sales`에 만든다. 그 애그리게이트가 던지는 예외이므로 던지는 쪽에 둔다.
+**`RefundAmountExceededException`는 여기서 만들지 않는다.** 4.2가 `domain/sales`에 만든다. 그 애그리게이트가 던지는 예외이므로 던지는 쪽에 둔다.
 
 이 구분이 중요한 이유는 **같은 이름의 클래스를 두 패키지에 만들면 컴파일은 통과하고 런타임이 틀리기 때문이다.** 전역 처리기가 `domain.settlement` 것을 잡도록 import하고 애그리게이트가 `domain.sales` 것을 던지면, `@ExceptionHandler`가 매칭되지 않아 409 대신 500이 나간다. 4.8 케이스 6이 잡긴 하지만 원인을 찾는 데 시간이 든다.
 
-전역 처리기는 `com.liveclass.settlement.domain.sales.RefundAmountExceeded`를 import한다.
+전역 처리기는 `com.liveclass.settlement.domain.sales.RefundAmountExceededException`를 import한다.
 
-둘 다 `domain.settlement`에 둔다. Task 3의 `InvalidSettlementPeriod`와 같은 자리다. **Spring 애노테이션을 붙이지 않는다** — `@ResponseStatus`를 쓰면 도메인이 HTTP를 알게 되고, 상태 코드가 처리기와 애노테이션 두 곳에 흩어진다.
+둘 다 `domain.settlement`에 둔다. Task 3의 `InvalidSettlementPeriodException`와 같은 자리다. **Spring 애노테이션을 붙이지 않는다** — `@ResponseStatus`를 쓰면 도메인이 HTTP를 알게 되고, 상태 코드가 처리기와 애노테이션 두 곳에 흩어진다.
 
 ## 2. 액터 타입을 `application`으로 옮긴다
 
-Task 1은 `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`를 전부 `adapter.in.actor`에 두었다. 그때는 컨트롤러만 쓰는 타입이라 맞았다.
+Task 1은 `ActorContext`, `ActorRole`, `ActorContextArgumentResolver`를 전부 `adapter.in.web`에 두었다. 그때는 컨트롤러만 쓰는 타입이라 맞았다.
 
 **이제 유스케이스가 `ActorContext`를 받으므로 `application → adapter.in` 의존이 생긴다.** 헥사고날에서 인바운드 어댑터는 application을 봐야 하고 반대는 안 된다. PRD가 명시한 아키텍처 제약이라 채점자가 보는 지점이다.
 
 | 타입 | 이동 후 |
 | --- | --- |
-| `ActorContext`, `ActorRole` | `application.actor` |
-| `ActorAccessDenied`, `ActorAccessPolicy` | `application.actor` |
-| `ActorContextArgumentResolver` | `adapter.in.actor` (그대로) |
+| `ActorContext`, `ActorRole` | `application.access` |
+| `ActorAccessDeniedException`, `ActorAccessPolicy` | `application.access` |
+| `ActorContextArgumentResolver` | `adapter.in.actor` (그대로) → 이후 `adapter.in.web`으로 이동 |
 
 "이 요청을 누가 보냈는가"는 유스케이스의 입력이지 HTTP의 개념이 아니다. **헤더에서 꺼내는 해석기만 어댑터다.**
 
 Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직은 안 바뀐다.
 
-**단 "테스트가 그대로 돈다"는 아니다.** `ActorContextArgumentResolverTest`는 `package com.liveclass.settlement.adapter.in.actor`라 `ActorContext`와 `ActorRole`을 **같은 패키지로 쓰고 있어 import가 없다.** 두 타입이 `application.actor`로 가면 그 테스트가 컴파일되지 않는다.
+**단 "테스트가 그대로 돈다"는 아니다.** `ActorContextArgumentResolverTest`는 `package com.liveclass.settlement.adapter.in.web`라 `ActorContext`와 `ActorRole`을 **같은 패키지로 쓰고 있어 import가 없다.** 두 타입이 `application.access`로 가면 그 테스트가 컴파일되지 않는다.
 
 고칠 곳은 셋이다.
 
@@ -50,28 +50,30 @@ Task 1 변경은 패키지 이동과 import 경로뿐이다. 로직은 안 바�
 
 **`WebMvcConfig`는 고치지 않는다.** 실물을 확인했다 — `ActorContextArgumentResolver` 하나만 import하고 `ActorContext`나 `ActorRole`을 직접 참조하지 않는다. 해석기가 `adapter.in.actor`에 남으므로 그 import도 그대로다.
 
+**이후 변경.** 해석기를 `adapter.in.web`으로 옮겼다. `adapter.in` 아래는 전달 기술이 오는 자리인데 `actor`는 전달 기술이 아니라 `web`과 축이 어긋났다. 그 이동으로 `WebMvcConfig`의 import 한 줄이 바뀌었다. **이 절의 `adapter.in.actor`·`application.actor`는 Task 4.1 시점의 경로다.** 현재는 각각 `adapter.in.web`, `application.access`이고, 액터 타입을 담은 패키지는 담은 것이 아니라 용도(접근 통제)로 이름을 바꿨다.
+
 테스트를 옮기지 않는 이유는 그게 해석기를 테스트하기 때문이다. 해석기는 어댑터에 남으므로 테스트도 남는다.
 
 ## 3. 접근 예외와 정책
 
 ```java
-package com.liveclass.settlement.application.actor;
+package com.liveclass.settlement.application.access;
 
-public class ActorAccessDenied extends RuntimeException { ... }
+public class ActorAccessDeniedException extends RuntimeException { ... }
 
 @Component
 public class ActorAccessPolicy {
     public void requireSelfOrAdmin(ActorContext actor, String creatorId) {
         if (actor.role() == ActorRole.ADMIN) return;
-        if (!actor.actorId().equals(creatorId)) throw new ActorAccessDenied(...);
+        if (!actor.actorId().equals(creatorId)) throw new ActorAccessDeniedException(...);
     }
     public void requireAdmin(ActorContext actor) {
-        if (actor.role() != ActorRole.ADMIN) throw new ActorAccessDenied(...);
+        if (actor.role() != ActorRole.ADMIN) throw new ActorAccessDeniedException(...);
     }
 }
 ```
 
-**정책 구현이 Task 4에 있는 이유.** `ActorAccessDenied`의 정의와 403 변환이 여기 있으므로 그 예외를 던지는 코드도 같은 자리에 둔다. Task 5에 두면 Task 4가 Task 5를 호출하는데 Task 5는 Task 4의 전역 처리기를 기다리는 순환이 된다.
+**정책 구현이 Task 4에 있는 이유.** `ActorAccessDeniedException`의 정의와 403 변환이 여기 있으므로 그 예외를 던지는 코드도 같은 자리에 둔다. Task 5에 두면 Task 4가 Task 5를 호출하는데 Task 5는 Task 4의 전역 처리기를 기다리는 순환이 된다.
 
 **어느 엔드포인트에 무엇이 붙는지는 Task 5가 소유한다.** 이 클래스는 판정만 한다. 배치는 역할 매트릭스가 정한다.
 
@@ -106,10 +108,10 @@ public class GlobalExceptionHandler {
         return body;
     }
 
-    // 404 SaleNotFound, CourseNotFound
-    // 409 RefundAmountExceeded
-    // 403 ActorAccessDenied
-    // 400 InvalidSettlementPeriod
+    // 404 SaleNotFoundException, CourseNotFoundException
+    // 409 RefundAmountExceededException
+    // 403 ActorAccessDeniedException
+    // 400 InvalidSettlementPeriodException
     // 400 MethodArgumentNotValidException      ← Bean Validation
     // 400 ResponseStatusException              ← 액터 헤더 (Task 1)
     // 400 HttpMessageNotReadableException     ← 오프셋 없는 시각 등 역직렬화 실패
@@ -144,11 +146,11 @@ public class GlobalExceptionHandler {
 
 | 예외 | `code` | status |
 | --- | --- | ---: |
-| `SaleNotFound` | `SALE_NOT_FOUND` | 404 |
-| `CourseNotFound` | `COURSE_NOT_FOUND` | 404 |
-| `RefundAmountExceeded` | `REFUND_AMOUNT_EXCEEDED` | 409 |
-| `ActorAccessDenied` | `ACTOR_ACCESS_DENIED` | 403 |
-| `InvalidSettlementPeriod` | `INVALID_SETTLEMENT_PERIOD` | 400 |
+| `SaleNotFoundException` | `SALE_NOT_FOUND` | 404 |
+| `CourseNotFoundException` | `COURSE_NOT_FOUND` | 404 |
+| `RefundAmountExceededException` | `REFUND_AMOUNT_EXCEEDED` | 409 |
+| `ActorAccessDeniedException` | `ACTOR_ACCESS_DENIED` | 403 |
+| `InvalidSettlementPeriodException` | `INVALID_SETTLEMENT_PERIOD` | 400 |
 | `MethodArgumentNotValidException` | `VALIDATION_FAILED` | 400 |
 | `ResponseStatusException` | `INVALID_ACTOR_HEADER` | 예외가 든 값 |
 | `HttpMessageNotReadableException` | `MALFORMED_REQUEST` | 400 |
@@ -242,12 +244,12 @@ public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring�
 
 ## 파일
 
-`domain/sales/SaleNotFound.java`, `CourseNotFound.java`
-(`RefundAmountExceeded`는 4.2가 `domain/sales`에 만든다. 여기서 만들지 않는다)
-`src/test/java/.../adapter/in/actor/ActorContextArgumentResolverTest.java` (import 2줄 추가)
-`application/actor/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
-`application/actor/ActorAccessDenied.java`, `ActorAccessPolicy.java` (신규)
-`adapter/in/actor/ActorContextArgumentResolver.java` (import 경로만 수정)
+`domain/sales/SaleNotFoundException.java`, `CourseNotFoundException.java`
+(`RefundAmountExceededException`는 4.2가 `domain/sales`에 만든다. 여기서 만들지 않는다)
+`src/test/java/.../adapter/in/web/ActorContextArgumentResolverTest.java` (import 2줄 추가)
+`application/access/ActorContext.java`, `ActorRole.java` (Task 1에서 이동)
+`application/access/ActorAccessDeniedException.java`, `ActorAccessPolicy.java` (신규)
+`adapter/in/web/ActorContextArgumentResolver.java` (Task 4.1 시점에는 `adapter/in/actor`, 이후 이동)
 `adapter/in/web/GlobalExceptionHandler.java`
 (`ErrorResponse.java`는 만들지 않는다. Spring의 `ProblemDetail`을 쓴다)
 `config/DomainConfig.java`
@@ -265,4 +267,4 @@ public record FixedRateFeePolicy(int basisPoints) { }   // 도메인이 Spring�
 6-b. `domain` 패키지에 `org.springframework` import가 0건이다.
 7. `application` 패키지가 `adapter`를 import하지 않는다.
 8. Task 1의 기존 테스트 4건이 import 수정 후 통과한다.
-9. `RefundAmountExceeded`가 저장소 전체에 **하나만** 존재한다 (`domain/sales`).
+9. `RefundAmountExceededException`가 저장소 전체에 **하나만** 존재한다 (`domain/sales`).

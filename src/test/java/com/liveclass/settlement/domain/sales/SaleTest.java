@@ -46,7 +46,7 @@ class SaleTest {
         sale.cancel("c1", 30_000, at("11"));
 
         assertThatThrownBy(() -> sale.cancel("c2", 60_000, at("12")))
-                .isInstanceOf(RefundAmountExceeded.class)
+                .isInstanceOf(RefundAmountExceededException.class)
                 .hasMessageContaining("80000")
                 .hasMessageContaining("30000")
                 .hasMessageContaining("60000");
@@ -96,6 +96,27 @@ class SaleTest {
         sale.cancel("c1", 30_000, at("11"));
 
         assertThatThrownBy(() -> sale.cancel("c2", Long.MAX_VALUE, at("12")))
-                .isInstanceOf(RefundAmountExceeded.class);
+                .isInstanceOf(RefundAmountExceededException.class);
+    }
+
+    @Test
+    @DisplayName("결제보다 이른 취소는 거부한다")
+    void cancelBeforePaymentRejected() {
+        Sale sale = Sale.register("s1", "c1", 80_000, at("10"));
+
+        assertThatThrownBy(() -> sale.cancel("c1", 1_000, at("09")))
+                .isInstanceOf(CancelBeforePaymentException.class)
+                .hasMessageContaining("s1");
+        assertThat(sale.cancelledTotal()).isZero();
+    }
+
+    @Test
+    @DisplayName("결제와 같은 시각의 취소는 허용한다")
+    void cancelAtPaymentInstantAllowed() {
+        Sale sale = Sale.register("s1", "c1", 80_000, at("10"));
+
+        sale.cancel("c1", 1_000, at("10"));
+
+        assertThat(sale.cancelledTotal()).isEqualTo(1_000);
     }
 }

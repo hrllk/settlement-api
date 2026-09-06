@@ -19,14 +19,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SalesQueryJpaAdapter implements SalesQueryPort {
 
-    private final SaleJpaRepository sales;
-    private final CancelJpaRepository cancels;
-    private final CreatorJpaRepository creators;
-    private final CourseJpaRepository courses;
+    private final SaleJpaRepository saleJpaRepository;
+    private final CancelJpaRepository cancelJpaRepository;
+    private final CreatorJpaRepository creatorJpaRepository;
+    private final CourseJpaRepository courseJpaRepository;
 
     @Override
     public List<SaleData> findSales(Instant fromInclusive, Instant toExclusive, String creatorId) {
-        return sales.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
+        return saleJpaRepository.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
                 .stream()
                 .map(entity -> toSaleData(entity, creatorId))
                 .toList();
@@ -34,7 +34,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 
     @Override
     public List<CancelData> findCancels(Instant fromInclusive, Instant toExclusive, String creatorId) {
-        return cancels.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
+        return cancelJpaRepository.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
                 .stream()
                 .map(SalesQueryJpaAdapter::toCancelData)
                 .toList();
@@ -48,7 +48,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
             // creator-3의 2025-03이 그 경우다.
             return List.of();
         }
-        return cancels.findBySaleIdIn(saleIds)
+        return cancelJpaRepository.findBySaleIdIn(saleIds)
                 .stream()
                 .map(SalesQueryJpaAdapter::toCancelData)
                 .toList();
@@ -57,7 +57,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
     @Override
     public List<String> findAllCreatorIds() {
         // 정렬을 고정한다. 이 순서가 곧 운영자 응답 배열의 순서가 된다.
-        return creators.findAll(Sort.by("id"))
+        return creatorJpaRepository.findAll(Sort.by("id"))
                 .stream()
                 .map(CreatorEntity::getId)
                 .toList();
@@ -67,7 +67,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
     public List<SaleRecord> findSalesForListing(Instant fromInclusive, Instant toExclusive,
                                                 String creatorId) {
         // findSales와 같은 쿼리다. 매핑만 다르다.
-        return sales.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
+        return saleJpaRepository.findByCreatorAndPeriod(creatorId, fromInclusive, toExclusive)
                 .stream()
                 .map(SalesQueryJpaAdapter::toSaleRecord)
                 .toList();
@@ -75,7 +75,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
 
     @Override
     public boolean courseExists(String courseId) {
-        return courses.existsById(courseId);
+        return courseJpaRepository.existsById(courseId);
     }
 
     private static SaleRecord toSaleRecord(SaleEntity entity) {

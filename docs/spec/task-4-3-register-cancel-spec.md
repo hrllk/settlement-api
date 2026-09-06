@@ -13,7 +13,7 @@ public class RegisterCancelUseCase {
         accessPolicy.requireAdmin(actor);
 
         Sale sale = saleRepository.findById(saleId)
-                                  .orElseThrow(() -> new SaleNotFound(saleId));
+                                  .orElseThrow(() -> new SaleNotFoundException(saleId));
 
         Cancel cancel = sale.cancel(UUID.randomUUID().toString(), amount, cancelledAt);
         saleRepository.save(sale);
@@ -45,7 +45,7 @@ Task 3의 `RefundStatus.of`는 취소 합계가 원결제 **이상**이면 `FULL
 
 ## 취소 시각을 검증하지 않는다
 
-`cancelledAt`이 `paidAt`보다 이른 값도 받는다. 등록 순서를 강제하지 않으므로 과거로 소급된 취소가 들어갈 수 있고, 그러면 결제 전에 환불된 것처럼 보인다. 3시간 예산에서 막지 않고 **README 가정 17로 남긴다.** 실무라면 `cancelledAt >= paidAt`을 거부할 지점이다.
+`cancelledAt`이 `paidAt`보다 이르면 **애그리게이트가 거부한다**(`CancelBeforePaymentException` → 409 `CANCEL_BEFORE_PAYMENT`). 통과시키면 판매가 없던 달에 환불이 귀속돼 그 달 정산 예정액이 근거 없이 음수가 된다. 같은 시각은 허용한다 — 즉시 취소는 정상 거래다. 미래 방향은 기준 시각이 없어 열어 둔다.
 
 애그리게이트에 넣는다면 `cancel(...)`의 두 번째 불변식이 될 자리다. 넣지 않은 것은 예산 판단이지 설계 누락이 아니라는 점을 README에 명시한다.
 
@@ -53,20 +53,22 @@ Task 3의 `RefundStatus.of`는 취소 합계가 원결제 **이상**이면 `FULL
 
 **애그리게이트가 동시성을 풀어주지는 않는다.** 요청 둘이 동시에 오면 각자 `findById`로 같은 상태를 읽고 각자 검사를 통과한 뒤 둘 다 저장한다. 규칙이 도메인에 있다는 것과 그 규칙이 원자적으로 적용된다는 것은 다른 문제다.
 
-막으려면 `@Version` 낙관적 락이나 판매 행 잠금이 필요하다. 넣지 않으며 **README 가정 11로 남긴다.**
+막으려면 판매 행 잠금(`SELECT ... FOR UPDATE`)이 필요하다. **`@Version`은 듣지 않는다** — 충돌하는 쓰기가 `sales` UPDATE가 아니라 `cancels` INSERT라 부모 행 버전이 오르지 않고, 어댑터가 로드한 엔티티 대신 같은 값의 새 엔티티를 merge해 dirty check도 UPDATE를 내지 않는다. 넣지 않으며 **README 가정 11로 남긴다.**
 
 이 한계를 문서에 적는 것과 모르는 것은 다르다. 평가자가 보는 것은 "동시성을 처리했나"가 아니라 "동시성 문제를 인지했나"다.
 
 ## 파일
 
-`application/sale/RegisterCancelUseCase.java`.
+`application/sales/RegisterCancelUseCase.java`.
 
 테스트는 없다. 불변식 자체는 4.2의 `SaleTest`가 단위로 잠갔고, HTTP 경로는 4.8이 검증한다.
 
 ## 완료 기준
 
-1. 없는 판매가 `SaleNotFound`를 던진다.
+1. 없는 판매가 `SaleNotFoundException`를 던진다.
 2. 유스케이스에 금액 비교문이 없다. 판정이 전부 애그리게이트에 있다.
-3. `30,000 + 60,000 > 80,000`이 `RefundAmountExceeded`로 거부된다.
+3. `30,000 + 60,000 > 80,000`이 `RefundAmountExceededException`로 거부된다.
 4. 합계가 원결제액과 **같은** 전액 환불은 통과한다.
-5. CREATOR가 호출하면 `ActorAccessDenied`가 난다.
+5. 결제보다 이른 취소는 409 `CANCEL_BEFORE_PAYMENT`로 거부한다. 결제와 같은 시각은 통과한다.
+6. CREATOR가 취소를 시도하면 403 `ACTOR_ACCESS_DENIED`다.
+5. CREATOR가 호출하면 `ActorAccessDeniedException`가 난다.

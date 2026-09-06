@@ -1,6 +1,6 @@
 package com.liveclass.settlement.config;
 
-import com.liveclass.settlement.adapter.in.actor.ActorContextArgumentResolver;
+import com.liveclass.settlement.adapter.in.web.ActorContextArgumentResolver;
 import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;

@@ -13,7 +13,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
 
     public SettlementPeriod {
         if (fromInclusive == null || toExclusive == null || !fromInclusive.isBefore(toExclusive)) {
-            throw new InvalidSettlementPeriod("invalid period: [" + fromInclusive + ", " + toExclusive + ")");
+            throw new InvalidSettlementPeriodException("invalid period: [" + fromInclusive + ", " + toExclusive + ")");
         }
     }
 
@@ -25,7 +25,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
     }
 }
 
-public class InvalidSettlementPeriod extends RuntimeException { }
+public class InvalidSettlementPeriodException extends RuntimeException { }
 ```
 
 ## 동작
@@ -34,7 +34,7 @@ public class InvalidSettlementPeriod extends RuntimeException { }
 
 ```java
 private static String requireText(String raw, String field) {
-    if (raw == null || raw.isBlank()) throw new InvalidSettlementPeriod(field + " must not be blank: " + raw);
+    if (raw == null || raw.isBlank()) throw new InvalidSettlementPeriodException(field + " must not be blank: " + raw);
     return raw.strip();
 }
 ```
@@ -48,7 +48,7 @@ private static String requireText(String raw, String field) {
 
 `ofDateRange`는 `LocalDate` 비교로 역전을 먼저 거부한다. compact 생성자도 같은 불변식을 걸지만 그때는 원본 문자열이 없어 메시지가 `Instant`로 나온다. 같은 날은 허용한다(하루짜리 구간).
 
-`DateTimeParseException`은 잡아서 `InvalidSettlementPeriod`로 바꿔 던진다. 메시지에 거부된 입력값을 넣는다.
+`DateTimeParseException`은 잡아서 `InvalidSettlementPeriodException`로 바꿔 던진다. 메시지에 거부된 입력값을 넣는다.
 
 기간 길이에 상한을 두지 않는다. README에 가정으로 남긴다.
 
@@ -61,7 +61,7 @@ private static String requireText(String raw, String field) {
 | `ofDateRange("2025-03-31", "2025-03-01")` | 팩토리 `LocalDate` 비교 |
 | `new SettlementPeriod(늦은시각, 이른시각)` | compact 생성자 |
 
-`InvalidSettlementPeriod`는 이 프로젝트에서 사용자가 만들 수 있는 유일한 도메인 예외이며 Task 4가 400으로 변환한다.
+`InvalidSettlementPeriodException`는 이 프로젝트에서 사용자가 만들 수 있는 유일한 도메인 예외이며 Task 4가 400으로 변환한다.
 
 **웹 어댑터는 `String`으로 받아 팩토리에 그대로 넘긴다.** `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 이 예외가 걸리지 않는다.
 
@@ -77,7 +77,7 @@ private static String requireText(String raw, String field) {
 | **시작 경계 포함** | `2025-03-01T00:00:00.000+09:00` | 3월 포함 |
 | **종료 경계 포함** | `2025-01-31T23:59:59.999+09:00` | 1월 포함 |
 | **종료 경계 배제** | `2025-02-01T00:00:00.000+09:00` | 1월 **불포함**, 2월 포함 |
-| 기간 역전 | `"2025-03-31"`, `"2025-03-01"` | `InvalidSettlementPeriod` |
+| 기간 역전 | `"2025-03-31"`, `"2025-03-01"` | `InvalidSettlementPeriodException` |
 | 월 범위 초과 | `"2025-13"` | 〃 |
 | 형식 불일치 | `"2025/03"` | 〃 |
 | null·빈 값 | `null`, `""` | 〃 |
@@ -89,7 +89,7 @@ private static String requireText(String raw, String field) {
 
 ## 파일
 
-`domain/settlement/`에 `SettlementPeriod.java`, `InvalidSettlementPeriod.java`. 테스트는 `SettlementPeriodTest.java`. **이 서브태스크가 먼저 끝나면 `domain/.gitkeep`을 지운다.**
+`domain/settlement/`에 `SettlementPeriod.java`, `InvalidSettlementPeriodException.java`. 테스트는 `SettlementPeriodTest.java`. **이 서브태스크가 먼저 끝나면 `domain/.gitkeep`을 지운다.**
 
 ## 완료 기준
 

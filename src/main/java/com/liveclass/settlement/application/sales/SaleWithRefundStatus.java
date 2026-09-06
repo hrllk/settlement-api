@@ -1,4 +1,4 @@
-package com.liveclass.settlement.application.sale;
+package com.liveclass.settlement.application.sales;
 
 import com.liveclass.settlement.application.port.out.SaleRecord;
 import com.liveclass.settlement.domain.settlement.RefundStatus;

@@ -54,7 +54,7 @@ Task 3에 `SaleRecord` 오버로드를 추가하지 않는다. `SaleRecord`는 `
 ## 반환 타입
 
 ```java
-package com.liveclass.settlement.application.sale;
+package com.liveclass.settlement.application.sales;
 
 public record SaleWithRefundStatus(SaleRecord sale, RefundStatus refundStatus) { }
 ```
@@ -91,7 +91,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 
 ## 날짜를 `String`으로 받는다
 
-`SettlementPeriod.ofDateRange(String, String)`가 파싱과 검증을 소유한다. 컨트롤러가 `@RequestParam LocalDate`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriod`가 걸리지 않는다. `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다.
+`SettlementPeriod.ofDateRange(String, String)`가 파싱과 검증을 소유한다. 컨트롤러가 `@RequestParam LocalDate`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriodException`가 걸리지 않는다. `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 둔다.
 
 ## 접근 경계
 
@@ -99,7 +99,7 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 
 ## 파일
 
-`application/sale/ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java`.
+`application/sales/ListCreatorSalesUseCase.java`, `SaleWithRefundStatus.java`.
 
 테스트는 없다. 4.8이 검증한다.
 
@@ -110,6 +110,6 @@ Task 3이 계산에 안 쓰는 필드를 의도적으로 뺀 것이고 그 결�
 2-b. 판매 조회는 `SalesQueryPort.findSalesForListing`를 쓴다. `courseId`가 응답에 담긴다. 애그리게이트를 로딩하지 않는다.
 2-d. 조회 포트를 하나만 주입받는다. 판매와 취소를 서로 다른 빈에서 가져오지 않는다.
 2-c. `RefundStatus.of(long, long)` 2인자 오버로드를 쓴다. Task 3에 오버로드를 추가하지 않는다.
-3. `2025-13` 같은 잘못된 값이 `InvalidSettlementPeriod`를 던진다.
-4. CREATOR가 타인 목록을 조회하면 `ActorAccessDenied`가 난다.
+3. `2025-13` 같은 잘못된 값이 `InvalidSettlementPeriodException`를 던진다.
+4. CREATOR가 타인 목록을 조회하면 `ActorAccessDeniedException`가 난다.
 5. 판매 0건이어도 예외 없이 빈 목록을 돌려준다.

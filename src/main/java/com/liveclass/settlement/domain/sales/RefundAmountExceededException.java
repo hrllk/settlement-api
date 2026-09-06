@@ -6,9 +6,9 @@ package com.liveclass.settlement.domain.sales;
  * 다른 패키지에 같은 이름을 만들지 말 것. 처리기와 애그리게이트가 서로 다른
  * 쪽을 참조하면 컴파일은 통과하고 409 대신 500이 나간다.
  */
-public class RefundAmountExceeded extends RuntimeException {
+public class RefundAmountExceededException extends RuntimeException {
 
-    public RefundAmountExceeded(String saleId, long saleAmount, long already, long requested) {
+    public RefundAmountExceededException(String saleId, long saleAmount, long already, long requested) {
         super("refund exceeds sale amount: saleId=" + saleId
                 + ", saleAmount=" + saleAmount
                 + ", alreadyCancelled=" + already

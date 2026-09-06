@@ -15,14 +15,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SaleRepositoryJpaAdapter implements SaleRepository {
 
-    private final SaleJpaRepository sales;
-    private final CancelJpaRepository cancels;
+    private final SaleJpaRepository saleJpaRepository;
+    private final CancelJpaRepository cancelJpaRepository;
 
     /** 판매 1회 + 취소 1회로 조회해 조립한다. 취소를 함께 읽는 것이 계약이다. */
     @Override
     public Optional<Sale> findById(String saleId) {
-        return sales.findById(saleId).map(entity -> {
-            List<Cancel> loaded = cancels.findBySaleId(saleId).stream()
+        return saleJpaRepository.findById(saleId).map(entity -> {
+            List<Cancel> loaded = cancelJpaRepository.findBySaleId(saleId).stream()
                     .map(c -> new Cancel(c.getId(), c.getAmount(), c.getCancelledAt()))
                     .toList();
             return Sale.restore(entity.getId(), entity.getCourseId(),
@@ -36,9 +36,10 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
      */
     @Override
     public void save(Sale sale) {
-        sales.save(new SaleEntity(sale.id(), sale.courseId(), sale.amount(), sale.paidAt()));
+        saleJpaRepository.save(new SaleEntity(
+                sale.id(), sale.courseId(), sale.amount(), sale.paidAt()));
 
-        Set<String> persisted = cancels.findBySaleId(sale.id()).stream()
+        Set<String> persisted = cancelJpaRepository.findBySaleId(sale.id()).stream()
                 .map(CancelEntity::getId)
                 .collect(Collectors.toSet());
 
@@ -48,7 +49,7 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
                 .toList();
 
         if (!added.isEmpty()) {
-            cancels.saveAll(added);
+            cancelJpaRepository.saveAll(added);
         }
     }
 }

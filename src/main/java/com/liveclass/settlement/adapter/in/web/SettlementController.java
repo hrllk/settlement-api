@@ -3,7 +3,7 @@ package com.liveclass.settlement.adapter.in.web;
 import com.liveclass.settlement.adapter.in.web.dto.AdminSettlementResponse;
 import com.liveclass.settlement.adapter.in.web.dto.CreatorPayoutItem;
 import com.liveclass.settlement.adapter.in.web.dto.MonthlySettlementResponse;
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorContext;
 import com.liveclass.settlement.application.settlement.AdminSettlement;
 import com.liveclass.settlement.application.settlement.AdminSettlementUseCase;
 import com.liveclass.settlement.application.settlement.MonthlySettlementUseCase;
@@ -28,22 +28,22 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SettlementController {
 
-    private final MonthlySettlementUseCase monthlySettlement;
-    private final AdminSettlementUseCase adminSettlement;
+    private final MonthlySettlementUseCase monthlySettlementUseCase;
+    private final AdminSettlementUseCase adminSettlementUseCase;
 
     @GetMapping("/creators/{creatorId}/settlements/{yearMonth}")
     MonthlySettlementResponse monthly(@PathVariable String creatorId,
                                       @PathVariable String yearMonth,
                                       ActorContext actor) {
         return MonthlySettlementResponse.of(creatorId, yearMonth,
-                monthlySettlement.settle(actor, creatorId, yearMonth));
+                monthlySettlementUseCase.settle(actor, creatorId, yearMonth));
     }
 
     @GetMapping("/admin/settlements")
     AdminSettlementResponse admin(@RequestParam String from,
                                   @RequestParam String to,
                                   ActorContext actor) {
-        AdminSettlement result = adminSettlement.aggregate(actor, from, to);
+        AdminSettlement result = adminSettlementUseCase.aggregate(actor, from, to);
 
         List<CreatorPayoutItem> items = result.creators().stream()
                 .map(c -> CreatorPayoutItem.of(c.creatorId(), c.summary()))

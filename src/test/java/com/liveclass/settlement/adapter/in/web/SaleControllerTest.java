@@ -161,6 +161,22 @@ class SaleControllerTest {
         }
 
         /** Jackson이 Instant에 오프셋 없는 값을 UTC로 조용히 파싱하는 함정을 막는다. */
+        /**
+         * 상한이 없으면 Long.MAX_VALUE가 등록된다. 그 뒤 수수료의
+         * netSales * basisPoints 와 기간 합계의 누적이 예외 없이 래핑해
+         * 음수 정산이 나간다. 입구에서 닫는 편이 싸다.
+         */
+        @Test
+        @DisplayName("상한을 넘는 금액은 400이다")
+        void amountAboveCapRejected() throws Exception {
+            mvc.perform(post("/api/sales")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(saleBody("course-1", Long.MAX_VALUE, JUNE_PAID)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+
         @Test
         @DisplayName("오프셋 없는 paidAt은 400이다")
         void missingOffset() throws Exception {
@@ -287,6 +303,35 @@ class SaleControllerTest {
          * 시드의 cancel-1이 그 경우인데 시드는 data.sql로 들어가 API를 안 거치므로
          * 이 테스트가 없으면 아무것도 못 잡는다.
          */
+        /** 취소도 ADMIN 전용이다. 이 단언이 없으면 requireAdmin을 지워도 초록불이다. */
+        @Test
+        @DisplayName("CREATOR가 취소하면 403이다")
+        void creatorCannotCancel() throws Exception {
+            mvc.perform(post("/api/sales/sale-1/cancellations")
+                            .header("X-Actor-Id", "creator-1").header("X-Actor-Role", "CREATOR")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cancelBody(1_000, "2025-06-11T12:00:00+09:00")))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("ACTOR_ACCESS_DENIED"));
+        }
+
+        /**
+         * 통과시키면 판매가 없던 달에 환불이 귀속돼 그 달 정산 예정액이 근거 없이
+         * 음수가 된다. 금액만 보는 구현은 이걸 못 잡는다.
+         */
+        @Test
+        @DisplayName("결제보다 이른 취소는 409다")
+        void cancelBeforePaymentRejected() throws Exception {
+            String saleId = registerJuneSale(80_000);
+
+            mvc.perform(post("/api/sales/" + saleId + "/cancellations")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cancelBody(1_000, "2025-06-09T12:00:00+09:00")))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("CANCEL_BEFORE_PAYMENT"));
+        }
+
         @Test
         @DisplayName("합계가 원결제와 같은 전액 환불은 201이다")
         void exactFullRefundAllowed() throws Exception {
@@ -333,6 +378,32 @@ class SaleControllerTest {
         }
 
         /** 2025-13의 거부가 프레임워크가 아니라 도메인에서 일어나는지 본다. */
+    /** requireSelfOrAdmin의 ADMIN 분기. 거부만 단언하면 이 갈래는 안 밟힌다. */
+        @Test
+        @DisplayName("ADMIN은 타인 목록을 조회한다")
+        void adminListsOtherCreator() throws Exception {
+            mvc.perform(get("/api/creators/creator-1/sales")
+                            .param("from", "2025-03-01").param("to", "2025-03-31")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.creatorId").value("creator-1"))
+                    .andExpect(jsonPath("$.sales.length()").value(4));
+        }
+
+        /**
+         * LocalDate 파서는 +999999999-12-31을 통과시키고 상한을 여는 plusDays(1)이
+         * DateTimeException을 던진다. 감싸지 않으면 전역 처리기를 지나쳐 500이 된다.
+         */
+        @Test
+        @DisplayName("지원 범위를 넘는 종료일은 500이 아니라 400이다")
+        void endDateOutOfRangeIsBadRequest() throws Exception {
+            mvc.perform(get("/api/creators/creator-1/sales")
+                            .param("from", "2025-01-01").param("to", "+999999999-12-31")
+                            .header("X-Actor-Id", ADMIN_ID).header("X-Actor-Role", "ADMIN"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_SETTLEMENT_PERIOD"));
+        }
+
         @Test
         @DisplayName("잘못된 연월은 400 INVALID_SETTLEMENT_PERIOD다")
         void invalidPeriod() throws Exception {

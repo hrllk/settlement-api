@@ -23,7 +23,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
 
     public SettlementPeriod {
         if (fromInclusive == null || toExclusive == null || !fromInclusive.isBefore(toExclusive)) {
-            throw new InvalidSettlementPeriod(
+            throw new InvalidSettlementPeriodException(
                     "invalid period: [" + fromInclusive + ", " + toExclusive + ")");
         }
     }
@@ -42,10 +42,14 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         // 팩토리에서 먼저 거부해야 원본 문자열이 메시지에 남는다.
         // compact 생성자까지 흘리면 Instant로만 찍혀 무엇을 잘못 넣었는지 안 보인다.
         if (end.isBefore(start)) {
-            throw new InvalidSettlementPeriod(
+            throw new InvalidSettlementPeriodException(
                     "endDate must not precede startDate: " + startDate + " ~ " + endDate);
         }
         return new SettlementPeriod(startOfDay(start), startOfDay(nextDay(end, endDate)));
+    }
+
+    public boolean contains(Instant at) {
+        return !at.isBefore(fromInclusive) && at.isBefore(toExclusive);
     }
 
     /**
@@ -57,7 +61,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         try {
             return date.plusDays(1);
         } catch (DateTimeException e) {
-            throw new InvalidSettlementPeriod("endDate is out of supported range: " + raw);
+            throw new InvalidSettlementPeriodException("endDate is out of supported range: " + raw);
         }
     }
 
@@ -65,12 +69,8 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         try {
             return month.plusMonths(1).atDay(1);
         } catch (DateTimeException e) {
-            throw new InvalidSettlementPeriod("yearMonth is out of supported range: " + raw);
+            throw new InvalidSettlementPeriodException("yearMonth is out of supported range: " + raw);
         }
-    }
-
-    public boolean contains(Instant at) {
-        return !at.isBefore(fromInclusive) && at.isBefore(toExclusive);
     }
 
     private static Instant startOfDay(LocalDate date) {
@@ -80,7 +80,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
     /** null·공백을 직접 막는다. {@code YearMonth.parse(null)}은 파싱 예외가 아니라 NPE다. */
     private static String requireText(String raw, String field) {
         if (raw == null || raw.isBlank()) {
-            throw new InvalidSettlementPeriod(field + " must not be blank: " + raw);
+            throw new InvalidSettlementPeriodException(field + " must not be blank: " + raw);
         }
         return raw.strip();
     }
@@ -89,7 +89,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         try {
             return YearMonth.parse(text);
         } catch (DateTimeParseException e) {
-            throw new InvalidSettlementPeriod("yearMonth must be yyyy-MM: " + text);
+            throw new InvalidSettlementPeriodException("yearMonth must be yyyy-MM: " + text);
         }
     }
 
@@ -97,7 +97,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         try {
             return LocalDate.parse(text);
         } catch (DateTimeParseException e) {
-            throw new InvalidSettlementPeriod(field + " must be yyyy-MM-dd: " + text);
+            throw new InvalidSettlementPeriodException(field + " must be yyyy-MM-dd: " + text);
         }
     }
 }

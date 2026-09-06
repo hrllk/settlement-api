@@ -14,7 +14,7 @@
 | `GET /api/creators/{id}/settlements/{ym}` | 전부 | 본인만 | `requireSelfOrAdmin(actor, id)` |
 | `GET /api/admin/settlements` | 허용 | 거부 | `requireAdmin` |
 
-위반은 전부 `ActorAccessDenied` → 403.
+위반은 전부 `ActorAccessDeniedException` → 403.
 
 앞 두 줄과 세 번째 줄은 Task 4의 엔드포인트다. **매트릭스는 다섯 줄 전부를 소유한다.** 규칙이 다섯 곳에 흩어지면 어느 엔드포인트가 무방비인지 표 없이는 알 수 없다.
 

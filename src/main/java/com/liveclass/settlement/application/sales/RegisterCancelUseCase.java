@@ -1,10 +1,10 @@
-package com.liveclass.settlement.application.sale;
+package com.liveclass.settlement.application.sales;
 
-import com.liveclass.settlement.application.actor.ActorAccessPolicy;
-import com.liveclass.settlement.application.actor.ActorContext;
+import com.liveclass.settlement.application.access.ActorAccessPolicy;
+import com.liveclass.settlement.application.access.ActorContext;
 import com.liveclass.settlement.domain.sales.Cancel;
 import com.liveclass.settlement.domain.sales.Sale;
-import com.liveclass.settlement.domain.sales.SaleNotFound;
+import com.liveclass.settlement.domain.sales.SaleNotFoundException;
 import com.liveclass.settlement.domain.sales.SaleRepository;
 import java.time.Instant;
 import java.util.UUID;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class RegisterCancelUseCase {
 
-    private final ActorAccessPolicy accessPolicy;
+    private final ActorAccessPolicy actorAccessPolicy;
     private final SaleRepository saleRepository;
 
     /**
@@ -29,10 +29,10 @@ public class RegisterCancelUseCase {
      */
     @Transactional
     public String register(ActorContext actor, String saleId, long amount, Instant cancelledAt) {
-        accessPolicy.requireAdmin(actor);
+        actorAccessPolicy.requireAdmin(actor);
 
         Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(() -> new SaleNotFound(saleId));
+                .orElseThrow(() -> new SaleNotFoundException(saleId));
 
         Cancel cancel = sale.cancel(UUID.randomUUID().toString(), amount, cancelledAt);
         saleRepository.save(sale);

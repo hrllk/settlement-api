@@ -67,12 +67,19 @@ public class Sale {
      *
      * {@code >}이지 {@code >=}가 아니다. 정확히 같은 합계는 전액 환불이라 허용한다.
      *
-     * @throws RefundAmountExceeded 누적 합계 + amount 가 원결제 금액을 넘을 때
+     * 결제보다 이른 취소도 막는다. 통과시키면 판매가 없던 달에 환불이 귀속된다.
+     *
+     * @throws RefundAmountExceededException 누적 합계 + amount 가 원결제 금액을 넘을 때
+     * @throws CancelBeforePaymentException  cancelledAt 이 paidAt 보다 이를 때
      */
     public Cancel cancel(String cancelId, long amount, Instant cancelledAt) {
+        Objects.requireNonNull(cancelledAt, "cancelledAt");
+        if (cancelledAt.isBefore(paidAt)) {
+            throw new CancelBeforePaymentException(id, paidAt, cancelledAt);
+        }
         long already = cancelledTotal();
         if (amount > this.amount - already) {
-            throw new RefundAmountExceeded(id, this.amount, already, amount);
+            throw new RefundAmountExceededException(id, this.amount, already, amount);
         }
         Cancel added = new Cancel(cancelId, amount, cancelledAt);
         cancels.add(added);

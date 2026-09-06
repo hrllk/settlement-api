@@ -149,7 +149,7 @@ public interface SalesQueryPort {
 - **`findAllCreatorIds()`가 따로 필요한 이유는 creator-3 때문이다.** 3월에 판매도 취소도 없는 크리에이터를 운영자 목록에 0원으로 넣으려면 판매·취소 자료만으로는 존재를 알 수 없다.
 - **`findCancelsBySaleIds()`는 환불 상태 전용이다.** 환불 상태는 기간 필터를 적용하지 않으므로(기준표의 환불 상태 절 참조) `cancelledAt` 창 조회로는 산출할 수 없다. sale-5는 1월 판매인데 취소가 2월 3일이라 `[1/1, 2/1)` 창에 안 잡힌다. 이 메서드가 없으면 1월 판매 목록에서 sale-5가 `FULL`이 아니라 `NONE`으로 나온다. 판매 목록 조회(Task 4)가 이 경로를 쓴다.
 - **어떤 메서드도 `null`을 반환하지 않는다.** 결과가 없으면 빈 리스트다. 계산기는 `null` 방어를 하지 않으며, 이 계약 위반은 구현체의 결함이다.
-- 웹 어댑터는 연월·일자를 **`String`으로 받아** `SettlementPeriod` 팩토리에 그대로 넘긴다. `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriod`가 걸리지 않는다. 전역 처리기가 그 예외도 잡으면 되긴 하지만, `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 두는 편이 PRD의 "비즈니스 규칙은 application/domain에 둔다"와 맞고 오류 응답 형식도 하나로 유지된다.
+- 웹 어댑터는 연월·일자를 **`String`으로 받아** `SettlementPeriod` 팩토리에 그대로 넘긴다. `@PathVariable YearMonth`로 바인딩하면 Spring이 `MethodArgumentTypeMismatchException`을 먼저 던져 `InvalidSettlementPeriodException`가 걸리지 않는다. 전역 처리기가 그 예외도 잡으면 되긴 하지만, `2025-13`의 거부는 도메인 규칙이므로 도메인이 판정하게 두는 편이 PRD의 "비즈니스 규칙은 application/domain에 둔다"와 맞고 오류 응답 형식도 하나로 유지된다.
 
 ## 책임 분담
 
@@ -185,8 +185,8 @@ public interface SalesQueryPort {
 | 종료 경계 포함 | `2025-01-31T23:59:59.999+09:00` 결제 | 1월에 귀속 |
 | 종료 경계 배제 | `2025-02-01T00:00:00.000+09:00` 결제 | 1월에 **안** 들어가고 2월에 들어감 |
 | 기간 밖 취소로 환불 상태 | sale-5 조회, 취소는 기간 밖 | `FULL` (기간 필터 미적용 확인) |
-| 종료일이 시작일보다 이름 | 2025-03-31 ~ 2025-03-01 | `InvalidSettlementPeriod` |
-| 잘못된 연월 형식 | `2025-13`, `2025/03`, `""`, `null` | `InvalidSettlementPeriod` |
+| 종료일이 시작일보다 이름 | 2025-03-31 ~ 2025-03-01 | `InvalidSettlementPeriodException` |
+| 잘못된 연월 형식 | `2025-13`, `2025/03`, `""`, `null` | `InvalidSettlementPeriodException` |
 | 포트가 빈 리스트 반환 | 판매 0건, 취소 0건 | 전 항목 0원 요약 |
 
 경계 케이스가 셋인 이유는 각각 다른 것을 잡기 때문이다.
@@ -197,7 +197,7 @@ public interface SalesQueryPort {
 
 반열린 구간은 이 태스크의 핵심 설계 판단이므로 세 방향을 다 잠근다.
 
-`InvalidSettlementPeriod`는 이 작업에서 도메인 예외로 정의만 하고, HTTP 응답 변환은 Task 4의 전역 예외 처리기에서 한다.
+`InvalidSettlementPeriodException`는 이 작업에서 도메인 예외로 정의만 하고, HTTP 응답 변환은 Task 4의 전역 예외 처리기에서 한다.
 
 ## 구현 경계
 
@@ -210,7 +210,7 @@ com.liveclass.settlement.domain.settlement
   FixedRateFeePolicy      고정 20% (2000bp) 구현
   SettlementCalculator    원본 자료 → 요약
   SaleData / CancelData   계산기 입력 값 타입 (JPA 엔티티 아님)
-  InvalidSettlementPeriod 도메인 예외
+  InvalidSettlementPeriodException 도메인 예외
 
 com.liveclass.settlement.application.port.out
   SalesQueryPort      선언만. 구현은 Task 2
@@ -233,7 +233,7 @@ com.liveclass.settlement.application.port.out
 이 검토에서 나온 조치 목록이다. 계획서 본문은 이미 갱신됐고, 아래는 **문서 밖에서** 손댈 것이다.
 
 - [ ] **T1 (P1, human: ~5min / CC: ~1min)** — `.taskmaster/tasks.json` — Task 5 `dependencies`를 `[2,3]` → `[2,3,4]`로 수정
-  - 근거: Section 2 오류·복구 맵 — 전역 예외 처리기가 Task 4에 있는데 Task 5가 `InvalidSettlementPeriod`를 던진다
+  - 근거: Section 2 오류·복구 맵 — 전역 예외 처리기가 Task 4에 있는데 Task 5가 `InvalidSettlementPeriodException`를 던진다
   - 검증: Task 5 착수 전 Task 4의 전역 예외 처리기가 존재하는지 확인
 - [ ] **T2 (P1, human: ~5min / CC: ~1min)** — `.taskmaster/tasks.json` — Task 2 `dependencies`를 `[1]` → `[1,3]`로 수정
   - 근거: 외부 검토 — Task 2의 포트 구현체가 Task 3의 인터페이스와 값 타입에 의존한다
@@ -251,7 +251,7 @@ com.liveclass.settlement.application.port.out
 
 ### `tasks.json` 수정 필요 (main에서 적용)
 
-1. **Task 5의 `dependencies`에 `4`를 추가한다.** 전역 예외 처리기가 Task 4에 있는데 Task 5가 `InvalidSettlementPeriod`를 던진다. 현재 의존성은 `[2, 3]`이라 Task 5를 먼저 끝내면 잘못된 연월 요청이 처리기 없이 500 스택트레이스로 나간다. Task 4 안에서도 전역 예외 처리기를 먼저 만든다.
+1. **Task 5의 `dependencies`에 `4`를 추가한다.** 전역 예외 처리기가 Task 4에 있는데 Task 5가 `InvalidSettlementPeriodException`를 던진다. 현재 의존성은 `[2, 3]`이라 Task 5를 먼저 끝내면 잘못된 연월 요청이 처리기 없이 500 스택트레이스로 나간다. Task 4 안에서도 전역 예외 처리기를 먼저 만든다.
 2. **Task 5 상세의 "건수"를 "판매 건수와 취소 건수"로 고친다.** 원본 과제는 두 개를 요구한다.
 3. **Task 2의 `dependencies`에 `3`을 추가한다.** 포트 구현체가 Task 3의 인터페이스와 값 타입에 의존한다.
 

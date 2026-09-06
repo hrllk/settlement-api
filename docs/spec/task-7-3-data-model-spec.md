@@ -6,21 +6,63 @@
 
 ## ERD
 
-```text
-creators (id, name)
-    ▲ creator_id
-courses  (id, creator_id, title)
-    ▲ course_id
-sales    (id, course_id, amount, paid_at)      idx (course_id, paid_at)
-    ▲ sale_id
-cancels  (id, sale_id, amount, cancelled_at)   idx (sale_id, cancelled_at)
+GitHub가 Mermaid를 렌더링하므로 README에서 그림으로 보인다. 코드블록으로 두면
+평가자가 읽어야 할 것이 하나 늘어난다.
+
+```mermaid
+erDiagram
+    creators ||--o{ courses : "소유"
+    courses  ||--o{ sales   : "판매"
+    sales    ||--o{ cancels : "취소"
+
+    creators {
+        string id PK
+        string name
+    }
+    courses {
+        string id PK
+        string creator_id "idx_courses_creator"
+        string title
+    }
+    sales {
+        string id PK
+        string course_id "idx (course_id, paid_at)"
+        long amount
+        instant paid_at
+    }
+    cancels {
+        string id PK
+        string sale_id "idx (sale_id, cancelled_at)"
+        long amount
+        instant cancelled_at
+    }
 ```
 
 **판매는 크리에이터를 직접 갖지 않는다.** 강의를 거쳐 안다. 크리에이터로 좁히는 조회는 전부 조인이다. 비정규화하면 조인이 사라지지만 강의 소유자가 바뀔 때 판매 행 전부를 같이 고쳐야 하고, 안 고치면 과거 정산이 조용히 틀어진다. 7건 규모에서 조인 비용이 0이라 정규화를 택했다.
 
 **환불 상태 컬럼이 없다.** 취소 합계에서 매번 계산한다. 저장하면 취소가 하나 더 들어올 때 갱신을 빠뜨리는 경로가 생긴다.
 
-**FK 제약을 걸지 않았다.** 없는 강의로 판매를 등록하는 것은 애플리케이션이 `CourseNotFound` 404로 막는다. DB 제약에 맡기면 `DataIntegrityViolationException`이 500으로 새어 나간다.
+**FK 제약을 걸지 않았다.** 없는 강의로 판매를 등록하는 것은 애플리케이션이 `CourseNotFoundException` 404로 막는다. DB 제약에 맡기면 `DataIntegrityViolationException`이 500으로 새어 나간다.
+
+## 조회 경로
+
+어느 조회가 어느 테이블을 거쳐 어느 시간 컬럼으로 좁히는지 표로 싣는다. JPQL을
+열지 않고도 쿼리 설계가 보여야 한다.
+
+| 조회 | 경로 | 기간 필터 컬럼 |
+| --- | --- | --- |
+| 기간 내 판매 (정산·목록) | `sales → courses` | `paid_at` |
+| 기간 내 취소 (정산) | `cancels → sales → courses` | `cancelled_at` |
+| 판매별 전체 취소 (환불 상태·애그리게이트 적재) | `cancels` | **없음** |
+| 크리에이터 전체 (실적 0 포함) | `creators` | 없음 |
+| 강의 존재 확인 (등록 검증) | `courses` | 없음 |
+
+**세 번째 행의 "없음"이 핵심이다.** 환불 상태는 기간의 속성이 아니라 판매의
+속성이라 시간 조건을 걸지 않는다. 여기에 조건을 넣으면 `sale-5`를 1월로 조회할 때
+`FULL`이 아니라 `NONE`이 나온다. 규칙이 스키마 접근 방식에 그대로 드러난다.
+
+위 두 행은 기준 컬럼이 서로 다르다. 이중 집계 기준(7.4)이 쿼리 층에서 어떻게
+생겼는지 보여주는 자리다.
 
 ## 초기 데이터 표
 
@@ -79,7 +121,8 @@ creator-3의 2025-03은 빈 월이다. 404가 아니라 전 항목 0으로 응�
 
 ## 완료 기준
 
-1. ERD가 있고 판매→크리에이터 경로가 드러난다.
+1. ERD가 Mermaid로 있고 판매→크리에이터 경로가 드러난다.
+1-b. 조회 경로 표가 있고 환불 상태 조회에 기간 필터가 없음이 강조돼 있다.
 2. 시드 17행이 표로 있다. 월 경계 두 행이 강조돼 있다.
 3. 기대 정산 6행이 표로 있다.
 4. 취소 데이터를 직접 정의한 근거가 있다.

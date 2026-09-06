@@ -11,7 +11,7 @@
 - 계획: `docs/plan/task-3-settlement-domain-plan.md`
 - Task 1 완료: Java 21, Spring Boot 4.1.1, Gradle Wrapper 9.7.1, 루트 패키지 `com.liveclass.settlement`, 헥사고날 5계층
 - 구현 완료. `domain/settlement` 9개 타입과 `application/port/out` 포트 1개
-- `ActorRole`(`ADMIN` / `CREATOR`)은 Task 1, `ActorAccessDenied`(403)는 Task 4에서 정의된다
+- `ActorRole`(`ADMIN` / `CREATOR`)은 Task 1, `ActorAccessDeniedException`(403)는 Task 4에서 정의된다
 
 ## 서브태스크
 
@@ -33,12 +33,12 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 
 | 위반 | 예외 | 정의 | HTTP |
 | --- | --- | --- | --- |
-| `SettlementPeriod` 불변식·파싱 | `InvalidSettlementPeriod` | **3.1** | 400 |
+| `SettlementPeriod` 불변식·파싱 | `InvalidSettlementPeriodException` | **3.1** | 400 |
 | `SettlementSummary` 파생값 불일치 | `IllegalArgumentException` | 3.2 | 500 |
 | `SaleData` / `CancelData` null 필드 | `NullPointerException` | 3.2 | 500 |
 | `FixedRateFeePolicy` bp 범위 | `IllegalArgumentException` | 3.3 | 500 |
 | 액터 헤더 누락·형식 오류 | `ResponseStatusException` | Task 1 | 400 |
-| 인가 실패 | `ActorAccessDenied` | Task 4 | 403 |
+| 인가 실패 | `ActorAccessDeniedException` | Task 4 | 403 |
 
 **Task 4의 전역 예외 처리기는 `IllegalArgumentException`과 `NullPointerException`을 400으로 매핑하면 안 된다.** 사용자가 유발할 수 있는 것은 400·403 세 개뿐이다. 나머지를 400으로 싸잡으면 프로그래밍 버그가 사용자 오류로 위장돼 로그에서 사라진다.
 
@@ -68,7 +68,7 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 
 | 경로 | 서브태스크 |
 | --- | --- |
-| `domain/settlement/SettlementPeriod.java`, `InvalidSettlementPeriod.java` | 3.1 |
+| `domain/settlement/SettlementPeriod.java`, `InvalidSettlementPeriodException.java` | 3.1 |
 | `domain/settlement/SaleData.java`, `CancelData.java`, `SettlementSummary.java`, `RefundStatus.java` | 3.2 |
 | `domain/settlement/FeePolicy.java`, `FixedRateFeePolicy.java` | 3.3 |
 | `domain/settlement/SettlementCalculator.java` | 3.4 |
@@ -103,9 +103,9 @@ JUnit 5와 AssertJ를 쓴다. Task 1의 `spring-boot-starter-*-test`가 이미 �
 
 **3회차 — 사소한 것 3건.** `requireNonNull` 필드명, 테스트 케이스 인자 명시, `amount` 부호 검증 소관.
 
-**4회차 — 분할 후 재검토 6건.** `YearMonth.parse(null)`이 `DateTimeParseException`이 아니라 NPE를 던져 "null → `InvalidSettlementPeriod`"가 구현 불가였다(`requireText` 가드 추가). 분할하면서 3.4에서 입력 픽스처가 빠지고, `Instant` 변환을 손으로 시키고, JUnit·AssertJ 명시가 사라지고, `.gitkeep` 삭제 소유자가 없어졌다. 전부 채웠다.
+**4회차 — 분할 후 재검토 6건.** `YearMonth.parse(null)`이 `DateTimeParseException`이 아니라 NPE를 던져 "null → `InvalidSettlementPeriodException`"가 구현 불가였다(`requireText` 가드 추가). 분할하면서 3.4에서 입력 픽스처가 빠지고, `Instant` 변환을 손으로 시키고, JUnit·AssertJ 명시가 사라지고, `.gitkeep` 삭제 소유자가 없어졌다. 전부 채웠다.
 
-**rebase 반영.** main이 `ActorAccessDenied`(403)를 Task 4에, 접근 경계를 Task 5에 넣었다. 계획 단계에서 후속 항목으로 남긴 역할 매트릭스가 상류에서 해결됐다. "사용자가 만들 수 있는 오류는 하나뿐"이라던 예외 표를 다시 썼다.
+**rebase 반영.** main이 `ActorAccessDeniedException`(403)를 Task 4에, 접근 경계를 Task 5에 넣었다. 계획 단계에서 후속 항목으로 남긴 역할 매트릭스가 상류에서 해결됐다. "사용자가 만들 수 있는 오류는 하나뿐"이라던 예외 표를 다시 썼다.
 
 ### 결론
 

@@ -1,10 +1,11 @@
 package com.liveclass.settlement.adapter.in.web;
 
-import com.liveclass.settlement.application.actor.ActorAccessDenied;
-import com.liveclass.settlement.domain.sales.CourseNotFound;
-import com.liveclass.settlement.domain.sales.RefundAmountExceeded;
-import com.liveclass.settlement.domain.sales.SaleNotFound;
-import com.liveclass.settlement.domain.settlement.InvalidSettlementPeriod;
+import com.liveclass.settlement.application.access.ActorAccessDeniedException;
+import com.liveclass.settlement.domain.sales.CancelBeforePaymentException;
+import com.liveclass.settlement.domain.sales.CourseNotFoundException;
+import com.liveclass.settlement.domain.sales.RefundAmountExceededException;
+import com.liveclass.settlement.domain.sales.SaleNotFoundException;
+import com.liveclass.settlement.domain.settlement.InvalidSettlementPeriodException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Locale;
@@ -35,24 +36,29 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({SaleNotFound.class, CourseNotFound.class})
+    @ExceptionHandler({SaleNotFoundException.class, CourseNotFoundException.class})
     ProblemDetail notFound(RuntimeException e, HttpServletRequest request) {
-        String code = e instanceof SaleNotFound ? "SALE_NOT_FOUND" : "COURSE_NOT_FOUND";
+        String code = e instanceof SaleNotFoundException ? "SALE_NOT_FOUND" : "COURSE_NOT_FOUND";
         return problem(HttpStatus.NOT_FOUND, code, e.getMessage(), request);
     }
 
-    @ExceptionHandler(RefundAmountExceeded.class)
-    ProblemDetail refundExceeded(RefundAmountExceeded e, HttpServletRequest request) {
+    @ExceptionHandler(RefundAmountExceededException.class)
+    ProblemDetail refundExceeded(RefundAmountExceededException e, HttpServletRequest request) {
         return problem(HttpStatus.CONFLICT, "REFUND_AMOUNT_EXCEEDED", e.getMessage(), request);
     }
 
-    @ExceptionHandler(ActorAccessDenied.class)
-    ProblemDetail accessDenied(ActorAccessDenied e, HttpServletRequest request) {
+    @ExceptionHandler(CancelBeforePaymentException.class)
+    ProblemDetail cancelBeforePayment(CancelBeforePaymentException e, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "CANCEL_BEFORE_PAYMENT", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(ActorAccessDeniedException.class)
+    ProblemDetail accessDenied(ActorAccessDeniedException e, HttpServletRequest request) {
         return problem(HttpStatus.FORBIDDEN, "ACTOR_ACCESS_DENIED", e.getMessage(), request);
     }
 
-    @ExceptionHandler(InvalidSettlementPeriod.class)
-    ProblemDetail invalidPeriod(InvalidSettlementPeriod e, HttpServletRequest request) {
+    @ExceptionHandler(InvalidSettlementPeriodException.class)
+    ProblemDetail invalidPeriod(InvalidSettlementPeriodException e, HttpServletRequest request) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_SETTLEMENT_PERIOD", e.getMessage(), request);
     }
 
