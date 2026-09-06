@@ -9,6 +9,22 @@ import org.springframework.data.repository.query.Param;
 
 public interface CancelJpaRepository extends JpaRepository<CancelEntity, String> {
 
+    /**
+     * 기간 내 취소 전체를 크리에이터와 함께 한 번에 읽는다. 운영자 집계 전용이다.
+     * 취소에서 크리에이터까지는 판매와 강의를 거친다. 원본 판매가 조회 창 밖일 수 있어
+     * 기간은 {@code cancelledAt}으로만 좁힌다.
+     */
+    @Query("""
+            select c.creatorId as creatorId, x.id as cancelId, x.saleId as saleId,
+                   x.amount as amount, x.cancelledAt as cancelledAt
+            from CancelEntity x, SaleEntity s, CourseEntity c
+            where x.saleId = s.id and s.courseId = c.id
+              and x.cancelledAt >= :fromInclusive and x.cancelledAt < :toExclusive
+            order by c.creatorId, x.cancelledAt, x.id
+            """)
+    List<CreatorScopedCancel> findAllByPeriodWithCreator(@Param("fromInclusive") Instant fromInclusive,
+                                                         @Param("toExclusive") Instant toExclusive);
+
     /** 기간은 {@code cancelledAt} 기준. 원본 판매는 조회 창 밖일 수 있다. */
     @Query("""
             select x from CancelEntity x

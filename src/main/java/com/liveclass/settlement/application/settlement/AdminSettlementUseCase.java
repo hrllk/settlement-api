@@ -7,6 +7,7 @@ import com.liveclass.settlement.domain.settlement.SettlementPeriod;
 import com.liveclass.settlement.domain.settlement.SettlementSummary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,13 @@ public class AdminSettlementUseCase {
 
         SettlementPeriod period = SettlementPeriod.ofDateRange(from, to);
 
+        List<String> creatorIds = salesQueryPort.findAllCreatorIds();   // id 오름차순
+        Map<String, SettlementSummary> summaries = settlementQuery.summarizeAll(period, creatorIds);
+
         List<CreatorPayout> creators = new ArrayList<>();
         long totalPayout = 0;
-        for (String creatorId : salesQueryPort.findAllCreatorIds()) {   // id 오름차순
-            SettlementSummary summary = settlementQuery.summarize(period, creatorId);
+        for (String creatorId : creatorIds) {
+            SettlementSummary summary = summaries.get(creatorId);
             creators.add(new CreatorPayout(creatorId, summary));
             totalPayout += summary.payout();
         }
