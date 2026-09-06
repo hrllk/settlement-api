@@ -7,6 +7,8 @@ import com.liveclass.settlement.domain.settlement.SaleData;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -47,6 +49,30 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
                 .stream()
                 .map(SalesQueryJpaAdapter::toCancelData)
                 .toList();
+    }
+
+    @Override
+    public Map<String, List<SaleData>> findSalesByCreator(Instant fromInclusive, Instant toExclusive) {
+        return saleJpaRepository.findAllByPeriodWithCreator(fromInclusive, toExclusive)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        CreatorScopedSale::getCreatorId,
+                        Collectors.mapping(
+                                row -> new SaleData(row.getSaleId(), row.getCreatorId(),
+                                        row.getAmount(), row.getPaidAt()),
+                                Collectors.toList())));
+    }
+
+    @Override
+    public Map<String, List<CancelData>> findCancelsByCreator(Instant fromInclusive, Instant toExclusive) {
+        return cancelJpaRepository.findAllByPeriodWithCreator(fromInclusive, toExclusive)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        CreatorScopedCancel::getCreatorId,
+                        Collectors.mapping(
+                                row -> new CancelData(row.getCancelId(), row.getSaleId(),
+                                        row.getAmount(), row.getCancelledAt()),
+                                Collectors.toList())));
     }
 
     @Override

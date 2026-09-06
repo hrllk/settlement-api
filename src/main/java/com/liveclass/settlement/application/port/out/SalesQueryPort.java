@@ -5,6 +5,7 @@ import com.liveclass.settlement.domain.settlement.SaleData;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /** 원본 자료만 읽는다. 집계는 하지 않고, null 대신 빈 리스트를 돌려준다. */
 public interface SalesQueryPort {
@@ -17,6 +18,15 @@ public interface SalesQueryPort {
 
     /** 판매별 모든 취소. 환불 상태 전용이라 기간 필터가 없다. 빈 입력이면 빈 리스트. */
     List<CancelData> findCancelsBySaleIds(Collection<String> saleIds);
+
+    /**
+     * 기간 내 판매 전체를 크리에이터별로 묶어 한 번에 읽는다. 운영자 집계 전용이다.
+     * 실적이 없는 크리에이터는 키가 없다.
+     */
+    Map<String, List<SaleData>> findSalesByCreator(Instant fromInclusive, Instant toExclusive);
+
+    /** 기간 내 취소 전체를 크리에이터별로 묶어 한 번에 읽는다. 운영자 집계 전용이다. */
+    Map<String, List<CancelData>> findCancelsByCreator(Instant fromInclusive, Instant toExclusive);
 
     /** 실적이 없는 크리에이터도 포함한다. */
     List<String> findAllCreatorIds();
