@@ -6,9 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * 액터 헤더 해석기를 Spring MVC에 등록한다.
- */
+/** 액터 헤더 해석기를 Spring MVC에 등록한다. */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 

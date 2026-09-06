@@ -10,12 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 취소 영속성 표현. 규칙은 {@link SaleEntity}와 같다.
- *
- * 인덱스 선행 컬럼은 {@code sale_id}여야 한다. 시간 조건 없는
- * {@code findBySaleIdIn}이 선행 컬럼을 못 쓰면 풀스캔이 된다.
- */
+/** 취소 영속성 표현. 인덱스 선행 컬럼은 {@code sale_id}여야 풀스캔을 면한다. */
 @Entity
 @Table(name = "cancels", indexes = {
         @Index(name = "idx_cancels_sale_cancelled", columnList = "sale_id, cancelled_at")

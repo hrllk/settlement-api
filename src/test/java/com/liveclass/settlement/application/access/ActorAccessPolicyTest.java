@@ -6,10 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 인가 판정의 네 갈래를 전부 밟는다. 컨트롤러 테스트는 거부 경로만 확인하므로
- * 허용 경로는 여기서만 잠긴다.
- */
+/** 인가 판정 네 갈래를 전부 밟는다. 허용 경로는 여기서만 잠긴다. */
 class ActorAccessPolicyTest {
 
     private final ActorAccessPolicy policy = new ActorAccessPolicy();

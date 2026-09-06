@@ -23,13 +23,7 @@ public class ListCreatorSalesUseCase {
     private final ActorAccessPolicy actorAccessPolicy;
     private final SalesQueryPort salesQueryPort;
 
-    /**
-     * 환불 상태에 기간 필터를 적용하지 않는다. 기간으로 좁힌 취소로 상태를
-     * 만들면 창 밖 취소를 놓쳐 {@code FULL}이 {@code NONE}으로 나온다. 그래서 시간
-     * 조건 없는 {@code findCancelsBySaleIds}를 따로 쓴다. 금액 집계만 기간으로 나뉜다.
-     *
-     * 날짜는 {@code String}으로 받는다. 파싱·검증은 {@link SettlementPeriod}가 소유한다.
-     */
+    /** 환불 상태에는 기간 필터를 걸지 않는다. 걸면 창 밖 취소를 놓쳐 FULL이 NONE이 된다. */
     @Transactional(readOnly = true)
     public List<SaleWithRefundStatus> list(ActorContext actor, String creatorId,
                                            String from, String to) {
@@ -39,8 +33,7 @@ public class ListCreatorSalesUseCase {
         List<SaleRecord> sales = salesQueryPort.findSalesForListing(
                 period.fromInclusive(), period.toExclusive(), creatorId);
 
-        // 판매 0건이면 빈 리스트가 들어간다. 어댑터가 쿼리 없이 빈 리스트를
-        // 돌려주도록 방어했으므로 여기서 분기하지 않는다.
+        // 판매 0건이면 어댑터가 쿼리 없이 빈 리스트를 돌려준다.
         List<CancelData> cancels = salesQueryPort.findCancelsBySaleIds(
                 sales.stream().map(SaleRecord::saleId).toList());
 

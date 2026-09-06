@@ -7,10 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * 도메인 객체의 조립 지점. 도메인 클래스에 {@code @Component}를 붙이지 않기 위해
- * 빈 등록을 여기 모은다.
- */
+/** 도메인 조립 지점. 도메인에 {@code @Component}를 붙이지 않으려고 여기 모은다. */
 @Configuration
 public class DomainConfig {
 

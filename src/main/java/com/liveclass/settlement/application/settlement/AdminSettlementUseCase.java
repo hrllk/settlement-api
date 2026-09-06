@@ -21,17 +21,7 @@ public class AdminSettlementUseCase {
     private final SalesQueryPort salesQueryPort;
     private final SettlementQuery settlementQuery;
 
-    /**
-     * <b>기간 전체를 단일 구간으로 계산한다. 월별로 계산해 더하지 않는다.</b>
-     * creator-2의 1~3월이 이 방식으로 48,000, 월별 합으로는 36,000이다. 음수 월에
-     * 수수료 0원 제한이 걸려 1월에 뗀 수수료가 상쇄되지 않기 때문이다. 근거는 README.
-     *
-     * <p>{@code findAllCreatorIds}는 실적 0인 크리에이터 때문에 필요하다. 판매·취소
-     * 자료만 훑으면 존재를 알 방법이 없어 목록에서 통째로 빠진다.
-     *
-     * <p>크리에이터마다 포트를 두 번 부른다(N+1). 3명이라 실측 차이가 0이고, 포트
-     * 계약을 단순하게 유지하려는 선택이다.
-     */
+    /** 기간 전체를 단일 구간으로 계산한다. 월별 합과 다르다 — 근거는 README. */
     @Transactional(readOnly = true)
     public AdminSettlement aggregate(ActorContext actor, String from, String to) {
         actorAccessPolicy.requireAdmin(actor);

@@ -3,10 +3,7 @@ package com.liveclass.settlement.domain.settlement;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * 계산기 입력용 판매 자료. JPA 엔티티가 아니다.
- * 계산에 쓰이지 않는 courseId·studentId는 담지 않는다.
- */
+/** 계산기 입력용 판매 자료. 계산에 안 쓰이는 필드는 담지 않는다. */
 public record SaleData(String saleId, String creatorId, long amount, Instant paidAt) {
 
     public SaleData {

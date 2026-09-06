@@ -10,9 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 불변식이 도메인에 있으므로 Spring 없이 단위로 잠근다. HTTP까지 안 가도 검증된다.
- */
+/** 불변식이 도메인에 있으므로 Spring 없이 단위로 잠근다. */
 class SaleTest {
 
     private static Instant kst(String iso) {
@@ -85,10 +83,7 @@ class SaleTest {
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
-    /**
-     * already + amount 로 쓰면 오버플로해 음수가 되고 상한 검사를 그냥 통과한다.
-     * @Positive 가 Long.MAX_VALUE 를 허용하므로 요청 두 번이면 닿는다.
-     */
+    /** {@code already + amount} 로 쓰면 오버플로해 음수가 되고 검사를 통과한다. */
     @Test
     @DisplayName("Long.MAX_VALUE 취소가 오버플로로 통과하지 않는다")
     void rejectsOverflowingAmount() {

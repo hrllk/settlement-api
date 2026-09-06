@@ -10,15 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 판매 영속성 표현. 도메인 모델이 아니라 저장 표현이라 규칙도 setter도 없다.
- *
- * 연관 매핑을 걸지 않는다. {@code @ManyToOne}은 지연 로딩 프록시와 N+1을
- * 부른다. 필요한 조인은 리포지토리가 JPQL로 명시한다.
- *
- * Lombok은 {@code @Getter}와 {@code @NoArgsConstructor}만 쓴다.
- * {@code @Data}·{@code @EqualsAndHashCode}는 JPA 식별자 의미론과 어긋난다.
- */
+/** 판매 영속성 표현. 연관 매핑을 걸지 않는다 — N+1을 부른다. */
 @Entity
 @Table(name = "sales", indexes = {
         @Index(name = "idx_sales_course_paid", columnList = "course_id, paid_at")

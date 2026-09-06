@@ -9,10 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface CancelJpaRepository extends JpaRepository<CancelEntity, String> {
 
-    /**
-     * 기간 내 취소를 크리에이터로 좁혀 조회한다. 기간은 {@code cancelledAt} 기준이고
-     * 크리에이터는 판매를 거쳐 찾는다 — 원본 판매는 조회 창 밖일 수 있다.
-     */
+    /** 기간은 {@code cancelledAt} 기준. 원본 판매는 조회 창 밖일 수 있다. */
     @Query("""
             select x from CancelEntity x
             where x.saleId in (

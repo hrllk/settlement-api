@@ -26,13 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 모든 메서드가 {@link ActorContext} 파라미터를 선언해야 한다. 해석기는
- * 필터가 아니라 파라미터 타입 기반 opt-in이라, 빠뜨린 메서드는 헤더 검사 없이
- * 조용히 열린다. 컴파일러도 테스트도 아직 이걸 잡지 못한다 — 메서드를 더할 때 직접 확인해야 한다.
- *
- * 컨트롤러는 DTO 변환과 상태 코드만 한다. 접근 판정은 유스케이스가 한다.
- */
+/** 모든 메서드가 {@link ActorContext}를 선언해야 한다. 빠뜨리면 검사 없이 열린다. */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -44,6 +38,10 @@ public class SaleController {
     private final RegisterCancelUseCase registerCancelUseCase;
     private final ListCreatorSalesUseCase listCreatorSalesUseCase;
 
+    /**
+     * 판매 등록 API
+     * 결제가 완료되면 호출된다. 운영자만 등록할 수 있고, 없는 강의는 404다.
+     */
     @PostMapping("/sales")
     ResponseEntity<SaleResponse> register(@Valid @RequestBody RegisterSaleRequest request,
                                           ActorContext actor) {
@@ -55,7 +53,11 @@ public class SaleController {
                         request.amount(), request.paidAt()));
     }
 
-    /** 취소에는 조회 엔드포인트가 없으므로 {@code Location}을 붙이지 않는다. */
+    /**
+     * 취소 등록 API
+     * 환불이 발생하면 호출된다. 누적 취소액이 원결제를 넘으면 409로 거부한다.
+     * 취소에는 조회 엔드포인트가 없어 {@code Location}을 붙이지 않는다.
+     */
     @PostMapping("/sales/{saleId}/cancellations")
     ResponseEntity<CancelResponse> cancel(@PathVariable String saleId,
                                           @Valid @RequestBody RegisterCancelRequest request,
@@ -68,7 +70,11 @@ public class SaleController {
                         request.amount(), request.cancelledAt()));
     }
 
-    /** 날짜를 {@code String}으로 받는다. 타입 바인딩하면 검증이 도메인이 아닌 Spring에서 일어난다. */
+    /**
+     * 크리에이터 판매 목록 조회 API
+     * 기간 내 판매를 환불 상태와 함께 돌려준다. 본인 또는 운영자만 볼 수 있다.
+     * {@code refundStatus}는 기간과 무관하게 그 판매의 모든 취소에서 나온다.
+     */
     @GetMapping("/creators/{creatorId}/sales")
     CreatorSalesResponse list(@PathVariable String creatorId,
                               @RequestParam String from,

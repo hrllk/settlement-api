@@ -12,11 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
-/**
- * 조회만 하므로 {@code @Transactional}이 없다. 쓰기가 없으면 롤백할 것도 없다.
- * 컨텍스트 캐시 키를 정하는 것은 아래 두 애노테이션뿐이라
- * {@code SaleControllerTest}와 같은 컨텍스트를 쓴다 — 실측으로 확인했다.
- */
+/** 조회만 하므로 {@code @Transactional}이 없다. 컨텍스트는 {@code SaleControllerTest}와 공유한다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class SettlementControllerTest {
@@ -30,11 +26,7 @@ class SettlementControllerTest {
     @DisplayName("크리에이터 월별 정산")
     class Monthly {
 
-        /**
-         * 계산 재검증이 아니라 <b>배선 검증</b>이다. 계산의 정확성은 Task 3이 단위로
-         * 잠갔다. 값을 단언하는 이유는 200만 보면 배선이 끊겨 전 항목 0이 나와도
-         * 통과하기 때문이다.
-         */
+        /** 배선 검증이다. 200 만 보면 배선이 끊겨 전 항목 0 이 나와도 통과한다. */
         @Test
         @DisplayName("creator-1 본인의 2025-03이 payout 120,000이다")
         void ownMonth() throws Exception {
@@ -88,11 +80,7 @@ class SettlementControllerTest {
                     .andExpect(jsonPath("$.totalPayout").value(168_000));
         }
 
-        /**
-         * <b>이 프로젝트의 유일한 회귀 방어선이다.</b> 월별 합산으로 잘못 구현해도
-         * 위 2025-03 테스트는 정답이 나온다 — 3월에는 음수 월이 없기 때문이다.
-         * 1~3월 구간만이 단일 구간 264,000과 월별 합산 252,000을 가른다.
-         */
+        /** 유일한 회귀 방어선. 2025-03 만 보면 월별 합산 구현도 정답이 나온다. */
         @Test
         @DisplayName("2025-01~03 전체 합계가 264,000이다. 월별 합산이면 252,000이라 실패한다")
         void quarterIsNotSumOfMonths() throws Exception {
@@ -107,14 +95,7 @@ class SettlementControllerTest {
                     .andExpect(jsonPath("$.creators[1].payout").value(48_000));
         }
 
-        /**
-         * <b>{@code to}는 그 날 하루 전체를 포함한다.</b> {@code ofDateRange}가 종료일에
-         * 하루를 더해 반열린 구간으로 바꾼다.
-         *
-         * <p>시드에 3월 31일 데이터가 없어 {@code to=03-31}과 {@code to=04-01}이 같은
-         * 값을 낸다. 그래서 이 규칙은 하루짜리 구간으로만 잠글 수 있다. sale-1이
-         * 2025-03-05 10:00 KST라, 하루 구간에 잡히고 전날까지로 자르면 빠진다.
-         */
+        /** {@code to}는 종료일 하루 전체를 포함한다. 하루짜리 구간으로만 구분된다. */
         @Test
         @DisplayName("to 는 종료일 하루 전체를 포함한다")
         void endDateIsInclusive() throws Exception {
@@ -182,11 +163,7 @@ class SettlementControllerTest {
                     .andExpect(jsonPath("$.payout").value(120_000));
         }
 
-        /**
-         * <b>{@code code}까지 단언한다.</b> 컨트롤러가 {@code @PathVariable YearMonth}로
-         * 바꾸면 Spring이 먼저 거부해 코드가 달라지는데, 상태 코드만 보면 둘 다
-         * 400이라 통과한다.
-         */
+        /** {@code code}까지 단언한다. 상태 코드만 보면 둘 다 400 이라 통과한다. */
         @Test
         @DisplayName("잘못된 연월은 400 INVALID_SETTLEMENT_PERIOD다")
         void invalidYearMonth() throws Exception {

@@ -14,14 +14,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-/**
- * 해석기는 필터가 아니다. {@link ActorContext}를 선언하지 않은 핸들러는 해석기를
- * 아예 거치지 않아 헤더 검사도 인가 판정도 없이 열린다. <b>컴파일도 테스트도
- * 통과하고 응답도 200이다.</b> 컴파일러가 못 잡는 유일한 구조적 위험이라 여기서 막는다.
- *
- * <p>"선언했지만 유스케이스가 판정을 안 부르는" 경우는 못 잡는다.
- * {@code SettlementControllerTest}의 접근 경계 4건이 그 층을 덮는다.
- */
+/** 선언 안 한 핸들러는 해석기를 안 거쳐 무방비로 열린다. 컴파일러가 못 잡는 유일한 위험이다. */
 @SpringBootTest
 @AutoConfigureMockMvc   // MockMvc를 안 쓰지만 붙인다. 컨트롤러 테스트와 컨텍스트를 공유해 기동을 한 번 줄인다.
 class ControllerActorGuardTest {

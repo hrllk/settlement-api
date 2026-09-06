@@ -7,16 +7,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
-/**
- * KST 기준 정산 기간. 하한 포함, 상한 배제인 반열린 구간이다.
- *
- *   ofYearMonth("2025-03")
- *     [ 2025-03-01T00:00+09:00 , 2025-04-01T00:00+09:00 )
- *     ^ 포함                     ^ 배제
- *
- * 원본 과제는 "말일 23:59:59"로 적었으나 초 미만 구간이 누락되므로
- * 의도적으로 이탈했다. 근거는 README에 있다.
- */
+/** KST 반열린 구간 [from, to). 과제의 "말일 23:59:59"를 의도적으로 이탈했다 — 근거는 README. */
 public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
@@ -40,7 +31,6 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         LocalDate start = parseDate(requireText(startDate, "startDate"), "startDate");
         LocalDate end = parseDate(requireText(endDate, "endDate"), "endDate");
         // 팩토리에서 먼저 거부해야 원본 문자열이 메시지에 남는다.
-        // compact 생성자까지 흘리면 Instant로만 찍혀 무엇을 잘못 넣었는지 안 보인다.
         if (end.isBefore(start)) {
             throw new InvalidSettlementPeriodException(
                     "endDate must not precede startDate: " + startDate + " ~ " + endDate);
@@ -52,11 +42,7 @@ public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
         return !at.isBefore(fromInclusive) && at.isBefore(toExclusive);
     }
 
-    /**
-     * 상한을 여는 +1 산술이 지원 범위를 넘으면 여기서 400으로 막는다. 파서는
-     * {@code +999999999-12-31}을 통과시키므로, 이 산술을 감싸지 않으면
-     * {@link DateTimeException}이 전역 처리기를 그대로 지나쳐 500이 된다.
-     */
+    /** 상한을 여는 +1 산술이 넘치면 400으로 막는다. 안 감싸면 500이 된다. */
     private static LocalDate nextDay(LocalDate date, String raw) {
         try {
             return date.plusDays(1);

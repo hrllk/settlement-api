@@ -11,10 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-/**
- * 정산 계산과 판매 목록의 입력을 공급한다. 읽기 전용이다.
- * 쓰기는 {@code Sale} 애그리게이트와 {@code SaleRepository}가 따로 맡는다.
- */
+/** 읽기 전용. 쓰기는 {@code Sale} 애그리게이트와 {@code SaleRepository}가 맡는다. */
 @Component
 @RequiredArgsConstructor
 public class SalesQueryJpaAdapter implements SalesQueryPort {
@@ -43,9 +40,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
     @Override
     public List<CancelData> findCancelsBySaleIds(Collection<String> saleIds) {
         if (saleIds == null || saleIds.isEmpty()) {
-            // 빈 컬렉션을 그대로 JPQL로 내리면 in () 이 되고, 동작이 dialect에
-            // 따라 갈린다. 판매 0건인 기간을 조회하면 실제로 이 경로를 밟는다 --
-            // creator-3의 2025-03이 그 경우다.
+            // 빈 컬렉션은 in () 이 되어 dialect마다 갈린다. 판매 0건이면 실제로 밟는다.
             return List.of();
         }
         return cancelJpaRepository.findBySaleIdIn(saleIds)
@@ -83,10 +78,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
                 entity.getAmount(), entity.getPaidAt());
     }
 
-    /**
-     * {@code creatorId}는 호출 인자를 그대로 넣는다. 항상 크리에이터로 좁히는
-     * 계약이라 인자가 곧 정답이다 — 강의를 다시 조회하면 N+1이 된다.
-     */
+    /** 인자를 그대로 넣는다. 강의를 다시 조회하면 N+1이 된다. */
     private static SaleData toSaleData(SaleEntity entity, String creatorId) {
         return new SaleData(entity.getId(), creatorId, entity.getAmount(), entity.getPaidAt());
     }

@@ -3,12 +3,7 @@ package com.liveclass.settlement.domain.settlement;
 import java.util.Collection;
 import java.util.Objects;
 
-/**
- * 판매 한 건의 환불 상태. 저장하지 않고 취소 금액 합계에서 매번 계산한다.
- *
- * 기간 필터를 적용하지 않는다. 시그니처에 {@code SettlementPeriod}가
- * 없는 것이 그 보장이다.
- */
+/** 취소 합계에서 매번 계산한다. 시그니처에 기간이 없는 것이 무필터의 보장이다. */
 public enum RefundStatus {
 
     NONE, PARTIAL, FULL;

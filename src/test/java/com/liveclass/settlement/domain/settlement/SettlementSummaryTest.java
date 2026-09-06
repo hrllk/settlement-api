@@ -5,11 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 정상 경로는 SettlementCalculatorTest가 전부 덮으므로 여기서는 파생값
- * 불변식 위반만 본다. 인자를 전부 적어 두 검증을 분리한다. 한 케이스가
- * 둘 다 걸리면 어느 쪽이 도는지 증명하지 못한다.
- */
+/** 파생값 불변식 위반만 본다. 인자를 전부 적어 두 검증을 분리한다. */
 class SettlementSummaryTest {
 
     @Test

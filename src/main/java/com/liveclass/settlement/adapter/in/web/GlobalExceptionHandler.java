@@ -21,16 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-/**
- * 모든 실패를 RFC 9457 Problem Details로 바꾼다.
- *
- * {@code Exception} catch-all을 두지 않는다. {@code IllegalArgumentException},
- * {@code NullPointerException}은 우리 코드의 버그이므로 400으로 위장시키지 않는다.
- *
- * {@code @Order}를 빼면 안 된다. Spring의 {@code ProblemDetailsExceptionHandler}가
- * {@code @Order(0)}이라, 순서를 안 주면 검증·역직렬화 예외를 Spring이 먼저 가져가
- * {@code code}가 사라진다.
- */
+/** 모든 실패를 RFC 9457로 바꾼다. {@code @Order}를 빼면 Spring이 먼저 가져가 code가 사라진다. */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Slf4j
@@ -62,10 +53,7 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_SETTLEMENT_PERIOD", e.getMessage(), request);
     }
 
-    /**
-     * 안 잡으면 Spring이 자체 {@code ProblemDetail}을 내보내 {@code code} 확장
-     * 멤버가 빠진다. 여러 필드가 실패하면 첫 위반의 메시지를 쓴다.
-     */
+    /** 안 잡으면 Spring 기본 본문이 나가 {@code code}가 빠진다. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail validationFailed(MethodArgumentNotValidException e, HttpServletRequest request) {
         String detail = e.getBindingResult().getFieldErrors().stream()
@@ -75,10 +63,7 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", detail, request);
     }
 
-    /**
-     * Task 1의 {@code ActorContextArgumentResolver}가 헤더 오류에 이 예외를 던진다.
-     * Task 1 코드를 고치지 않고 여기서 흡수한다. 상태는 예외가 든 값을 그대로 쓴다.
-     */
+    /** 액터 헤더 오류. 상태는 예외가 든 값을 그대로 쓴다. */
     @ExceptionHandler(ResponseStatusException.class)
     ProblemDetail actorHeader(ResponseStatusException e, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
@@ -103,9 +88,7 @@ public class GlobalExceptionHandler {
                                   HttpServletRequest request) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(
                 status, detail != null ? detail : status.getReasonPhrase());
-        // 기본값 about:blank 는 직렬화에서 생략된다. 실제 타입 URI를 넣어야
-        // type 이 응답에 남고, RFC 9457도 문제 유형을 식별하는 URI를 권한다.
-        // 문서를 호스팅하지 않으므로 URN을 쓴다.
+        // 기본값 about:blank 는 직렬화에서 생략된다. 넣어야 type 이 응답에 남는다.
         body.setType(URI.create(
                 "urn:problem-type:" + code.toLowerCase(Locale.ROOT).replace('_', '-')));
         body.setProperty("code", code);

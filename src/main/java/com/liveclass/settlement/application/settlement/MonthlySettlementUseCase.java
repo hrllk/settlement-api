@@ -17,12 +17,7 @@ public class MonthlySettlementUseCase {
     private final ActorAccessPolicy actorAccessPolicy;
     private final SettlementQuery settlementQuery;
 
-    /**
-     * 연월을 {@code String}으로 받는다. {@code @PathVariable YearMonth}로 바인딩하면
-     * Spring이 먼저 거부해 {@code 2025-13}의 오류 코드가 달라진다.
-     *
-     * <p>판매도 취소도 없는 달은 전 항목 0인 요약이 된다. 404가 아니다.
-     */
+    /** 연월은 {@code String}이다. 타입 바인딩하면 오류 코드가 달라진다. */
     @Transactional(readOnly = true)
     public SettlementSummary settle(ActorContext actor, String creatorId, String yearMonth) {
         actorAccessPolicy.requireSelfOrAdmin(actor, creatorId);
