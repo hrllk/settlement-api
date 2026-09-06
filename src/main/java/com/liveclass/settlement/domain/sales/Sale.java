@@ -11,27 +11,31 @@ public class Sale {
 
     private final String id;
     private final String courseId;
+    private final String studentId;
     private final long amount;
     private final Instant paidAt;
     private final List<Cancel> cancels;
 
-    private Sale(String id, String courseId, long amount, Instant paidAt, List<Cancel> cancels) {
+    private Sale(String id, String courseId, String studentId, long amount,
+                 Instant paidAt, List<Cancel> cancels) {
         this.id = Objects.requireNonNull(id, "id");
         this.courseId = Objects.requireNonNull(courseId, "courseId");
+        this.studentId = Objects.requireNonNull(studentId, "studentId");
         this.amount = amount;
         this.paidAt = Objects.requireNonNull(paidAt, "paidAt");
         this.cancels = new ArrayList<>(Objects.requireNonNull(cancels, "cancels"));
     }
 
     /** 신규 등록. 식별자는 밖에서 만들어 넘긴다. */
-    public static Sale register(String id, String courseId, long amount, Instant paidAt) {
-        return new Sale(id, courseId, amount, paidAt, List.of());
+    public static Sale register(String id, String courseId, String studentId,
+                                long amount, Instant paidAt) {
+        return new Sale(id, courseId, studentId, amount, paidAt, List.of());
     }
 
     /** 저장소에서 복원. 불변식을 재검사하지 않는다 — 조회가 500이 되는 것보다 낫다. */
-    public static Sale restore(String id, String courseId, long amount, Instant paidAt,
-                               List<Cancel> cancels) {
-        return new Sale(id, courseId, amount, paidAt, cancels);
+    public static Sale restore(String id, String courseId, String studentId, long amount,
+                               Instant paidAt, List<Cancel> cancels) {
+        return new Sale(id, courseId, studentId, amount, paidAt, cancels);
     }
 
     public Cancel cancel(String cancelId, long amount, Instant cancelledAt) {
@@ -68,6 +72,10 @@ public class Sale {
 
     public String courseId() {
         return courseId;
+    }
+
+    public String studentId() {
+        return studentId;
     }
 
     public long amount() {

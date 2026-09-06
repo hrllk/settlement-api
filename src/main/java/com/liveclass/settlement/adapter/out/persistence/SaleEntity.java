@@ -26,6 +26,10 @@ public class SaleEntity {
     @Column(name = "course_id", length = 64, nullable = false)
     private String courseId;
 
+    /** 정산 계산에는 안 쓰인다. 과제가 명시한 필드라 판매 내역으로 보관한다. */
+    @Column(name = "student_id", length = 64, nullable = false)
+    private String studentId;
+
     /** 원 단위. {@code Long}이 아니라 {@code long}이라 null이 애초에 불가능하다. */
     @Column(nullable = false)
     private long amount;
@@ -34,9 +38,10 @@ public class SaleEntity {
     @Column(name = "paid_at", nullable = false)
     private Instant paidAt;
 
-    public SaleEntity(String id, String courseId, long amount, Instant paidAt) {
+    public SaleEntity(String id, String courseId, String studentId, long amount, Instant paidAt) {
         this.id = id;
         this.courseId = courseId;
+        this.studentId = studentId;
         this.amount = amount;
         this.paidAt = paidAt;
     }

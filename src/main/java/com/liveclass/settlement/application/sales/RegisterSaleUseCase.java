@@ -24,13 +24,15 @@ public class RegisterSaleUseCase {
 
     /** ADMIN 제한은 판단이다. {@code courseExists}는 필수 — FK가 없어 유령 행이 남는다. */
     @Transactional
-    public String register(ActorContext actor, String courseId, long amount, Instant paidAt) {
+    public String register(ActorContext actor, String courseId, String studentId,
+                           long amount, Instant paidAt) {
         actorAccessPolicy.requireAdmin(actor);
         if (!salesQueryPort.courseExists(courseId)) {
             throw new CourseNotFoundException(courseId);
         }
 
-        Sale sale = Sale.register(UUID.randomUUID().toString(), courseId, amount, paidAt);
+        Sale sale = Sale.register(
+                UUID.randomUUID().toString(), courseId, studentId, amount, paidAt);
         saleRepository.save(sale);
 
         log.info("sale registered: saleId={}, courseId={}, amount={}, actorId={}",

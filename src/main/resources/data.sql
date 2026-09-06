@@ -25,14 +25,14 @@ insert into courses (id, creator_id, title) values
   ('course-3', 'creator-2', 'Kotlin 기초'),
   ('course-4', 'creator-3', 'MSA 설계');
 
-insert into sales (id, course_id, amount, paid_at) values
-  ('sale-1', 'course-1',  50000, '2025-03-05T01:00:00Z'),   -- 2025-03-05 10:00 KST
-  ('sale-2', 'course-1',  50000, '2025-03-15T05:30:00Z'),   -- 2025-03-15 14:30 KST
-  ('sale-3', 'course-2',  80000, '2025-03-20T00:00:00Z'),   -- 2025-03-20 09:00 KST
-  ('sale-4', 'course-2',  80000, '2025-03-22T02:00:00Z'),   -- 2025-03-22 11:00 KST
-  ('sale-5', 'course-3',  60000, '2025-01-31T14:30:00Z'),   -- 2025-01-31 23:30 KST  <- 월 경계
-  ('sale-6', 'course-3',  60000, '2025-03-10T07:00:00Z'),   -- 2025-03-10 16:00 KST
-  ('sale-7', 'course-4', 120000, '2025-02-14T01:00:00Z');   -- 2025-02-14 10:00 KST
+insert into sales (id, course_id, student_id, amount, paid_at) values
+  ('sale-1', 'course-1', 'student-1',  50000, '2025-03-05T01:00:00Z'),   -- 2025-03-05 10:00 KST
+  ('sale-2', 'course-1', 'student-2',  50000, '2025-03-15T05:30:00Z'),   -- 2025-03-15 14:30 KST
+  ('sale-3', 'course-2', 'student-3',  80000, '2025-03-20T00:00:00Z'),   -- 2025-03-20 09:00 KST
+  ('sale-4', 'course-2', 'student-4',  80000, '2025-03-22T02:00:00Z'),   -- 2025-03-22 11:00 KST
+  ('sale-5', 'course-3', 'student-5',  60000, '2025-01-31T14:30:00Z'),   -- 2025-01-31 23:30 KST  <- 월 경계
+  ('sale-6', 'course-3', 'student-6',  60000, '2025-03-10T07:00:00Z'),   -- 2025-03-10 16:00 KST
+  ('sale-7', 'course-4', 'student-7', 120000, '2025-02-14T01:00:00Z');   -- 2025-02-14 10:00 KST
 
 -- 취소 3건은 원본 과제에 없어 직접 정의했다. 금액과 귀속 월은 기대 결과를
 -- 재현하도록 확정했고, 시각은 Task 2가 정한다. 세 건 모두 10:00 KST다.

@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 /** {@code OffsetDateTime}이라야 오프셋이 강제된다. 금액 상한도 필요하다 — 누적이 래핑한다. */
 public record RegisterSaleRequest(
         @NotBlank String courseId,
+        @NotBlank String studentId,
         @Positive @Max(MAX_AMOUNT) long amount,
         @NotNull OffsetDateTime paidAt) {
 

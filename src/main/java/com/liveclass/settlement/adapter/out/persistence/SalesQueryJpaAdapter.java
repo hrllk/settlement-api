@@ -74,7 +74,7 @@ public class SalesQueryJpaAdapter implements SalesQueryPort {
     }
 
     private static SaleRecord toSaleRecord(SaleEntity entity) {
-        return new SaleRecord(entity.getId(), entity.getCourseId(),
+        return new SaleRecord(entity.getId(), entity.getCourseId(), entity.getStudentId(),
                 entity.getAmount(), entity.getPaidAt());
     }
 

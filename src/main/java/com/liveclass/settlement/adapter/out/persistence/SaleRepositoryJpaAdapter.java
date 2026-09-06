@@ -25,7 +25,7 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
             List<Cancel> loaded = cancelJpaRepository.findBySaleId(saleId).stream()
                     .map(c -> new Cancel(c.getId(), c.getAmount(), c.getCancelledAt()))
                     .toList();
-            return Sale.restore(entity.getId(), entity.getCourseId(),
+            return Sale.restore(entity.getId(), entity.getCourseId(), entity.getStudentId(),
                     entity.getAmount(), entity.getPaidAt(), loaded);
         });
     }
@@ -34,7 +34,7 @@ public class SaleRepositoryJpaAdapter implements SaleRepository {
     @Override
     public void save(Sale sale) {
         saleJpaRepository.save(new SaleEntity(
-                sale.id(), sale.courseId(), sale.amount(), sale.paidAt()));
+                sale.id(), sale.courseId(), sale.studentId(), sale.amount(), sale.paidAt()));
 
         Set<String> persisted = cancelJpaRepository.findBySaleId(sale.id()).stream()
                 .map(CancelEntity::getId)

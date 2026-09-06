@@ -18,7 +18,8 @@ class SaleTest {
     }
 
     private static Sale sale(long amount) {
-        return Sale.register("sale-x", "course-1", amount, kst("2025-06-10T10:00:00+09:00"));
+        return Sale.register("sale-x", "course-1", "student-1", amount,
+                kst("2025-06-10T10:00:00+09:00"));
     }
 
     private static Instant at(String day) {
@@ -97,7 +98,7 @@ class SaleTest {
     @Test
     @DisplayName("결제보다 이른 취소는 거부한다")
     void cancelBeforePaymentRejected() {
-        Sale sale = Sale.register("s1", "c1", 80_000, at("10"));
+        Sale sale = Sale.register("s1", "c1", "st1", 80_000, at("10"));
 
         assertThatThrownBy(() -> sale.cancel("c1", 1_000, at("09")))
                 .isInstanceOf(CancelBeforePaymentException.class)
@@ -108,7 +109,7 @@ class SaleTest {
     @Test
     @DisplayName("결제와 같은 시각의 취소는 허용한다")
     void cancelAtPaymentInstantAllowed() {
-        Sale sale = Sale.register("s1", "c1", 80_000, at("10"));
+        Sale sale = Sale.register("s1", "c1", "st1", 80_000, at("10"));
 
         sale.cancel("c1", 1_000, at("10"));
 
