@@ -7,7 +7,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
-/** KST 반열린 구간 [from, to). 과제의 "말일 23:59:59"를 의도적으로 이탈했다 — 근거는 README. */
+/** KST 시작 이상 종료 미만 [from, to). 과제의 "말일 23:59:59"를 의도적으로 위반했다 — 근거는 README. */
 public record SettlementPeriod(Instant fromInclusive, Instant toExclusive) {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");

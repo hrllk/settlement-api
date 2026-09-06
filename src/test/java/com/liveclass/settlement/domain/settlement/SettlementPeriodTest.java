@@ -52,7 +52,7 @@ class SettlementPeriodTest {
 
     /** 세 방향이 각각 다른 구현 오류를 잡는다. 둘만으로는 상한을 닫은 구현이 통과한다. */
     @Nested
-    @DisplayName("반열린 구간 경계")
+    @DisplayName("이상 미만 경계")
     class Boundary {
 
         @Test
